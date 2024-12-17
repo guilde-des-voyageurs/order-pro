@@ -13,6 +13,7 @@ import '@mantine/notifications/styles.css';
 import '@mantine/nprogress/styles.css';
 import './globals.scss';
 import { MainLayout } from '@/layout/MainLayout';
+import { QueryClientProvider } from '@/state/QueryClientProvider';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -36,7 +37,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable}`}>
         <MantineProvider theme={theme}>
-          <MainLayout>{children}</MainLayout>
+          <QueryClientProvider>
+            <MainLayout>{children}</MainLayout>
+          </QueryClientProvider>
         </MantineProvider>
       </body>
     </html>
