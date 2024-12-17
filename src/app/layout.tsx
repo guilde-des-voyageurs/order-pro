@@ -1,10 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import '@mantine/core/styles.css';
-import '@mantine/notifications/styles.css';
-import '@mantine/nprogress/styles.css';
-
-import './globals.scss';
 import React from 'react';
 import {
   ColorSchemeScript,
@@ -12,6 +7,12 @@ import {
   MantineProvider,
 } from '@mantine/core';
 import { theme } from '@/style/theme';
+
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
+import '@mantine/nprogress/styles.css';
+import './globals.scss';
+import { MainLayout } from '@/layout/MainLayout';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -34,7 +35,9 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body className={`${inter.variable}`}>
-        <MantineProvider theme={theme}>{children}</MantineProvider>
+        <MantineProvider theme={theme}>
+          <MainLayout>{children}</MainLayout>
+        </MantineProvider>
       </body>
     </html>
   );

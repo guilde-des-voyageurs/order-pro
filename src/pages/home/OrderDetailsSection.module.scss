@@ -1,0 +1,33 @@
+.view {
+  background-color: white;
+  position: relative;
+
+  padding-inline: 48px;
+  flex: 1;
+  display: none;
+}
+
+.view_visible {
+  display: block;
+}
+
+.content {
+  max-width: 700px;
+}
+
+.header {
+  margin-top: 40px;
+
+  display: flex;
+  justify-content: space-between;
+}
+
+.cross_container {
+  position: absolute;
+
+  top: 20px;
+  right: 20px;
+
+  padding: 20px;
+  cursor: pointer;
+}

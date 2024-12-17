@@ -1,0 +1,33 @@
+$menuWidth: 340px;
+
+.view {
+
+}
+
+.menu {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: $menuWidth;
+  padding-inline: 24px;
+  padding-block: 20px;
+
+  &_logo {
+    height: 52px;
+  }
+
+  &_links {
+    list-style-type: none;
+    margin-top: 20px;
+
+    a {
+      font-weight: bold;
+    }
+  }
+}
+
+.main {
+  margin-left: $menuWidth;
+}
