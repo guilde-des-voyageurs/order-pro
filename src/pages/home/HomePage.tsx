@@ -2,28 +2,14 @@
 
 import styles from './HomePage.module.scss';
 import { clsx } from 'clsx';
-import { useState } from 'react';
 import { OrderDetailsSection } from '@/pages/home/OrderDetailsSection';
 import { Badge } from '@/components/Badge';
-import { useQuery } from '@tanstack/react-query';
-import { fetchOrdersAction } from '@/actions/fetch-orders-action';
 import { Text, Title } from '@mantine/core';
+import { useHomePagePresenter } from '@/pages/home/HomePage.presenter';
 
 export const HomePage = () => {
-  const [selected, setSelected] = useState<string | null>(null);
-
-  const query = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => fetchOrdersAction(),
-  });
-
-  const openOrders = (query.data ?? []).filter(
-    (order) => order.status === 'OPEN',
-  );
-
-  const closedOrders = (query.data ?? []).filter(
-    (order) => order.status !== 'OPEN',
-  );
+  const { openOrders, closedOrders, selected, setSelected } =
+    useHomePagePresenter();
 
   return (
     <div className={styles.view}>
@@ -80,6 +66,7 @@ export const HomePage = () => {
         </section>
       </div>
       <OrderDetailsSection
+        selected={selected}
         visible={selected !== null}
         onRequestClose={() => setSelected(null)}
       />

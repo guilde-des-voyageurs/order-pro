@@ -1,4 +1,4 @@
-$menuWidth: 340px;
+@use "src/style/_mantine.scss" as *;
 
 .view {
 
@@ -10,7 +10,7 @@ $menuWidth: 340px;
   top: 0;
   bottom: 0;
 
-  width: $menuWidth;
+  width: $app-menu-width;
   padding-inline: 24px;
   padding-block: 20px;
 
@@ -29,5 +29,5 @@ $menuWidth: 340px;
 }
 
 .main {
-  margin-left: $menuWidth;
+  margin-left: $app-menu-width;
 }

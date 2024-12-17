@@ -1,3 +1,5 @@
+@use "src/style/_mantine.scss" as *;
+
 .view {
   min-height: 100vh;
   display: flex;
@@ -6,7 +8,7 @@
 .main_content {
   margin-top: 40px;
 
-  flex-basis: 700px;
+  flex-basis: $app-content-width;
   padding-inline: 32px;
 }
 .section {

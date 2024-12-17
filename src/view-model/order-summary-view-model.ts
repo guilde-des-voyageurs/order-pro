@@ -1,10 +1,12 @@
-type OrderSummaryStatus = 'OPEN' | 'CLOSED';
+import { OrderSummaryStatus } from '@/view-model/order-status-view-model';
 
 export type OrderSummaryViewModel = {
-  id: string;
-  name: string;
-  status: OrderSummaryStatus;
-  createdAt: string;
-  createdAtFormatted: string;
-  quantity: number;
+  data: Array<{
+    id: string;
+    name: string;
+    status: OrderSummaryStatus;
+    createdAt: string;
+    createdAtFormatted: string;
+    quantity: number;
+  }>;
 };

@@ -68,32 +68,40 @@ type Result = {
   };
 };
 
-export const fetchOrdersAction = async (): Promise<OrderSummaryViewModel[]> => {
-  const result = await shopifyClient.request<Result>(query);
+export const fetchOrdersSummaryAction =
+  async (): Promise<OrderSummaryViewModel> => {
+    const result = await shopifyClient.request<Result>(query);
 
-  return result
-    .data!.orders.nodes.map((order) => {
-      const relevantFullfillmentOrder = order.fulfillmentOrders.nodes.find(
-        (order) =>
-          order.assignedLocation.location.id ===
-          process.env.SHOPIFY_PROVIDER_LOCATION_ID,
-      );
+    const entries = result
+      .data!.orders.nodes.map(
+        (order): OrderSummaryViewModel['data'][number] | null => {
+          const relevantFullfillmentOrder = order.fulfillmentOrders.nodes.find(
+            (order) =>
+              order.assignedLocation.location.id ===
+              process.env.SHOPIFY_PROVIDER_LOCATION_ID,
+          );
 
-      if (!relevantFullfillmentOrder) {
-        return null;
-      }
+          if (!relevantFullfillmentOrder) {
+            return null;
+          }
 
-      return {
-        id: order.id,
-        name: order.name,
-        status: relevantFullfillmentOrder.status === 'OPEN' ? 'OPEN' : 'CLOSED',
-        createdAt: order.createdAt,
-        createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
-        quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
-          (acc, lineItem) => acc + lineItem.totalQuantity,
-          0,
-        ),
-      };
-    })
-    .filter((order) => order !== null) as OrderSummaryViewModel[];
-};
+          return {
+            id: order.id,
+            name: order.name,
+            status:
+              relevantFullfillmentOrder.status === 'OPEN' ? 'OPEN' : 'CLOSED',
+            createdAt: order.createdAt,
+            createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
+            quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
+              (acc, lineItem) => acc + lineItem.totalQuantity,
+              0,
+            ),
+          };
+        },
+      )
+      .filter((order) => order !== null);
+
+    return {
+      data: entries as OrderSummaryViewModel['data'],
+    };
+  };
