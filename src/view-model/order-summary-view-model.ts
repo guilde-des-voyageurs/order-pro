@@ -8,5 +8,6 @@ export type OrderSummaryViewModel = {
     createdAt: string;
     createdAtFormatted: string;
     quantity: number;
+    quantityPerType: Record<string, number>;
   }>;
 };

@@ -7,6 +7,8 @@ import { Box, Button, Flex, Image, Stack, Text, Title } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
+import { useReactToPrint } from 'react-to-print';
+import { useRef } from 'react';
 
 export const OrderDetailsSection = ({
   selected,
@@ -32,6 +34,8 @@ const Content = ({ id }: { id: string }) => {
     queryKey: ['orders', id],
     queryFn: () => fetchOrderDetailAction(id),
   });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const reactToPrintFn = useReactToPrint({ contentRef } as any);
 
   if (!query.data || query.data.type === 'error') {
     return null;
@@ -56,10 +60,8 @@ const Content = ({ id }: { id: string }) => {
           seconde.
         </Text>
       </Box>
-      <Button mt={60} size={'lg'}>
-        Imprimer le bordereau d'emballage
-      </Button>
-      <Stack mt={60}>
+
+      <Stack mt={60} ml={10} mr={32} ref={contentRef}>
         {order.products.map((product) => (
           <Flex
             key={product.id}
@@ -74,17 +76,20 @@ const Content = ({ id }: { id: string }) => {
               <Text>
                 {product.selectedOptions.map((option) => (
                   <span key={option.name}>
-                    {option.name}: {option.value}
+                    <b>{option.name}</b> : {option.value}
                     <br />
                   </span>
                 ))}
-                Type : {product.type || 'Non défini'}
+                <b>Type</b> : {product.type || 'Non défini'}
               </Text>
             </Box>
-            <Text>x{product.quantity}</Text>
+            <Text size={'xl'}>x{product.quantity}</Text>
           </Flex>
         ))}
       </Stack>
+      <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
+        Imprimer le bordereau d'emballage
+      </Button>
     </div>
   );
 };

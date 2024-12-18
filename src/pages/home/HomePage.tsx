@@ -8,8 +8,13 @@ import { Text, Title } from '@mantine/core';
 import { useHomePagePresenter } from '@/pages/home/HomePage.presenter';
 
 export const HomePage = () => {
-  const { openOrders, closedOrders, selected, setSelected } =
-    useHomePagePresenter();
+  const {
+    openOrders,
+    closedOrders,
+    selected,
+    setSelected,
+    openOrderQuantityPerTypeStr,
+  } = useHomePagePresenter();
 
   return (
     <div className={styles.view}>
@@ -18,7 +23,7 @@ export const HomePage = () => {
         <section className={styles.section}>
           <Badge variant={'orange'}>En cours (2)</Badge>
           <Text className={styles.section_subtitle}>
-            Total : 2 Creator, 1 Drummer
+            <b>Total</b> : {openOrderQuantityPerTypeStr}
           </Text>
           <div className={styles.rows}>
             {openOrders.map((order) => (

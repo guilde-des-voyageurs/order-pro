@@ -27,6 +27,11 @@ query {
                         nodes {
                             id
                             totalQuantity
+                            lineItem {
+                                product {
+                                    productType
+                                }
+                            }
                         }
                     }
                     status
@@ -59,6 +64,11 @@ type Result = {
             nodes: Array<{
               id: string;
               totalQuantity: number;
+              lineItem: {
+                product: {
+                  productType: string;
+                };
+              };
             }>;
           };
           status: string;
@@ -95,6 +105,18 @@ export const fetchOrdersSummaryAction =
             quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
               (acc, lineItem) => acc + lineItem.totalQuantity,
               0,
+            ),
+            quantityPerType: relevantFullfillmentOrder.lineItems.nodes.reduce(
+              (prev, curr) => {
+                const productType = curr.lineItem.product.productType;
+                if (!prev[productType]) {
+                  prev[productType] = 0;
+                }
+
+                prev[productType] += curr.totalQuantity;
+                return prev;
+              },
+              {} as Record<string, number>,
             ),
           };
         },

@@ -1,19 +1,11 @@
 @use "src/style/_mantine.scss" as *;
 
 .view {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: $app-menu-width + $app-content-width; // Menu Width + Content Width
-
   background-color: white;
 
   padding-inline: 48px;
   flex: 1;
   display: none;
-
-
 }
 
 .view_visible {
@@ -21,7 +13,8 @@
 }
 
 .content {
-  max-width: 700px;
+  width: 700px;
+  position: fixed;
 }
 
 .header {
@@ -32,7 +25,7 @@
 }
 
 .cross_container {
-  position: absolute;
+  position: fixed;
 
   top: 20px;
   right: 20px;

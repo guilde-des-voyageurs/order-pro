@@ -9,6 +9,7 @@ export type OrderDetailViewModel =
       type: 'success';
       data: {
         id: string;
+        rawId: string;
         name: string;
         status: OrderSummaryStatus;
         createdAt: string;

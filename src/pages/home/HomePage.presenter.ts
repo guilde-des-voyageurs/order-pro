@@ -18,11 +18,37 @@ export const useHomePagePresenter = () => {
     (order) => order.status !== 'OPEN',
   );
 
+  const openOrderQuantityPerType = openOrders.reduce(
+    (prev, curr) => {
+      Object.entries(curr.quantityPerType).forEach(([key, value]) => {
+        if (!prev[key]) {
+          prev[key] = 0;
+        }
+
+        prev[key] += value;
+      });
+
+      return prev;
+    },
+    {} as Record<string, number>,
+  );
+
+  const openOrderQuantityPerTypeStr = Object.keys(openOrderQuantityPerType)
+    .reduce(
+      (prev, key) =>
+        prev +
+        `${key.length > 0 ? key : 'Unknown'}: ${openOrderQuantityPerType[key]}, `,
+      '',
+    )
+    .slice(0, -2);
+
   return {
     selected,
     setSelected,
     query,
     openOrders,
     closedOrders,
+    openOrderQuantityPerType,
+    openOrderQuantityPerTypeStr,
   };
 };

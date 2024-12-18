@@ -3,6 +3,7 @@
 import { shopifyClient } from '@/shopify/shopify-client';
 import { OrderDetailViewModel } from '@/view-model/order-detail-view-model';
 import { format } from 'date-fns';
+import { ShopifyIds } from '@/utils/shopify-ids';
 
 const query = `
 query ($orderId: ID!) {
@@ -120,6 +121,7 @@ export const fetchOrderDetailAction = async (
     type: 'success',
     data: {
       id: order.id,
+      rawId: ShopifyIds.fromUri(order.id),
       name: order.name,
       status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
       createdAt: order.createdAt,
