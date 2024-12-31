@@ -19,7 +19,7 @@ query ($orderId: ID!) {
                         id
                     }
                 }
-                lineItems (first: 10) {
+                lineItems (first: 50) {
                     nodes {
                         image {
                             url

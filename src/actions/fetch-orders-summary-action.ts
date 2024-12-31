@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 const query = `
 query {
-    orders(first:30, reverse: true) {
+    orders(first:100, reverse: true) {
         nodes {
             id
             name
@@ -23,7 +23,7 @@ query {
                             name
                         }
                     }
-                    lineItems (first: 10) {
+                    lineItems (first: 50) {
                         nodes {
                             id
                             totalQuantity
