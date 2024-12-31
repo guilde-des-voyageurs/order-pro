@@ -2,10 +2,10 @@
 
 import styles from './HomePage.module.scss';
 import { clsx } from 'clsx';
-import { OrderDetailsSection } from '@/pages/home/OrderDetailsSection';
+import { OrderDetailsSection } from '@/scenes/home/OrderDetailsSection';
 import { Badge } from '@/components/Badge';
 import { Text, Title } from '@mantine/core';
-import { useHomePagePresenter } from '@/pages/home/HomePage.presenter';
+import { useHomePagePresenter } from '@/scenes/home/HomePage.presenter';
 
 export const HomePage = () => {
   const {
@@ -21,7 +21,7 @@ export const HomePage = () => {
       <div className={styles.main_content}>
         <Title order={2}>Commandes à la demande</Title>
         <section className={styles.section}>
-          <Badge variant={'orange'}>En cours (2)</Badge>
+          <Badge variant={'orange'}>En cours ({openOrders.length})</Badge>
           <Text className={styles.section_subtitle}>
             <b>Total</b> : {openOrderQuantityPerTypeStr}
           </Text>
@@ -47,7 +47,7 @@ export const HomePage = () => {
           </div>
         </section>
         <section className={styles.section}>
-          <Badge variant={'green'}>Traitées (2)</Badge>
+          <Badge variant={'green'}>Traitées ({closedOrders.length})</Badge>
           <div className={styles.rows}>
             {closedOrders.map((order) => (
               <div
