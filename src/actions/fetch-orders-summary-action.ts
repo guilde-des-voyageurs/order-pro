@@ -108,7 +108,11 @@ export const fetchOrdersSummaryAction =
             ),
             quantityPerType: relevantFullfillmentOrder.lineItems.nodes.reduce(
               (prev, curr) => {
-                const productType = curr.lineItem.product.productType;
+                const productType = curr.lineItem.product?.productType;
+                if (!productType) {
+                  return prev;
+                }
+
                 if (!prev[productType]) {
                   prev[productType] = 0;
                 }

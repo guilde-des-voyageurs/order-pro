@@ -44,7 +44,7 @@ const Content = ({ id }: { id: string }) => {
   const order = query.data.data;
 
   return (
-    <div className={styles.content}>
+    <div className={styles.content} key={id}>
       <div className={styles.header}>
         <Title order={3}>
           <b>{order.name}</b>&nbsp;&nbsp;
@@ -62,30 +62,32 @@ const Content = ({ id }: { id: string }) => {
       </Box>
 
       <Stack mt={60} ml={10} mr={32} ref={contentRef}>
-        {order.products.map((product) => (
-          <Flex
-            key={product.id}
-            gap="md"
-            align="center"
-            direction="row"
-            wrap="wrap"
-          >
-            <Image h={200} w={200} src={product.imageUrl} />
-            <Box flex={1} ml={20}>
-              <Title order={3}>{product.title}</Title>
-              <Text>
-                {product.selectedOptions.map((option) => (
-                  <span key={option.name}>
-                    <b>{option.name}</b> : {option.value}
-                    <br />
-                  </span>
-                ))}
-                <b>Type</b> : {product.type || 'Non défini'}
-              </Text>
-            </Box>
-            <Text size={'xl'}>x{product.quantity}</Text>
-          </Flex>
-        ))}
+        {order.products.map((product, index) => {
+          return (
+            <Flex
+              key={index.toString()}
+              gap="md"
+              align="center"
+              direction="row"
+              wrap="wrap"
+            >
+              <Image h={200} w={200} src={product.imageUrl} />
+              <Box flex={1} ml={20}>
+                <Title order={3}>{product.title}</Title>
+                <Text>
+                  {product.selectedOptions.map((option) => (
+                    <span key={option.name}>
+                      <b>{option.name}</b> : {option.value}
+                      <br />
+                    </span>
+                  ))}
+                  <b>Type</b> : {product.type || 'Non défini'}
+                </Text>
+              </Box>
+              <Text size={'xl'}>x{product.quantity}</Text>
+            </Flex>
+          );
+        })}
       </Stack>
       <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
         Imprimer le bordereau d'emballage
