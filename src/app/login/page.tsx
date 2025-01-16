@@ -15,12 +15,22 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    console.log('Tentative de connexion avec:', email);
 
-    const result = await signIn(email, password);
-    if (result.error) {
-      setError(result.error);
-    } else {
-      router.push('/');
+    try {
+      const result = await signIn(email, password);
+      console.log('Résultat de la connexion:', result);
+      
+      if (result.error) {
+        console.error('Erreur de connexion:', result.error);
+        setError(result.error);
+      } else {
+        console.log('Connexion réussie, redirection...');
+        router.push('/');
+      }
+    } catch (err) {
+      console.error('Erreur inattendue:', err);
+      setError('Une erreur inattendue est survenue');
     }
   };
 

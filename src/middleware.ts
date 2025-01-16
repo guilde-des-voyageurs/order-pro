@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const session = request.cookies.get('session');
+// Liste des routes publiques qui ne nécessitent pas d'authentification
+const publicRoutes = ['/login'];
 
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  if (!session && !request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/login', request.url));
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get('__session');
+  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+
+  // Si c'est une route publique et que l'utilisateur est connecté, rediriger vers la page d'accueil
+  if (isPublicRoute && token) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Si l'utilisateur est connecté et essaie d'accéder à la page de login
-  if (session && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // Si ce n'est pas une route publique et que l'utilisateur n'est pas connecté, rediriger vers la page de connexion
+  if (!isPublicRoute && !token) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('from', request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

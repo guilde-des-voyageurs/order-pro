@@ -2,32 +2,42 @@
 
 .view {
 
-}
+  .menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
 
-.menu {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
+    width: $app-menu-width;
+    padding-inline: 24px;
+    padding-block: 20px;
 
-  width: $app-menu-width;
-  padding-inline: 24px;
-  padding-block: 20px;
+    &_logo {
+      height: 52px;
+    }
 
-  &_logo {
-    height: 52px;
-  }
+    &_links {
+      list-style-type: none;
+      margin-top: 20px;
 
-  &_links {
-    list-style-type: none;
-    margin-top: 20px;
+      a {
+        font-weight: bold;
+      }
+    }
 
-    a {
-      font-weight: bold;
+    &_footer {
+      margin-top: auto;
+      padding: 1rem;
+      border-top: 1px solid var(--mantine-color-gray-2);
+    }
+
+    .signout_button {
+      width: 100%;
+      justify-content: center;
     }
   }
-}
 
-.main {
-  margin-left: $app-menu-width;
+  .main {
+    margin-left: $app-menu-width;
+  }
 }
