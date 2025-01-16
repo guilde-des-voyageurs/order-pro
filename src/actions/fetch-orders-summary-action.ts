@@ -3,6 +3,7 @@
 import { shopifyClient } from '@/shopify/shopify-client';
 import { OrderSummaryViewModel } from '@/view-model/order-summary-view-model';
 import { format } from 'date-fns';
+import { EXCLUDED_TAGS } from '@/config/excluded-tags';
 
 const query = `
 query {
@@ -10,6 +11,7 @@ query {
         nodes {
             id
             name
+            tags
             createdAt
             shippingAddress {
                 id
@@ -47,6 +49,7 @@ type Result = {
     nodes: Array<{
       id: string;
       name: string;
+      tags: string[];
       createdAt: string;
       shippingAddress: {
         id: string;
@@ -83,7 +86,10 @@ export const fetchOrdersSummaryAction =
     const result = await shopifyClient.request<Result>(query);
 
     const entries = result
-      .data!.orders.nodes.map(
+      .data!.orders.nodes
+      // Filtrer les commandes qui ont des tags exclus
+      .filter((order) => !order.tags.some((tag) => EXCLUDED_TAGS.includes(tag as any)))
+      .map(
         (order): OrderSummaryViewModel['data'][number] | null => {
           const relevantFullfillmentOrder = order.fulfillmentOrders.nodes.find(
             (order) =>
