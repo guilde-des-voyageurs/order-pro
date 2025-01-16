@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@firebase/auth": "^1.8.2",
     "@mantine/core": "^7.15.1",
     "@mantine/hooks": "^7.15.1",
     "@mantine/modals": "^7.15.1",
@@ -19,6 +20,7 @@
     "@tanstack/react-query": "^5.62.7",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^11.2.0",
     "next": "15.1.0",
     "postcss": "^8.4.49",
     "postcss-flexbugs-fixes": "^5.0.2",
