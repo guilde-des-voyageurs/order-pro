@@ -7,6 +7,7 @@ import {
   MantineProvider,
 } from '@mantine/core';
 import { theme } from '@/style/theme';
+import { AuthProvider } from '@/context/AuthContext';
 
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -37,9 +38,11 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable}`}>
         <MantineProvider theme={theme}>
-          <QueryClientProvider>
-            <MainLayout>{children}</MainLayout>
-          </QueryClientProvider>
+          <AuthProvider>
+            <QueryClientProvider>
+              <MainLayout>{children}</MainLayout>
+            </QueryClientProvider>
+          </AuthProvider>
         </MantineProvider>
       </body>
     </html>
