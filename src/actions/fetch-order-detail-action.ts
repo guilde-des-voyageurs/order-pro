@@ -39,6 +39,11 @@ query ($orderId: ID!) {
                                     name
                                     value
                                 }
+                                inventoryItem {
+                                    unitCost {
+                                        amount
+                                    }
+                                }
                             }
                             title
                         }
@@ -83,6 +88,11 @@ type Result = {
                   name: string;
                   value: string;
                 }>;
+                inventoryItem: {
+                  unitCost: {
+                    amount: string;
+                  };
+                };
               };
               title: string;
             };
@@ -140,6 +150,13 @@ export const fetchOrderDetailAction = async (
         type: node.lineItem.product.productType,
         quantity: node.lineItem.quantity,
         selectedOptions: node.lineItem.variant.selectedOptions,
+        weightInKg:
+          node.weight.unit === 'GRAMS'
+            ? node.weight.value / 1000
+            : node.weight.value,
+        unitCostInEuros: parseFloat(
+          node.lineItem.variant.inventoryItem.unitCost.amount,
+        ),
       })),
     },
   };

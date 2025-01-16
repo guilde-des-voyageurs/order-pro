@@ -25,6 +25,8 @@ export type OrderDetailViewModel =
             name: string;
             value: string;
           }>;
+          unitCostInEuros: number;
+          weightInKg: number;
         }>;
       };
     };
