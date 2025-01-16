@@ -88,7 +88,7 @@ const Content = ({ id }: { id: string }) => {
                 direction="row"
                 wrap="wrap"
               >
-                <Image h={150} w={150} src={product.imageUrl} />
+                <Image h={70} w={70} src={product.imageUrl} />
                 <Box flex={1} ml={20}>
                   <Title order={3}>{product.title}</Title>
                   <Text mt={5}>
