@@ -45,6 +45,17 @@ const Content = ({ id }: { id: string }) => {
 
   const order = query.data.data;
 
+  const transformProductType = (type: string): string => {
+    switch (type.toLowerCase()) {
+      case 't-shirt unisexe':
+        return 'Creator';
+      case 'sweatshirt':
+        return 'Cruiser';
+      default:
+        return type;
+    }
+  };
+
   const unitCostInEuros = order.products
     .reduce((prev, curr) => prev + curr.unitCostInEuros + '€ + ', '')
     .slice(0, -3);
@@ -64,7 +75,8 @@ const Content = ({ id }: { id: string }) => {
       opt => opt.name.toLowerCase().includes('couleur'),
     );
 
-    return `${product.quantity}x ${product.title} - ${sizeOption?.value} - ${colorOption?.value}`;
+    const displayType = transformProductType(product.type || 'Non défini');
+    return `${product.quantity}x ${displayType} - ${sizeOption?.value} - ${colorOption?.value}`;
   };
 
   const textileDetails = order.products.map(getProductDetails).join('\n');
@@ -141,7 +153,7 @@ const Content = ({ id }: { id: string }) => {
                           <br />
                         </span>
                       ))}
-                      <b>Type</b> : {product.type || 'Non défini'}
+                      <b>Type</b> : {transformProductType(product.type || 'Non défini')}
                       <br />
                       <b>Poids</b> : {product.weightInKg} kg
                     </Text>
