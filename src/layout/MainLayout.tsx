@@ -4,11 +4,14 @@ import styles from './MainLayout.module.scss';
 import Logo from '../assets/runesdechene.png';
 import { useAuthContext } from '@/context/AuthContext';
 import { Button } from '@mantine/core';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import clsx from 'clsx';
 
 export const MainLayout = ({ children }: { children: any }) => {
   const { signOut, user } = useAuthContext();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     const result = await signOut();
@@ -17,14 +20,28 @@ export const MainLayout = ({ children }: { children: any }) => {
     }
   };
 
+  const menuItems = [
+    { href: '/', label: 'Commandes' },
+    { href: '/facturation', label: 'Facturation' },
+  ];
+
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
         <img className={styles.menu_logo} src={Logo.src} alt="Runes de Chêne" />
         <ul className={styles.menu_links}>
-          <li>
-            <a href={'/'}>Commandes</a>
-          </li>
+          {menuItems.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={clsx({
+                  [styles.active]: pathname === item.href,
+                })}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
         </ul>
         {user && (
           <div className={styles.menu_footer}>
