@@ -2,6 +2,7 @@
 
 import { shopifyClient } from '@/shopify/shopify-client';
 import { OrderSummaryViewModel } from '@/view-model/order-summary-view-model';
+import { OrderSummaryStatus } from '@/view-model/order-status-view-model';
 import { format } from 'date-fns';
 import { EXCLUDED_TAGS } from '@/config/excluded-tags';
 
