@@ -1,20 +1,29 @@
+'use client';
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchOrdersSummaryAction } from '@/actions/fetch-orders-summary-action';
+import { isAfter, parseISO } from 'date-fns';
 
 export const useHomePagePresenter = () => {
   const [selected, setSelected] = useState<string | null>(null);
+  const BILLING_START_DATE = '2025-01-16';
 
   const query = useQuery({
     queryKey: ['orders'],
     queryFn: () => fetchOrdersSummaryAction(),
   });
 
-  const openOrders = (query.data?.data ?? []).filter(
+  const recentOrders = (query.data?.data ?? []).filter((order) => {
+    const orderDate = parseISO(order.createdAt);
+    return isAfter(orderDate, parseISO(BILLING_START_DATE));
+  });
+
+  const openOrders = recentOrders.filter(
     (order) => order.status === 'OPEN',
   );
 
-  const closedOrders = (query.data?.data ?? []).filter(
+  const closedOrders = recentOrders.filter(
     (order) => order.status !== 'OPEN',
   );
 
@@ -33,22 +42,15 @@ export const useHomePagePresenter = () => {
     {} as Record<string, number>,
   );
 
-  const openOrderQuantityPerTypeStr = Object.keys(openOrderQuantityPerType)
-    .reduce(
-      (prev, key) =>
-        prev +
-        `${key.length > 0 ? key : 'Unknown'}: ${openOrderQuantityPerType[key]}, `,
-      '',
-    )
-    .slice(0, -2);
+  const openOrderQuantityPerTypeStr = Object.entries(openOrderQuantityPerType)
+    .map(([key, value]) => `${value} ${key}`)
+    .join(', ');
 
   return {
-    selected,
-    setSelected,
-    query,
     openOrders,
     closedOrders,
-    openOrderQuantityPerType,
+    selected,
+    setSelected,
     openOrderQuantityPerTypeStr,
   };
 };

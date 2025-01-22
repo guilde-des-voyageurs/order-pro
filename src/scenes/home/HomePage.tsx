@@ -19,7 +19,10 @@ export const HomePage = () => {
   return (
     <div className={styles.view}>
       <div className={styles.main_content}>
-        <Title order={2}>Commandes à la demande</Title>
+        <Title order={2}>Commandes</Title>
+        <Text size="sm" color="dimmed" mt="xs">
+          Commandes depuis le 16 janvier 2025
+        </Text>
         <section className={styles.section}>
           <Badge variant={'orange'}>En cours ({openOrders.length})</Badge>
           <Text className={styles.section_subtitle}>
