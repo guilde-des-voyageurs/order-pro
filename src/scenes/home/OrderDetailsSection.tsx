@@ -104,7 +104,7 @@ const Content = ({ id }: { id: string }) => {
             </Text>
             <Flex align="center" gap="md">
               <div>
-                <b>Textilé commandé</b> : 
+                <b>Textile commandé</b> : 
               </div>
               <OrderCheckbox 
                 orderId={id} 

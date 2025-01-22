@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { auth } from '@/firebase/config';
 
@@ -25,40 +25,38 @@ export const useOrderCheckbox = (orderId: string) => {
   const encodedId = encodeOrderId(orderId);
 
   useEffect(() => {
-    const fetchCheckboxState = async () => {
-      try {
-        // Vérifier si l'utilisateur est connecté
-        if (!auth.currentUser) {
-          setError('Utilisateur non connecté');
-          setIsLoading(false);
-          return;
-        }
+    if (!auth.currentUser) {
+      setError('Utilisateur non connecté');
+      setIsLoading(false);
+      return;
+    }
 
-        const docRef = doc(db, 'orderCheckboxes', encodedId);
-        const docSnap = await getDoc(docRef);
-
+    const docRef = doc(db, 'orderCheckboxes', encodedId);
+    
+    const unsubscribe = onSnapshot(docRef, 
+      (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data() as OrderCheckboxState;
           setIsChecked(data.isChecked);
         } else {
-          // Initialize document if it doesn't exist
-          await setDoc(docRef, {
+          setDoc(docRef, {
             isChecked: false,
             lastUpdated: new Date(),
-            originalId: orderId, // Store the original ID for reference
-            userId: auth.currentUser.uid // Stocker l'ID de l'utilisateur qui a créé le document
+            originalId: orderId,
+            userId: auth.currentUser!.uid
           });
         }
         setError(null);
-      } catch (error) {
-        console.error('Error fetching checkbox state:', error);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to order checkbox state:', error);
         setError(error instanceof Error ? error.message : 'Une erreur est survenue');
-      } finally {
         setIsLoading(false);
       }
-    };
+    );
 
-    fetchCheckboxState();
+    return () => unsubscribe();
   }, [orderId, encodedId]);
 
   const toggleCheckbox = async () => {
@@ -69,18 +67,14 @@ export const useOrderCheckbox = (orderId: string) => {
       }
 
       const docRef = doc(db, 'orderCheckboxes', encodedId);
-      const newState = !isChecked;
-      
-      await updateDoc(docRef, {
-        isChecked: newState,
+      await setDoc(docRef, {
+        isChecked: !isChecked,
         lastUpdated: new Date(),
-        userId: auth.currentUser.uid // Mettre à jour l'ID de l'utilisateur qui a modifié le document
+        originalId: orderId,
+        userId: auth.currentUser.uid
       });
-
-      setIsChecked(newState);
-      setError(null);
     } catch (error) {
-      console.error('Error updating checkbox state:', error);
+      console.error('Error toggling order checkbox:', error);
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');
     }
   };

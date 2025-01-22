@@ -6,8 +6,8 @@ import { OrderDetailsSection } from '@/scenes/home/OrderDetailsSection';
 import { Badge } from '@/components/Badge';
 import { Text, Title } from '@mantine/core';
 import { useHomePagePresenter } from '@/scenes/home/HomePage.presenter';
-import { OrderCheckbox } from '@/components/OrderCheckbox';
-import { BillingCheckbox } from '@/components/BillingCheckbox';
+import { OrderStatus } from '@/components/OrderStatus';
+import { BillingStatus } from '@/components/BillingStatus';
 
 export const HomePage = () => {
   const {
@@ -55,10 +55,10 @@ export const HomePage = () => {
                   {order.quantity} article(s) à la demande
                 </Text>
                 <div className={styles.row_status}>
-                  <OrderCheckbox orderId={order.id} className={styles.checkbox} />
+                  <OrderStatus orderId={order.id} className={styles.checkbox} />
                 </div>
                 <div className={styles.row_status}>
-                  <BillingCheckbox orderId={order.id} className={styles.checkbox} />
+                  <BillingStatus orderId={order.id} className={styles.checkbox} />
                 </div>
               </div>
             ))}
@@ -91,10 +91,10 @@ export const HomePage = () => {
                   {order.quantity} article(s) à la demande
                 </Text>
                 <div className={styles.row_status}>
-                  <OrderCheckbox orderId={order.id} className={styles.checkbox} />
+                  <OrderStatus orderId={order.id} className={styles.checkbox} />
                 </div>
                 <div className={styles.row_status}>
-                  <BillingCheckbox orderId={order.id} className={styles.checkbox} />
+                  <BillingStatus orderId={order.id} className={styles.checkbox} />
                 </div>
               </div>
             ))}
