@@ -55,3 +55,16 @@
   color: var(--mantine-color-dark-7) !important;
   margin: 0 !important;
 }
+
+.print_hidden {
+  @media print {
+    display: none !important;
+  }
+}
+
+.print_border {
+  border: 1px dashed black;
+  @media print {
+    border: none;
+  }
+}

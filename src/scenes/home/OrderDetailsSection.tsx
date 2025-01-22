@@ -82,50 +82,52 @@ const Content = ({ id }: { id: string }) => {
   const textileDetails = order.products.map(getProductDetails).join('\n');
 
   return (
-    <div className={styles.content} ref={contentRef}>
+    <div className={styles.content}>
       <Stack spacing="xs">
-        <div className={styles.header}>
-          <Title order={3}>
-            <b>{order.name}</b>&nbsp;&nbsp;
-            <span>{order.createdAtFormatted}</span>
-          </Title>
-          {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
-          {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
+        <div className={styles.print_hidden}>
+          <div className={styles.header}>
+            <Title order={3}>
+              <b>{order.name}</b>&nbsp;&nbsp;
+              <span>{order.createdAtFormatted}</span>
+            </Title>
+            {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
+            {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
+          </div>
+
+          <Box>
+            <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
+            <Text>
+              <b>Poids</b> : {order.weightInKg}kg
+            </Text>
+            <Flex align="center" gap="md">
+              <div>
+                <b>Textile à commander</b> : 
+              </div>
+              <OrderCheckbox 
+                orderId={id} 
+                className={styles.checkbox}
+              />
+            </Flex>
+            <Box ml="md">
+              {textileDetails.split('\n').map((detail, index) => (
+                <div key={index}>
+                  {detail}
+                </div>
+              ))}
+            </Box>
+            <Flex align="center" gap="md">
+              <Text>
+                <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
+              </Text>
+              <BillingCheckbox 
+                orderId={id} 
+                className={styles.checkbox}
+              />
+            </Flex>
+          </Box>
         </div>
 
-        <Box>
-          <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
-          <Text>
-            <b>Poids</b> : {order.weightInKg}kg
-          </Text>
-          <Flex align="center" gap="md">
-            <div>
-              <b>Textile à commander</b> : 
-            </div>
-            <OrderCheckbox 
-              orderId={id} 
-              className={styles.checkbox}
-            />
-          </Flex>
-          <Box ml="md">
-            {textileDetails.split('\n').map((detail, index) => (
-              <div key={index}>
-                {detail}
-              </div>
-            ))}
-          </Box>
-          <Flex align="center" gap="md">
-            <Text>
-              <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
-            </Text>
-            <BillingCheckbox 
-              orderId={id} 
-              className={styles.checkbox}
-            />
-          </Flex>
-        </Box>
-
-        <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
+        <Box mt={32} ml={10} className={styles.print_border} ref={contentRef}>
           <Stack px={40} py={20}>
             <Title order={3} mb={12}>
               <b className={styles.product_title}>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
