@@ -10,7 +10,7 @@ import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
-import { BillingCheckbox } from '@/components/BillingCheckbox'; // Import the BillingCheckbox component
+import { BillingCheckbox } from '@/components/BillingCheckbox';
 
 export const OrderDetailsSection = ({
   selected,
@@ -58,28 +58,15 @@ const Content = ({ id }: { id: string }) => {
   const getProductDetails = (product: typeof order.products[0]) => {
     // Récupérer les options dans le bon format
     const sizeOption = product.selectedOptions.find(
-      opt => opt.name.toLowerCase().includes('taille')
+      opt => opt.name.toLowerCase().includes('taille'),
     );
     const colorOption = product.selectedOptions.find(
-      opt => opt.name.toLowerCase().includes('couleur')
+      opt => opt.name.toLowerCase().includes('couleur'),
     );
 
-    const size = sizeOption?.value || '';
-    const color = colorOption?.value || '';
-    const type = product.type || 'Non défini';
-
-    // Construire la chaîne avec tous les détails disponibles
-    const details = [
-      product.quantity.toString(),
-      type,
-      size,
-      color
-    ].filter(Boolean).join(' ');
-
-    return details;
+    return `${product.quantity}x ${product.title} - ${sizeOption?.value} - ${colorOption?.value}`;
   };
 
-  // Créer la liste détaillée des textiles
   const textileDetails = order.products.map(getProductDetails).join('\n');
 
   return (
@@ -113,67 +100,38 @@ const Content = ({ id }: { id: string }) => {
           {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
           {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
         </div>
+
         <Box>
           <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
           <Text>
             <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
             prendre la seconde.
           </Text>
-        <div>
-          <b>Textile</b> : 
-        </div>
-        <Box ml="md">
-          {textileDetails.split('\n').map((detail, index) => (
-            <div key={index}>
-              {detail}
-            </div>
-          ))}
+          <div>
+            <b>Textile</b> : 
+          </div>
+          <div style={{ whiteSpace: 'pre-line' }}>{textileDetails}</div>
         </Box>
-        <Text>
-          <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
-        </Text>
-      </Box>
 
-      <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
-        <Stack px={40} py={20}>
-          <Title order={3} mb={12}>
-            <b>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <span>{order.createdAtFormatted}</span>
-          </Title>
-          {order.products.map((product, index) => {
-            return (
-              <Flex
-                key={index.toString()}
-                gap="md"
-                align="center"
-                direction="row"
-                wrap="wrap"
-              >
-                <Image h={70} w={70} src={product.imageUrl} />
-                <Box flex={1} ml={20}>
-                  <Title order={3}>{product.title}</Title>
-                  <Text mt={5}>
-                    {product.selectedOptions.map((option) => (
-                      <span key={option.name}>
-                        <b>{option.name}</b> : {option.value}
-                        <br />
-                      </span>
-                    ))}
-                    <b>Type</b> : {product.type || 'Non défini'}
-                    <br />
-                    <b>Poids</b> : {product.weightInKg} kg
-                  </Text>
-                </Box>
-                <Text size={'xl'}>x{product.quantity}</Text>
-              </Flex>
-            );
-          })}
-        </Stack>
-      </Box>
+        <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
+          <Stack px={40} py={20}>
+            <Title order={3} mb={12}>
+              <b>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <span>{order.createdAtFormatted}</span>
+            </Title>
 
-      <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
-        Imprimer le bordereau d'emballage
-      </Button>
+            <Text>
+              <b>Prix unitaire</b> : {unitCostInEuros}
+            </Text>
+            <Text>
+              <b>Total</b> : {unitCostSum}€
+            </Text>
+            <Text>
+              <b>Textile</b> : {textileDetails}
+            </Text>
+          </Stack>
+        </Box>
+      </Stack>
     </div>
   );
 };
