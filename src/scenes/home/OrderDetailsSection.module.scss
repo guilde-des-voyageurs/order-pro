@@ -50,7 +50,7 @@
 
 .product_title {
   font-family: var(--font-alegreya) !important;
-  font-size: 1.5rem !important;
+  font-size: 1.2rem !important;
   font-weight: 500 !important;
   color: var(--mantine-color-dark-7) !important;
   margin: 0 !important;
@@ -66,5 +66,15 @@
   border: 1px dashed black;
   @media print {
     border: none;
+  }
+}
+
+.print_content {
+  h3 {
+    font-size: calc(1.5rem - 5px) !important;
+  }
+
+  span, div, p {
+    font-size: calc(1rem - 5px) !important;
   }
 }

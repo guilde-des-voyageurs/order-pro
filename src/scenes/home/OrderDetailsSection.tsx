@@ -127,7 +127,7 @@ const Content = ({ id }: { id: string }) => {
           </Box>
         </div>
 
-        <Box mt={32} ml={10} className={styles.print_border} ref={contentRef}>
+        <Box mt={32} ml={10} style={{ border: '1px dashed white' }} ref={contentRef} className={styles.print_content}>
           <Stack px={40} py={20}>
             <Title order={3} mb={12}>
               <b className={styles.product_title}>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
