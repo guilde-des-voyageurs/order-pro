@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
+import { OrderCheckbox } from '@/components/OrderCheckbox';
 
 export const OrderDetailsSection = ({
   selected,
@@ -82,6 +83,15 @@ const Content = ({ id }: { id: string }) => {
 
   return (
     <div className={styles.content} key={id}>
+      <Stack spacing="xs">
+        <Flex align="center" gap="md">
+          <Title order={3}>Commande #{order.name}</Title>
+          <OrderCheckbox 
+            orderId={id} 
+            className={styles.checkbox}
+          />
+        </Flex>
+      </Stack>
       <div className={styles.header}>
         <Title order={3}>
           <b>{order.name}</b>&nbsp;&nbsp;
