@@ -86,7 +86,7 @@ const Content = ({ id }: { id: string }) => {
 
   return (
     <div className={styles.content}>
-      <Stack spacing="xs">
+      <Stack>
         <div className={styles.print_hidden}>
           <div className={styles.header}>
             <Title order={3}>
