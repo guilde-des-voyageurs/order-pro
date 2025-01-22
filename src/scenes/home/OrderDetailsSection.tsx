@@ -52,6 +52,34 @@ const Content = ({ id }: { id: string }) => {
     0,
   );
 
+  // Formater le détail de chaque article textile
+  const getProductDetails = (product: typeof order.products[0]) => {
+    // Récupérer les options dans le bon format
+    const sizeOption = product.selectedOptions.find(
+      opt => opt.name.toLowerCase().includes('taille')
+    );
+    const colorOption = product.selectedOptions.find(
+      opt => opt.name.toLowerCase().includes('couleur')
+    );
+
+    const size = sizeOption?.value || '';
+    const color = colorOption?.value || '';
+    const type = product.type || 'Non défini';
+
+    // Construire la chaîne avec tous les détails disponibles
+    const details = [
+      product.quantity.toString(),
+      type,
+      size,
+      color
+    ].filter(Boolean).join(' ');
+
+    return details;
+  };
+
+  // Créer la liste détaillée des textiles
+  const textileDetails = order.products.map(getProductDetails).join('\n');
+
   return (
     <div className={styles.content} key={id}>
       <div className={styles.header}>
@@ -67,6 +95,14 @@ const Content = ({ id }: { id: string }) => {
         <Text>
           <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
           prendre la seconde.
+        </Text>
+        <Text>
+          <b>Textile</b> : 
+          {textileDetails.split('\n').map((detail, index) => (
+            <Text key={index} ml="md" component="div">
+              {detail}
+            </Text>
+          ))}
         </Text>
         <Text>
           <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
