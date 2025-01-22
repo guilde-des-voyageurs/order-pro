@@ -6,6 +6,8 @@ import { OrderDetailsSection } from '@/scenes/home/OrderDetailsSection';
 import { Badge } from '@/components/Badge';
 import { Text, Title } from '@mantine/core';
 import { useHomePagePresenter } from '@/scenes/home/HomePage.presenter';
+import { OrderCheckbox } from '@/components/OrderCheckbox';
+import { BillingCheckbox } from '@/components/BillingCheckbox';
 
 export const HomePage = () => {
   const {
@@ -28,6 +30,13 @@ export const HomePage = () => {
           <Text className={styles.section_subtitle}>
             <b>Total</b> : {openOrderQuantityPerTypeStr}
           </Text>
+          <div className={styles.row_headers}>
+            <Text className={styles.row_id}>Commande</Text>
+            <Text className={styles.row_date}>Date</Text>
+            <Text className={styles.row_quantity}>Quantité</Text>
+            <Text className={styles.row_status}>Textile</Text>
+            <Text className={styles.row_status}>Facture</Text>
+          </div>
           <div className={styles.rows}>
             {openOrders.map((order) => (
               <div
@@ -45,12 +54,25 @@ export const HomePage = () => {
                 <Text className={styles.row_quantity}>
                   {order.quantity} article(s) à la demande
                 </Text>
+                <div className={styles.row_status}>
+                  <OrderCheckbox orderId={order.id} className={styles.checkbox} />
+                </div>
+                <div className={styles.row_status}>
+                  <BillingCheckbox orderId={order.id} className={styles.checkbox} />
+                </div>
               </div>
             ))}
           </div>
         </section>
         <section className={styles.section}>
           <Badge variant={'green'}>Traitées ({closedOrders.length})</Badge>
+          <div className={styles.row_headers}>
+            <Text className={styles.row_id}>Commande</Text>
+            <Text className={styles.row_date}>Date</Text>
+            <Text className={styles.row_quantity}>Quantité</Text>
+            <Text className={styles.row_status}>Textile</Text>
+            <Text className={styles.row_status}>Facture</Text>
+          </div>
           <div className={styles.rows}>
             {closedOrders.map((order) => (
               <div
@@ -68,6 +90,12 @@ export const HomePage = () => {
                 <Text className={styles.row_quantity}>
                   {order.quantity} article(s) à la demande
                 </Text>
+                <div className={styles.row_status}>
+                  <OrderCheckbox orderId={order.id} className={styles.checkbox} />
+                </div>
+                <div className={styles.row_status}>
+                  <BillingCheckbox orderId={order.id} className={styles.checkbox} />
+                </div>
               </div>
             ))}
           </div>

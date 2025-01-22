@@ -104,30 +104,26 @@ export const fetchOrdersSummaryAction =
           return {
             id: order.id,
             name: order.name,
-            status:
-              relevantFullfillmentOrder.status === 'OPEN' ? 'OPEN' : 'CLOSED',
+            status: relevantFullfillmentOrder.status as OrderSummaryStatus,
             createdAt: order.createdAt,
-            createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
+            createdAtFormatted: format(new Date(order.createdAt), 'dd/MM/yyyy'),
             quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
-              (acc, lineItem) => acc + lineItem.totalQuantity,
+              (prev, curr) => prev + curr.totalQuantity,
               0,
             ),
             quantityPerType: relevantFullfillmentOrder.lineItems.nodes.reduce(
               (prev, curr) => {
-                const productType = curr.lineItem.product?.productType;
-                if (!productType) {
-                  return prev;
+                const type = curr.lineItem.product.productType;
+                if (!prev[type]) {
+                  prev[type] = 0;
                 }
-
-                if (!prev[productType]) {
-                  prev[productType] = 0;
-                }
-
-                prev[productType] += curr.totalQuantity;
+                prev[type] += curr.totalQuantity;
                 return prev;
               },
               {} as Record<string, number>,
             ),
+            textileOrdered: order.tags.includes('textile_ordered'),
+            billingDone: order.tags.includes('billing_done'),
           };
         },
       )

@@ -20,6 +20,15 @@
   color: #525252;
 }
 
+.row_headers {
+  margin-top: 12px;
+  padding-inline: 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #525252;
+}
+
 .rows {
   margin-top: 12px;
   margin-bottom: 40px;
@@ -36,7 +45,7 @@
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 20px;
 
   border-radius: 10px;
   background-color: white;
@@ -47,6 +56,32 @@
   &:hover {
     border: 1px solid #a9a9a9;
   }
+}
+
+.row_id {
+  min-width: 120px;
+}
+
+.row_date {
+  min-width: 150px;
+}
+
+.row_quantity {
+  min-width: 200px;
+}
+
+.row_status {
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--mantine-color-orange-6);
 }
 
 .row_active {
