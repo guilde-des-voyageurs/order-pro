@@ -96,14 +96,16 @@ const Content = ({ id }: { id: string }) => {
           <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
           prendre la seconde.
         </Text>
-        <Text>
+        <div>
           <b>Textile</b> : 
+        </div>
+        <Box ml="md">
           {textileDetails.split('\n').map((detail, index) => (
-            <Text key={index} ml="md" component="div">
+            <div key={index}>
               {detail}
-            </Text>
+            </div>
           ))}
-        </Text>
+        </Box>
         <Text>
           <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
         </Text>
