@@ -10,6 +10,7 @@ import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
+import { BillingCheckbox } from '@/components/BillingCheckbox'; // Import the BillingCheckbox component
 
 export const OrderDetailsSection = ({
   selected,
@@ -82,30 +83,42 @@ const Content = ({ id }: { id: string }) => {
   const textileDetails = order.products.map(getProductDetails).join('\n');
 
   return (
-    <div className={styles.content} key={id}>
+    <div className={styles.content} ref={contentRef}>
       <Stack spacing="xs">
+        <Title order={3}>Commande #{order.name}</Title>
+        
+        {/* Section Textile */}
         <Flex align="center" gap="md">
-          <Title order={3}>Commande #{order.name}</Title>
+          <Text>Textile</Text>
           <OrderCheckbox 
             orderId={id} 
             className={styles.checkbox}
           />
         </Flex>
-      </Stack>
-      <div className={styles.header}>
-        <Title order={3}>
-          <b>{order.name}</b>&nbsp;&nbsp;
-          <span>{order.createdAtFormatted}</span>
-        </Title>
-        {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
-        {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
-      </div>
-      <Box>
-        <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
-        <Text>
-          <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
-          prendre la seconde.
-        </Text>
+
+        {/* Section Facturation */}
+        <Flex align="center" gap="md">
+          <Text>Facturation</Text>
+          <BillingCheckbox 
+            orderId={id} 
+            className={styles.checkbox}
+          />
+        </Flex>
+
+        <div className={styles.header}>
+          <Title order={3}>
+            <b>{order.name}</b>&nbsp;&nbsp;
+            <span>{order.createdAtFormatted}</span>
+          </Title>
+          {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
+          {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
+        </div>
+        <Box>
+          <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
+          <Text>
+            <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
+            prendre la seconde.
+          </Text>
         <div>
           <b>Textile</b> : 
         </div>
@@ -122,7 +135,7 @@ const Content = ({ id }: { id: string }) => {
       </Box>
 
       <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
-        <Stack px={40} py={20} ref={contentRef}>
+        <Stack px={40} py={20}>
           <Title order={3} mb={12}>
             <b>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <span>{order.createdAtFormatted}</span>
