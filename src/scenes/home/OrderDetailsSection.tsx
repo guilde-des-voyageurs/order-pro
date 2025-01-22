@@ -84,8 +84,6 @@ const Content = ({ id }: { id: string }) => {
   return (
     <div className={styles.content} ref={contentRef}>
       <Stack spacing="xs">
-        <Title order={3}>Commande #{order.name}</Title>
-
         <div className={styles.header}>
           <Title order={3}>
             <b>{order.name}</b>&nbsp;&nbsp;
@@ -98,12 +96,11 @@ const Content = ({ id }: { id: string }) => {
         <Box>
           <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
           <Text>
-            <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
-            prendre la seconde.
+            <b>Poids</b> : {order.weightInKg}kg
           </Text>
           <Flex align="center" gap="md">
             <div>
-              <b>Textile</b> : 
+              <b>Textile à commander</b> : 
             </div>
             <OrderCheckbox 
               orderId={id} 
@@ -131,8 +128,8 @@ const Content = ({ id }: { id: string }) => {
         <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
           <Stack px={40} py={20}>
             <Title order={3} mb={12}>
-              <b>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-              <span>{order.createdAtFormatted}</span>
+              <b className={styles.product_title}>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+              <span className={styles.product_title}>{order.createdAtFormatted}</span>
             </Title>
             {order.products.map((product, index) => {
               return (
