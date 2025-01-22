@@ -45,15 +45,18 @@ const Content = ({ id }: { id: string }) => {
 
   const order = query.data.data;
 
-  const transformProductType = (type: string): string => {
-    switch (type.toLowerCase()) {
-      case 't-shirt unisexe':
-        return 'Creator';
-      case 'sweatshirt':
-        return 'Cruiser';
-      default:
-        return type;
+  const transformProductType = (type: string, forTextile: boolean = false): string => {
+    if (forTextile) {
+      switch (type.toLowerCase()) {
+        case 't-shirt unisexe':
+          return 'Creator';
+        case 'sweatshirt':
+          return 'Cruiser';
+        default:
+          return type;
+      }
     }
+    return type;
   };
 
   const unitCostInEuros = order.products
@@ -75,7 +78,7 @@ const Content = ({ id }: { id: string }) => {
       opt => opt.name.toLowerCase().includes('couleur'),
     );
 
-    const displayType = transformProductType(product.type || 'Non défini');
+    const displayType = transformProductType(product.type || 'Non défini', true);
     return `${product.quantity}x ${displayType} - ${sizeOption?.value} - ${colorOption?.value}`;
   };
 
@@ -101,7 +104,7 @@ const Content = ({ id }: { id: string }) => {
             </Text>
             <Flex align="center" gap="md">
               <div>
-                <b>Textile à commander</b> : 
+                <b>Textilé commandé</b> : 
               </div>
               <OrderCheckbox 
                 orderId={id} 
