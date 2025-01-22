@@ -35,7 +35,7 @@ export const HomePage = () => {
             <Text className={styles.row_date}>Date</Text>
             <Text className={styles.row_quantity}>Quantité</Text>
             <Text className={styles.row_status}>Textile</Text>
-            <Text className={styles.row_status}>Facture</Text>
+            <Text className={styles.row_status}>Facturé</Text>
           </div>
           <div className={styles.rows}>
             {openOrders.map((order) => (
@@ -71,7 +71,7 @@ export const HomePage = () => {
             <Text className={styles.row_date}>Date</Text>
             <Text className={styles.row_quantity}>Quantité</Text>
             <Text className={styles.row_status}>Textile</Text>
-            <Text className={styles.row_status}>Facture</Text>
+            <Text className={styles.row_status}>Facturé</Text>
           </div>
           <div className={styles.rows}>
             {closedOrders.map((order) => (

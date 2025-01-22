@@ -120,7 +120,7 @@ const Content = ({ id }: { id: string }) => {
             </Box>
             <Flex align="center" gap="md">
               <Text>
-                <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
+                <b>Facturé</b> : {unitCostInEuros} = {unitCostSum}€
               </Text>
               <BillingCheckbox 
                 orderId={id} 

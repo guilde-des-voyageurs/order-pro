@@ -13,7 +13,7 @@ export const BillingPage = () => {
     return (
       <div className={styles.view}>
         <div className={styles.main_content}>
-          <Title order={2}>Facturation</Title>
+          <Title order={2}>Facturé</Title>
           <Text c="red" mt="md">
             Une erreur est survenue lors du chargement des commandes.
           </Text>
@@ -25,7 +25,7 @@ export const BillingPage = () => {
   return (
     <div className={styles.view}>
       <div className={styles.main_content}>
-        <Title order={2}>Facturation</Title>
+        <Title order={2}>Facturé</Title>
         <Text size="sm" c="dimmed" mt="xs">
           Commandes depuis le 16 janvier 2025
         </Text>
