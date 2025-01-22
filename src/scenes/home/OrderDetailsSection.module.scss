@@ -47,3 +47,11 @@
   cursor: pointer;
   accent-color: var(--mantine-color-orange-6);
 }
+
+.product_title {
+  font-family: var(--font-alegreya) !important;
+  font-size: 1.5rem !important;
+  font-weight: 500 !important;
+  color: var(--mantine-color-dark-7) !important;
+  margin: 0 !important;
+}

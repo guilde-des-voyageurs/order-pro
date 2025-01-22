@@ -73,24 +73,6 @@ const Content = ({ id }: { id: string }) => {
     <div className={styles.content} ref={contentRef}>
       <Stack spacing="xs">
         <Title order={3}>Commande #{order.name}</Title>
-        
-        {/* Section Textile */}
-        <Flex align="center" gap="md">
-          <Text>Textile</Text>
-          <OrderCheckbox 
-            orderId={id} 
-            className={styles.checkbox}
-          />
-        </Flex>
-
-        {/* Section Facturation */}
-        <Flex align="center" gap="md">
-          <Text>Facturation</Text>
-          <BillingCheckbox 
-            orderId={id} 
-            className={styles.checkbox}
-          />
-        </Flex>
 
         <div className={styles.header}>
           <Title order={3}>
@@ -107,10 +89,31 @@ const Content = ({ id }: { id: string }) => {
             <b>Poids</b> : {order.weightInKg}kg - Si deux commandes similaires,
             prendre la seconde.
           </Text>
-          <div>
-            <b>Textile</b> : 
-          </div>
-          <div style={{ whiteSpace: 'pre-line' }}>{textileDetails}</div>
+          <Flex align="center" gap="md">
+            <div>
+              <b>Textile</b> : 
+            </div>
+            <OrderCheckbox 
+              orderId={id} 
+              className={styles.checkbox}
+            />
+          </Flex>
+          <Box ml="md">
+            {textileDetails.split('\n').map((detail, index) => (
+              <div key={index}>
+                {detail}
+              </div>
+            ))}
+          </Box>
+          <Flex align="center" gap="md">
+            <Text>
+              <b>Facturation</b> : {unitCostInEuros} = {unitCostSum}€
+            </Text>
+            <BillingCheckbox 
+              orderId={id} 
+              className={styles.checkbox}
+            />
+          </Flex>
         </Box>
 
         <Box mt={32} ml={10} style={{ border: '1px dashed black' }}>
@@ -119,18 +122,40 @@ const Content = ({ id }: { id: string }) => {
               <b>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
               <span>{order.createdAtFormatted}</span>
             </Title>
-
-            <Text>
-              <b>Prix unitaire</b> : {unitCostInEuros}
-            </Text>
-            <Text>
-              <b>Total</b> : {unitCostSum}€
-            </Text>
-            <Text>
-              <b>Textile</b> : {textileDetails}
-            </Text>
+            {order.products.map((product, index) => {
+              return (
+                <Flex
+                  key={index.toString()}
+                  gap="md"
+                  align="center"
+                  direction="row"
+                  wrap="wrap"
+                >
+                  <Image h={70} w={70} src={product.imageUrl} />
+                  <Box flex={1} ml={20}>
+                    <Title order={3} className={styles.product_title}>{product.title}</Title>
+                    <Text mt={5}>
+                      {product.selectedOptions.map((option) => (
+                        <span key={option.name}>
+                          <b>{option.name}</b> : {option.value}
+                          <br />
+                        </span>
+                      ))}
+                      <b>Type</b> : {product.type || 'Non défini'}
+                      <br />
+                      <b>Poids</b> : {product.weightInKg} kg
+                    </Text>
+                  </Box>
+                  <Text size={'xl'}>x{product.quantity}</Text>
+                </Flex>
+              );
+            })}
           </Stack>
         </Box>
+
+        <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
+          Imprimer le bordereau d'emballage
+        </Button>
       </Stack>
     </div>
   );

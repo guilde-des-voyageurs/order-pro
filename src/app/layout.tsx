@@ -1,24 +1,29 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Alegreya } from 'next/font/google';
 import React from 'react';
 import {
   ColorSchemeScript,
-  mantineHtmlProps,
   MantineProvider,
 } from '@mantine/core';
 import { theme } from '@/style/theme';
+import { QueryClientProvider } from '@/state/QueryClientProvider';
 import { AuthProvider } from '@/context/AuthContext';
-
+import { MainLayout } from '@/layout/MainLayout';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/nprogress/styles.css';
 import './globals.scss';
-import { MainLayout } from '@/layout/MainLayout';
-import { QueryClientProvider } from '@/state/QueryClientProvider';
 
 const inter = Inter({
-  variable: '--font-inter',
   subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const alegreya = Alegreya({
+  weight: ['400', '500', '700'],
+  subsets: ['latin'],
+  variable: '--font-alegreya',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -28,19 +33,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="fr" {...mantineHtmlProps}>
+    <html lang="fr">
       <head>
         <ColorSchemeScript />
       </head>
-      <body className={`${inter.variable}`}>
+      <body className={`${inter.variable} ${alegreya.variable}`}>
         <MantineProvider theme={theme}>
           <AuthProvider>
             <QueryClientProvider>
-              <MainLayout>{children}</MainLayout>
+              <MainLayout>
+                {children}
+              </MainLayout>
             </QueryClientProvider>
           </AuthProvider>
         </MantineProvider>
