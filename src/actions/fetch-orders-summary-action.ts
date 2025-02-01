@@ -13,6 +13,7 @@ query {
             id
             name
             tags
+            displayFinancialStatus
             createdAt
             shippingAddress {
                 id
@@ -51,6 +52,7 @@ type Result = {
       id: string;
       name: string;
       tags: string[];
+      displayFinancialStatus: string;
       createdAt: string;
       shippingAddress: {
         id: string;
@@ -90,6 +92,8 @@ export const fetchOrdersSummaryAction =
       .data!.orders.nodes
       // Filtrer les commandes qui ont des tags exclus
       .filter((order) => !order.tags.some((tag) => EXCLUDED_TAGS.includes(tag as any)))
+      // Exclure les commandes annulées
+      .filter((order) => order.displayFinancialStatus !== 'VOIDED' && order.displayFinancialStatus !== 'REFUNDED')
       .map(
         (order): OrderSummaryViewModel['data'][number] | null => {
           const relevantFullfillmentOrder = order.fulfillmentOrders.nodes.find(
