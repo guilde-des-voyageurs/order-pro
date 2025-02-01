@@ -5,6 +5,7 @@ export type OrderSummaryViewModel = {
     id: string;
     name: string;
     status: OrderSummaryStatus;
+    displayFulfillmentStatus: string;
     createdAt: string;
     createdAtFormatted: string;
     quantity: number;

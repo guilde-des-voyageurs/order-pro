@@ -13,7 +13,7 @@ query {
             id
             name
             tags
-            displayFinancialStatus
+            displayFulfillmentStatus
             createdAt
             shippingAddress {
                 id
@@ -52,7 +52,7 @@ type Result = {
       id: string;
       name: string;
       tags: string[];
-      displayFinancialStatus: string;
+      displayFulfillmentStatus: string;
       createdAt: string;
       shippingAddress: {
         id: string;
@@ -88,12 +88,14 @@ export const fetchOrdersSummaryAction =
   async (): Promise<OrderSummaryViewModel> => {
     const result = await shopifyClient.request<Result>(query);
 
+    const orders = result.data!.orders.nodes;
+
     const entries = result
       .data!.orders.nodes
       // Filtrer les commandes qui ont des tags exclus
       .filter((order) => !order.tags.some((tag) => EXCLUDED_TAGS.includes(tag as any)))
-      // Exclure les commandes annulées
-      .filter((order) => order.displayFinancialStatus !== 'VOIDED' && order.displayFinancialStatus !== 'REFUNDED')
+      // Exclure les commandes non traitées et fermées
+      .filter((order) => !(order.displayFulfillmentStatus === 'UNFULFILLED' && order.fulfillmentOrders.nodes.some(fo => fo.status === 'CLOSED')))
       .map(
         (order): OrderSummaryViewModel['data'][number] | null => {
           const relevantFullfillmentOrder = order.fulfillmentOrders.nodes.find(
@@ -110,6 +112,7 @@ export const fetchOrdersSummaryAction =
             id: order.id,
             name: order.name,
             status: relevantFullfillmentOrder.status as OrderSummaryStatus,
+            displayFulfillmentStatus: order.displayFulfillmentStatus,
             createdAt: order.createdAt,
             createdAtFormatted: format(new Date(order.createdAt), 'dd/MM/yyyy'),
             quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
