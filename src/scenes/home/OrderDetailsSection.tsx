@@ -109,7 +109,17 @@ const Content = ({ id }: { id: string }) => {
 
           <Box>
             <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
-            <Text>
+            {order.displayFinancialStatus === 'PENDING' && (
+              <Text c="orange" fw={600} mt={5}>
+                ⚠️ Commande en attente de paiement (ne pas commander le textile)
+              </Text>
+            )}
+            {order.displayFinancialStatus === 'PAID' && (
+              <Text c="green" fw={600} mt={5}>
+                ✓ Commande approuvée
+              </Text>
+            )}
+            <Text mt={5}>
               <b>Poids</b> : {order.weightInKg}kg
             </Text>
             <Flex align="center" gap="md">

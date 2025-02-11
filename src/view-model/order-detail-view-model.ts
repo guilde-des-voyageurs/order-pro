@@ -14,6 +14,7 @@ export type OrderDetailViewModel =
         status: OrderSummaryStatus;
         createdAt: string;
         createdAtFormatted: string;
+        displayFinancialStatus: string;
         weightInKg: number;
         products: Array<{
           id: string;

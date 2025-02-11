@@ -11,6 +11,7 @@ query ($orderId: ID!) {
         id
         name
         createdAt
+        displayFinancialStatus
         fulfillmentOrders (first: 3) {
             nodes {
                 status
@@ -62,6 +63,7 @@ type Result = {
     id: string;
     name: string;
     createdAt: string;
+    displayFinancialStatus: string;
     fulfillmentOrders: {
       nodes: Array<{
         status: string;
@@ -140,6 +142,7 @@ export const fetchOrderDetailAction = async (
       status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
       createdAt: order.createdAt,
       createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
+      displayFinancialStatus: order.displayFinancialStatus,
       weightInKg: fulfillment.lineItems.nodes
         .filter(lineItem => lineItem.lineItem.refundableQuantity > 0)
         .reduce((acc, lineItem) => {
