@@ -68,9 +68,18 @@ const Content = ({ id }: { id: string }) => {
     return `${product.quantity}x ${product.sku} - ${sizeOption?.value} - ${colorOption?.value}`;
   };
 
-  // Grouper les produits par SKU
+  // Grouper les produits par SKU + taille + couleur
   const groupedProducts = order.products.reduce((acc, product) => {
-    const key = product.sku;
+    const sizeOption = product.selectedOptions.find(
+      opt => opt.name.toLowerCase().includes('taille'),
+    );
+    const colorOption = product.selectedOptions.find(
+      opt => opt.name.toLowerCase().includes('couleur'),
+    );
+    
+    // Créer une clé unique qui combine SKU, taille et couleur
+    const key = `${product.sku}-${sizeOption?.value || 'no-size'}-${colorOption?.value || 'no-color'}`;
+    
     if (!acc[key]) {
       acc[key] = {
         ...product,
@@ -122,6 +131,8 @@ const Content = ({ id }: { id: string }) => {
             <Flex align="center" gap="md">
               <Text>
                 <b>Facturé</b> : {unitCostInEuros} = {unitCostSum}€
+                <br />
+                <p>Le prix final comprend la manutention de l'envoi.</p>
               </Text>
               <BillingCheckbox 
                 orderId={id} 
