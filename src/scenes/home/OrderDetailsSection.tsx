@@ -11,6 +11,8 @@ import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
+import { OrderProduct } from '@/components/OrderProduct';
+import { transformProductType } from '@/utils/product-type-transformer';
 
 export const OrderDetailsSection = ({
   selected,
@@ -44,20 +46,6 @@ const Content = ({ id }: { id: string }) => {
   }
 
   const order = query.data.data;
-
-  const transformProductType = (type: string, forTextile: boolean = false): string => {
-    if (forTextile) {
-      switch (type.toLowerCase()) {
-        case 't-shirt unisexe':
-          return 'Creator';
-        case 'sweatshirt':
-          return 'Drummer (sauf si couleur absente, alors Cruiser)';
-        default:
-          return type;
-      }
-    }
-    return type;
-  };
 
   const unitCostInEuros = order.products
     .reduce((prev, curr) => prev + curr.unitCostInEuros + '€ + ', '')
@@ -136,34 +124,9 @@ const Content = ({ id }: { id: string }) => {
               <b className={styles.product_title}>Commande {order.name}</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
               <span className={styles.product_title}>{order.createdAtFormatted}</span>
             </Title>
-            {order.products.map((product, index) => {
-              return (
-                <Flex
-                  key={index.toString()}
-                  gap="md"
-                  align="center"
-                  direction="row"
-                  wrap="wrap"
-                >
-                  <Image h={70} w={70} src={product.imageUrl} />
-                  <Box flex={1} ml={20}>
-                    <Title order={3} className={styles.product_title}>{product.title}</Title>
-                    <Text mt={5}>
-                      {product.selectedOptions.map((option) => (
-                        <span key={option.name}>
-                          <b>{option.name}</b> : {option.value}
-                          <br />
-                        </span>
-                      ))}
-                      <b>Type</b> : {transformProductType(product.type || 'Non défini')}
-                      <br />
-                      <b>Poids</b> : {product.weightInKg} kg
-                    </Text>
-                  </Box>
-                  <Text size={'xl'}>x{product.quantity}</Text>
-                </Flex>
-              );
-            })}
+            {order.products.map((product, index) => (
+              <OrderProduct key={index.toString()} product={product} />
+            ))}
           </Stack>
         </Box>
 
