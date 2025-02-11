@@ -34,6 +34,7 @@ query ($orderId: ID!) {
                                 productType
                             }
                             quantity
+                            refundableQuantity
                             variant {
                                 selectedOptions {
                                     name
@@ -83,6 +84,7 @@ type Result = {
                 productType: string;
               };
               quantity: number;
+              refundableQuantity: number;
               variant: {
                 selectedOptions: Array<{
                   name: string;
@@ -136,28 +138,32 @@ export const fetchOrderDetailAction = async (
       status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
       createdAt: order.createdAt,
       createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
-      weightInKg: fulfillment.lineItems.nodes.reduce((acc, lineItem) => {
-        if (lineItem.weight.unit === 'GRAMS') {
-          return acc + lineItem.weight.value / 1000;
-        } else {
-          return acc + lineItem.weight.value;
-        }
-      }, 0),
-      products: fulfillment.lineItems.nodes.map((node) => ({
-        id: node.lineItem.product.title,
-        title: node.lineItem.title,
-        imageUrl: node.image?.url ?? null,
-        type: node.lineItem.product.productType,
-        quantity: node.lineItem.quantity,
-        selectedOptions: node.lineItem.variant.selectedOptions,
-        weightInKg:
-          node.weight.unit === 'GRAMS'
-            ? node.weight.value / 1000
-            : node.weight.value,
-        unitCostInEuros: parseFloat(
-          node.lineItem.variant.inventoryItem.unitCost.amount,
-        ),
-      })),
+      weightInKg: fulfillment.lineItems.nodes
+        .filter(lineItem => lineItem.lineItem.refundableQuantity > 0)
+        .reduce((acc, lineItem) => {
+          if (lineItem.weight.unit === 'GRAMS') {
+            return acc + lineItem.weight.value / 1000;
+          } else {
+            return acc + lineItem.weight.value;
+          }
+        }, 0),
+      products: fulfillment.lineItems.nodes
+        .filter(node => node.lineItem.refundableQuantity > 0)
+        .map((node) => ({
+          id: node.lineItem.product.title,
+          title: node.lineItem.title,
+          imageUrl: node.image?.url ?? null,
+          type: node.lineItem.product.productType,
+          quantity: node.lineItem.refundableQuantity,
+          weightInKg:
+            node.weight.unit === 'GRAMS'
+              ? node.weight.value / 1000
+              : node.weight.value,
+          selectedOptions: node.lineItem.variant.selectedOptions,
+          unitCostInEuros: parseFloat(
+            node.lineItem.variant.inventoryItem.unitCost.amount,
+          ),
+        })),
     },
   };
 };
