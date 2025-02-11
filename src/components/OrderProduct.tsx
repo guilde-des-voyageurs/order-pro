@@ -4,7 +4,7 @@ import styles from '@/scenes/home/OrderDetailsSection.module.scss';
 
 type OrderProductProps = {
   product: {
-    imageUrl: string;
+    imageUrl: string | null;
     title: string;
     type: string | null;
     selectedOptions: Array<{
@@ -16,10 +16,17 @@ type OrderProductProps = {
   };
 };
 
+const DEFAULT_PRODUCT_IMAGE = '/images/product-placeholder.png';
+
 export const OrderProduct = ({ product }: OrderProductProps) => {
   return (
     <Flex gap="md" align="center" direction="row" wrap="wrap">
-      <Image h={70} w={70} src={product.imageUrl} />
+      <Image 
+        h={70} 
+        w={70} 
+        src={product.imageUrl || DEFAULT_PRODUCT_IMAGE}
+        fallbackSrc={DEFAULT_PRODUCT_IMAGE}
+      />
       <Box flex={1} ml={20}>
         <Title order={3} className={styles.product_title}>
           {product.title}
