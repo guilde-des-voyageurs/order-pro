@@ -36,6 +36,7 @@ query ($orderId: ID!) {
                             quantity
                             refundableQuantity
                             variant {
+                                sku
                                 selectedOptions {
                                     name
                                     value
@@ -86,6 +87,7 @@ type Result = {
               quantity: number;
               refundableQuantity: number;
               variant: {
+                sku: string;
                 selectedOptions: Array<{
                   name: string;
                   value: string;
@@ -163,6 +165,7 @@ export const fetchOrderDetailAction = async (
           unitCostInEuros: parseFloat(
             node.lineItem.variant.inventoryItem.unitCost.amount,
           ),
+          sku: node.lineItem.variant.sku || 'N/A',
         })),
     },
   };

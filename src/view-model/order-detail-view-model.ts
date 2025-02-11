@@ -27,6 +27,7 @@ export type OrderDetailViewModel =
           }>;
           unitCostInEuros: number;
           weightInKg: number;
+          sku: string;
         }>;
       };
     };

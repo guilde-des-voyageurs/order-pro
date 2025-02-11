@@ -13,6 +13,7 @@ type OrderProductProps = {
     }>;
     weightInKg: number;
     quantity: number;
+    sku: string;
   };
 };
 
@@ -39,6 +40,8 @@ export const OrderProduct = ({ product }: OrderProductProps) => {
             </span>
           ))}
           <b>Type</b> : {transformProductType(product.type || 'Non défini')}
+          <br />
+          <b>SKU</b> : {product.sku}
           <br />
           <b>Poids</b> : {product.weightInKg} kg
         </Text>
