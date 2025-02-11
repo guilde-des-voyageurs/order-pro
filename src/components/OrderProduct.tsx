@@ -1,5 +1,4 @@
 import { Box, Flex, Image, Text, Title } from '@mantine/core';
-import { transformProductType } from '@/utils/product-type-transformer';
 import styles from '@/scenes/home/OrderDetailsSection.module.scss';
 
 type OrderProductProps = {
@@ -39,8 +38,6 @@ export const OrderProduct = ({ product }: OrderProductProps) => {
               <br />
             </span>
           ))}
-          <b>Type</b> : {transformProductType(product.type || 'Non défini')}
-          <br />
           <b>SKU</b> : {product.sku}
           <br />
           <b>Poids</b> : {product.weightInKg} kg

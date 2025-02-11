@@ -12,7 +12,6 @@ import { useRef } from 'react';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { OrderProduct } from '@/components/OrderProduct';
-import { transformProductType } from '@/utils/product-type-transformer';
 
 export const OrderDetailsSection = ({
   selected,
@@ -66,11 +65,25 @@ const Content = ({ id }: { id: string }) => {
       opt => opt.name.toLowerCase().includes('couleur'),
     );
 
-    const displayType = transformProductType(product.type || 'Non défini', true);
-    return `${product.quantity}x ${displayType} - ${sizeOption?.value} - ${colorOption?.value}`;
+    return `${product.quantity}x ${product.sku} - ${sizeOption?.value} - ${colorOption?.value}`;
   };
 
-  const textileDetails = order.products.map(getProductDetails).join('\n');
+  // Grouper les produits par SKU
+  const groupedProducts = order.products.reduce((acc, product) => {
+    const key = product.sku;
+    if (!acc[key]) {
+      acc[key] = {
+        ...product,
+        quantity: 0,
+      };
+    }
+    acc[key].quantity += product.quantity;
+    return acc;
+  }, {} as Record<string, typeof order.products[0]>);
+
+  const textileDetails = Object.values(groupedProducts)
+    .map(getProductDetails)
+    .join('\n');
 
   return (
     <div className={styles.content}>
