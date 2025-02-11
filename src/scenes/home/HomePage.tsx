@@ -65,7 +65,7 @@ export const HomePage = () => {
           </div>
         </section>
         <section className={styles.section}>
-          <Badge variant={'green'}>Traitées ({closedOrders.length})</Badge>
+          <Badge variant={'green'}>Expédiées ({closedOrders.length})</Badge>
           <div className={styles.row_headers}>
             <Text className={styles.row_id}>Commande</Text>
             <Text className={styles.row_date}>Date</Text>

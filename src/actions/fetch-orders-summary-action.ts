@@ -8,7 +8,7 @@ import { EXCLUDED_TAGS } from '@/config/excluded-tags';
 
 const query = `
 query {
-    orders(first:100, reverse: true) {
+    orders(first:150, reverse: true) {
         nodes {
             id
             name

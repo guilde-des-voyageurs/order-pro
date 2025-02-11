@@ -4,7 +4,7 @@ export const transformProductType = (type: string, forTextile: boolean = false):
       case 't-shirt unisexe':
         return 'Creator';
       case 'sweatshirt':
-        return 'Drummer (sauf si couleur absente, alors Cruiser)';
+        return 'Drummer (Cruiser si couleur absente)';
       default:
         return type;
     }
