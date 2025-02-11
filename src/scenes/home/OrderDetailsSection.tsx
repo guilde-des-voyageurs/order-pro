@@ -51,7 +51,7 @@ const Content = ({ id }: { id: string }) => {
         case 't-shirt unisexe':
           return 'Creator';
         case 'sweatshirt':
-          return 'Cruiser';
+          return 'Drummer (sauf si couleur absente, alors Cruiser)';
         default:
           return type;
       }
