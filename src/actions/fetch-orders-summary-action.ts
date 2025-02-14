@@ -14,6 +14,7 @@ query {
             name
             tags
             displayFulfillmentStatus
+            displayFinancialStatus
             createdAt
             shippingAddress {
                 id
@@ -53,6 +54,7 @@ type Result = {
       name: string;
       tags: string[];
       displayFulfillmentStatus: string;
+      displayFinancialStatus: string;
       createdAt: string;
       shippingAddress: {
         id: string;
@@ -113,6 +115,7 @@ export const fetchOrdersSummaryAction =
             name: order.name,
             status: relevantFullfillmentOrder.status as OrderSummaryStatus,
             displayFulfillmentStatus: order.displayFulfillmentStatus,
+            displayFinancialStatus: order.displayFinancialStatus,
             createdAt: order.createdAt,
             createdAtFormatted: format(new Date(order.createdAt), 'dd/MM/yyyy'),
             quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(

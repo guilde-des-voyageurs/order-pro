@@ -4,10 +4,11 @@ import styles from './HomePage.module.scss';
 import { clsx } from 'clsx';
 import { OrderDetailsSection } from '@/scenes/home/OrderDetailsSection';
 import { Badge } from '@/components/Badge';
-import { Text, Title } from '@mantine/core';
+import { Text, Title, Tooltip } from '@mantine/core';
 import { useHomePagePresenter } from '@/scenes/home/HomePage.presenter';
 import { OrderStatus } from '@/components/OrderStatus';
 import { BillingStatus } from '@/components/BillingStatus';
+import { IconAlertTriangle } from '@tabler/icons-react';
 
 export const HomePage = () => {
   const {
@@ -47,7 +48,17 @@ export const HomePage = () => {
                 )}
                 onClick={() => setSelected(order.id)}
               >
-                <Text className={styles.row_id}>{order.name}</Text>
+                <Text className={styles.row_id}>
+                  {order.name}
+                  {order.displayFinancialStatus === 'PENDING' && (
+                    <Tooltip label="En attente de paiement">
+                      <IconAlertTriangle 
+                        size={16} 
+                        style={{ marginLeft: 8, color: '#fd7e14' }} 
+                      />
+                    </Tooltip>
+                  )}
+                </Text>
                 <Text className={styles.row_date}>
                   {order.createdAtFormatted}
                 </Text>
@@ -83,7 +94,17 @@ export const HomePage = () => {
                 )}
                 onClick={() => setSelected(order.id)}
               >
-                <Text className={styles.row_id}>{order.name}</Text>
+                <Text className={styles.row_id}>
+                  {order.name}
+                  {order.displayFinancialStatus === 'PENDING' && (
+                    <Tooltip label="En attente de paiement">
+                      <IconAlertTriangle 
+                        size={16} 
+                        style={{ marginLeft: 8, color: '#fd7e14' }} 
+                      />
+                    </Tooltip>
+                  )}
+                </Text>
                 <Text className={styles.row_date}>
                   {order.createdAtFormatted}
                 </Text>

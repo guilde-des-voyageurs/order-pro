@@ -6,6 +6,7 @@ export type OrderSummaryViewModel = {
     name: string;
     status: OrderSummaryStatus;
     displayFulfillmentStatus: string;
+    displayFinancialStatus: string;
     createdAt: string;
     createdAtFormatted: string;
     quantity: number;
