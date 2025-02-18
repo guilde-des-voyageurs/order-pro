@@ -4,7 +4,6 @@ import { Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
-import styles from './TextilePage.module.scss';
 
 interface Product {
   quantity: number;
@@ -101,26 +100,32 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
           sku: variant.sku,
           color: variant.color,
           size: variant.size,
-          variants: [variant],
+          variants: [variant]
         });
-        // Trier les variantes par couleur puis par taille
+        // Trier les variantes par couleur et taille
         existingSku.groupedVariants.sort((a, b) => {
-          // D'abord par couleur
-          const colorCompare = (a.color || '').localeCompare(b.color || '');
-          if (colorCompare !== 0) return colorCompare;
-
-          // Ensuite par taille (avec un tri spécial pour les tailles standard)
-          const sizeOrder = { 'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6 };
-          const aSize = a.size || '';
-          const bSize = b.size || '';
-          const aOrder = sizeOrder[aSize as keyof typeof sizeOrder] || 99;
-          const bOrder = sizeOrder[bSize as keyof typeof sizeOrder] || 99;
-          if (aOrder !== bOrder) return aOrder - bOrder;
-          
-          return aSize.localeCompare(bSize);
+          // D'abord trier par couleur
+          if (a.color && b.color) {
+            const colorCompare = a.color.localeCompare(b.color);
+            if (colorCompare !== 0) return colorCompare;
+          }
+          // Ensuite trier par taille
+          if (a.size && b.size) {
+            // Convertir les tailles en nombres si possible
+            const aSize = parseInt(a.size);
+            const bSize = parseInt(b.size);
+            if (!isNaN(aSize) && !isNaN(bSize)) {
+              return aSize - bSize;
+            }
+            return a.size.localeCompare(b.size);
+          }
+          return 0;
         });
       }
-      existingSku.totalQuantity += variant.quantity;
+      existingSku.totalQuantity = existingSku.groupedVariants.reduce(
+        (sum, group) => sum + group.variants.length,
+        0
+      );
     } else {
       acc.push({
         sku: variant.sku,
@@ -128,31 +133,33 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
           sku: variant.sku,
           color: variant.color,
           size: variant.size,
-          variants: [variant],
+          variants: [variant]
         }],
-        totalQuantity: variant.quantity,
+        totalQuantity: 1
       });
     }
     return acc;
-  }, [])
-  .sort((a, b) => b.totalQuantity - a.totalQuantity);
+  }, []);
+
+  // Trier les SKUs par ordre alphabétique
+  productsBySku.sort((a, b) => a.sku.localeCompare(b.sku));
 
   return (
-    <Stack mt="md" mb="xl">
+    <Stack mt="md" mb="xl" gap="xs">
       <Grid>
         {productsBySku.map((skuGroup) => (
           <Grid.Col key={skuGroup.sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-            <Stack gap="xs">
+            <Stack gap={4}>
               <Text fw={500}>{skuGroup.sku}</Text>
               {skuGroup.groupedVariants.map((variant, index) => (
-                <Group key={index} gap="xs">
+                <Group key={index} gap={4}>
                   <Text size="sm" c="dimmed">
                     {variant.color && `${variant.color}`}
                     {variant.size && variant.color && ' - '}
                     {variant.size && `${variant.size}`}
                     {' '}({variant.variants.length})
                   </Text>
-                  <Group gap={4}>
+                  <Group gap={2}>
                     {variant.variants.map((v, i) => (
                       <VariantCheckbox
                         key={`${v.orderId}-${i}`}

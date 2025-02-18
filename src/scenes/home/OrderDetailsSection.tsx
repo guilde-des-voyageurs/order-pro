@@ -167,9 +167,21 @@ const Content = ({ id }: { id: string }) => {
               </Stack>
             </Box>
 
-            <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
-              Imprimer le bordereau d'emballage
-            </Button>
+            <Stack gap="xs">
+              <Button mt={40} size={'lg'} onClick={() => reactToPrintFn()}>
+                Imprimer le bordereau d'emballage
+              </Button>
+
+              <Box p="md" bg="gray.1" style={{ borderRadius: '4px' }}>
+                <Text>⚠️ Penser à :</Text>
+                <Stack gap="xs" spacing={0} mt={2}>
+                  <Text size="sm">- retirer les étiquettes du produit</Text>
+                  <Text size="sm">- glisser le mot de remerciement</Text>
+                  <Text size="sm">- le sticker</Text>
+                  <Text size="sm">- le micro-flyer Wanderers</Text>
+                </Stack>
+              </Box>
+            </Stack>
           </>
         )}
       </Stack>

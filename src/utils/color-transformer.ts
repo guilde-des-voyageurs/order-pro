@@ -7,25 +7,23 @@ export function transformColor(color: string): string {
     case 'ecru':
       return 'Ecru (Raw)';
     case 'bleu nuit':
-      return 'Noir (Black)';
-    case 'bleu nuit':
-      return 'Bleu nuit (Green Bay)';
+      return 'Bleu Nuit (Green Bay)';
     case 'bordeaux':
       return 'Bordeaux (Burgundy)';
     case 'crème':
-      return 'Crème (Burgundy)';
+      return 'Crème (Cream)';
     case 'kaki':
-      return 'Kaki';
+      return 'Kaki (Khaki)';
     case 'terra cotta':
       return 'Terra Cotta (Heritage Brown)';
     case 'vert forêt':
-      return 'Vert forêt (Glazed Green)';
+      return 'Vert Forêt (Glazed Green)';
     case 'vert antique':
-      return 'Vert antique (Bottle Green)';
+      return 'Vert Antique (Bottle Green)';
     case 'prune':
       return 'Prune (Red Brown)';
     case 'bleu indien':
-      return 'bleu indien (India Ink Grey)';
+      return 'Bleu Indien (India Ink Grey)';
       
     default:
       return color;
