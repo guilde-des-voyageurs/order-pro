@@ -56,12 +56,13 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
               const size = getOptionValue(product, 'taille');
               
               return (
-                <Group key={index} position="apart">
+                <Group key={index}>
                   <Group gap="sm">
                     <VariantCheckbox
                       sku={product.sku}
                       color={color}
                       size={size}
+                      quantity={product.quantity}
                     />
                     <Text size="sm">
                       {product.quantity}x {product.sku}

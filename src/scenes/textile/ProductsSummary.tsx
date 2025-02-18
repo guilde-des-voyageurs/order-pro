@@ -94,17 +94,20 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
               {skuGroup.variants
                 .sort((a, b) => b.total - a.total)
                 .map((variant, index) => (
-                  <Group key={index} align="center" gap="sm">
-                    <VariantCheckbox 
-                      sku={variant.sku}
-                      color={variant.color}
-                      size={variant.size}
-                    />
-                    <Text size="sm">
-                      {variant.total}x
-                      {variant.color ? ` - ${variant.color}` : ''}
-                      {variant.size ? ` - ${variant.size}` : ''}
-                    </Text>
+                  <Group key={index} gap="sm">
+                    <Group align="center" gap="xs">
+                      <VariantCheckbox 
+                        sku={variant.sku}
+                        color={variant.color}
+                        size={variant.size}
+                        quantity={variant.total}
+                      />
+                      <Text size="sm">
+                        {variant.total}x {variant.sku}
+                        {variant.color ? ` - ${variant.color}` : ''}
+                        {variant.size ? ` - ${variant.size}` : ''}
+                      </Text>
+                    </Group>
                   </Group>
                 ))}
             </Stack>
