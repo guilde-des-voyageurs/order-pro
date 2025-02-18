@@ -1,40 +1,43 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchOrdersSummaryAction } from '@/actions/fetch-orders-summary-action';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { isAfter, parseISO } from 'date-fns';
 
 export const useTextilePagePresenter = () => {
   const BILLING_START_DATE = '2025-01-16';
+  const queryClient = useQueryClient();
+  const [openOrders, setOpenOrders] = useState<any[]>([]);
 
   // Récupérer toutes les commandes
-  const summaryQuery = useQuery({
+  const query = useQuery({
     queryKey: ['orders'],
     queryFn: () => fetchOrdersSummaryAction(),
   });
 
-  console.log('Summary data:', summaryQuery.data);
+  // Mettre à jour les commandes ouvertes quand les données changent
+  useEffect(() => {
+    if (!query.data) return;
 
-  const recentOrders = (summaryQuery.data?.data ?? []).filter((order) => {
-    const orderDate = parseISO(order.createdAt);
-    return isAfter(orderDate, parseISO(BILLING_START_DATE));
-  });
+    const recentOrders = query.data.data.filter((order: any) => {
+      const orderDate = parseISO(order.createdAt);
+      return isAfter(orderDate, parseISO(BILLING_START_DATE));
+    });
 
-  console.log('Recent orders:', recentOrders);
+    const filteredOrders = recentOrders.filter(
+      (order: any) => 
+        order.status === 'OPEN' && 
+        order.displayFinancialStatus !== 'PENDING'
+    );
 
-  // Filtrer les commandes en cours qui ne sont pas en attente de paiement
-  const openOrders = recentOrders.filter(
-    (order) => 
-      order.status === 'OPEN' && 
-      order.displayFinancialStatus !== 'PENDING'
-  );
+    setOpenOrders(filteredOrders);
+  }, [query.data]);
 
-  console.log('Open orders:', openOrders);
-
-  // Récupérer les détails de chaque commande
-  const openOrdersDetails = useQuery({
-    queryKey: ['openOrdersDetails', openOrders.map(o => o.id)],
+  // Récupérer les détails des commandes
+  const orderDetails = useQuery({
+    queryKey: ['textile-orders', openOrders.map(o => o.id).join(',')],
     queryFn: async () => {
       if (openOrders.length === 0) return [];
       const details = await Promise.all(
@@ -42,13 +45,19 @@ export const useTextilePagePresenter = () => {
       );
       return details.filter(detail => detail.type === 'success');
     },
-    enabled: !summaryQuery.isLoading && openOrders.length > 0,
+    enabled: openOrders.length > 0,
   });
 
-  console.log('Orders details:', openOrdersDetails.data);
+  // Précharger les données au montage du composant
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['orders'],
+      queryFn: () => fetchOrdersSummaryAction(),
+    });
+  }, [queryClient]);
 
   return {
-    orders: openOrdersDetails.data ?? [],
-    isLoading: summaryQuery.isLoading || openOrdersDetails.isLoading,
+    orders: orderDetails.data ?? [],
+    isLoading: query.isLoading || orderDetails.isLoading,
   };
 };
