@@ -113,49 +113,87 @@ type Result = {
 export const fetchOrderDetailAction = async (
   id: string,
 ): Promise<OrderDetailViewModel> => {
-  const result = await shopifyClient.request<Result>(query, {
-    variables: {
-      orderId: id,
-    },
-  });
+  try {
+    console.log('Fetching order details for ID:', id);
 
-  const fulfillment = result.data!.order.fulfillmentOrders.nodes.find(
-    (order) =>
-      order.assignedLocation.location.id ===
-      process.env.SHOPIFY_PROVIDER_LOCATION_ID,
-  );
+    const result = await shopifyClient.request<Result>(query, {
+      variables: {
+        orderId: id,
+      },
+    });
 
-  if (!fulfillment) {
+    console.log('Shopify result:', result);
+
+    if (!result.data) {
+      console.error('No data in result:', result);
+      return {
+        type: 'error',
+        message: 'No data received from Shopify',
+      };
+    }
+
+    const order = result.data.order;
+    if (!order) {
+      console.error('No order in data:', result.data);
+      return {
+        type: 'error',
+        message: 'Order not found',
+      };
+    }
+
+    const fulfillment = order.fulfillmentOrders.nodes.find(
+      (order) =>
+        order.assignedLocation.location.id ===
+        process.env.SHOPIFY_PROVIDER_LOCATION_ID,
+    );
+
+    console.log('Found fulfillment:', fulfillment);
+    console.log('Financial status:', order.displayFinancialStatus);
+
+    // Si pas de fulfillment (commande en attente de paiement), on retourne quand même les infos de base
+    if (!fulfillment) {
+      return {
+        type: 'success',
+        data: {
+          id: order.id,
+          rawId: ShopifyIds.fromUri(order.id),
+          name: order.name,
+          status: 'OPEN',
+          createdAt: order.createdAt,
+          createdAtFormatted: format(new Date(order.createdAt), 'dd MMMM yyyy', {
+            locale: fr,
+          }),
+          displayFinancialStatus: order.displayFinancialStatus,
+          weightInKg: 0,
+          products: [], // Array vide pour les commandes sans produits
+        },
+      };
+    }
+
+    // Filtrer les produits null ou undefined
+    const validLineItems = fulfillment.lineItems.nodes
+      .filter((node) => node && node.lineItem && node.lineItem.refundableQuantity > 0);
+
     return {
-      type: 'error',
-      message: 'No fulfillment order found',
-    };
-  }
-
-  const order = result.data!.order;
-
-  return {
-    type: 'success',
-    data: {
-      id: order.id,
-      rawId: ShopifyIds.fromUri(order.id),
-      name: order.name,
-      status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
-      createdAt: order.createdAt,
-      createdAtFormatted: format(new Date(order.createdAt), 'dd MMMM yyyy', { locale: fr }),
-      displayFinancialStatus: order.displayFinancialStatus,
-      weightInKg: fulfillment.lineItems.nodes
-        .filter(lineItem => lineItem.lineItem.refundableQuantity > 0)
-        .reduce((acc, lineItem) => {
+      type: 'success',
+      data: {
+        id: order.id,
+        rawId: ShopifyIds.fromUri(order.id),
+        name: order.name,
+        status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
+        createdAt: order.createdAt,
+        createdAtFormatted: format(new Date(order.createdAt), 'dd MMMM yyyy', {
+          locale: fr,
+        }),
+        displayFinancialStatus: order.displayFinancialStatus,
+        weightInKg: validLineItems.reduce((acc, lineItem) => {
           if (lineItem.weight.unit === 'GRAMS') {
             return acc + lineItem.weight.value / 1000;
           } else {
             return acc + lineItem.weight.value;
           }
         }, 0),
-      products: fulfillment.lineItems.nodes
-        .filter(node => node.lineItem.refundableQuantity > 0)
-        .map((node) => ({
+        products: validLineItems.map((node) => ({
           id: node.lineItem.product.title,
           title: node.lineItem.title,
           imageUrl: node.image?.url ?? null,
@@ -165,12 +203,19 @@ export const fetchOrderDetailAction = async (
             node.weight.unit === 'GRAMS'
               ? node.weight.value / 1000
               : node.weight.value,
-          selectedOptions: node.lineItem.variant.selectedOptions,
+          selectedOptions: node.lineItem.variant?.selectedOptions || [],
           unitCostInEuros: parseFloat(
-            node.lineItem.variant.inventoryItem.unitCost.amount,
+            node.lineItem.variant?.inventoryItem?.unitCost?.amount || '0',
           ),
-          sku: node.lineItem.variant.sku || 'N/A',
+          sku: node.lineItem.variant?.sku || 'N/A',
         })),
-    },
-  };
+      },
+    };
+  } catch (error) {
+    console.error('Error in fetchOrderDetailAction:', error);
+    return {
+      type: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
 };
