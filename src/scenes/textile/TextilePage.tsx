@@ -1,19 +1,24 @@
 'use client';
 
 import styles from './TextilePage.module.scss';
-import { Stack, Text, Title } from '@mantine/core';
+import { Loader, Stack, Text, Title } from '@mantine/core';
 import { useTextilePagePresenter } from './TextilePage.presenter';
 import { OrderCard } from './OrderCard';
 
 export const TextilePage = () => {
-  const { openOrders, orderDetails, isLoading } = useTextilePagePresenter();
+  const { openOrders, orderDetails, isLoading, loadingProgress } = useTextilePagePresenter();
 
   if (isLoading) {
     return (
       <div className={styles.view}>
         <div className={styles.main_content}>
           <Title order={2}>Textile</Title>
-          <Text>Chargement des commandes...</Text>
+          <Stack align="center" mt="xl">
+            <Loader size="md" />
+            <Text size="sm" color="dimmed">
+              Chargement des commandes... {loadingProgress.loaded}/{loadingProgress.total}
+            </Text>
+          </Stack>
         </div>
       </div>
     );
