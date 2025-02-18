@@ -124,9 +124,7 @@ export const HomePage = () => {
                 <Text className={styles.row_date}>
                   {order.createdAtFormatted}
                 </Text>
-                <Text className={styles.row_quantity}>
-                  {order.quantity} article(s) à la demande
-                </Text>
+                <Text className={styles.row_quantity}>{order.quantity}</Text>
                 <div className={styles.row_status}>
                   <OrderStatus orderId={order.id} className={styles.checkbox} />
                 </div>
@@ -170,9 +168,7 @@ export const HomePage = () => {
                 <Text className={styles.row_date}>
                   {order.createdAtFormatted}
                 </Text>
-                <Text className={styles.row_quantity}>
-                  {order.quantity} article(s) à la demande
-                </Text>
+                <Text className={styles.row_quantity}>{order.quantity}</Text>
                 <div className={styles.row_status}>
                   <OrderStatus orderId={order.id} className={styles.checkbox} />
                 </div>
