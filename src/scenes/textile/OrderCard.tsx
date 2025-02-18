@@ -2,16 +2,7 @@
 
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
-import { useQuery } from '@tanstack/react-query';
-import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import styles from './TextilePage.module.scss';
-
-interface OrderCardProps {
-  order: {
-    id: string;
-    name: string;
-  };
-}
 
 interface Product {
   quantity: number;
@@ -31,22 +22,15 @@ interface OrderDetailSuccess {
   };
 }
 
-interface OrderDetailError {
-  type: 'error';
-  error: string;
+interface OrderCardProps {
+  order: {
+    id: string;
+    name: string;
+  };
+  orderDetail?: OrderDetailSuccess;
 }
 
-type OrderDetailResponse = OrderDetailSuccess | OrderDetailError;
-
-export const OrderCard = ({ order }: OrderCardProps) => {
-  const { data: orderDetail } = useQuery<OrderDetailResponse, Error>({
-    queryKey: ['order-detail', order.id],
-    queryFn: async (): Promise<OrderDetailResponse> => {
-      const response = await fetchOrderDetailAction(order.id);
-      return response as OrderDetailResponse;
-    },
-  });
-
+export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
   return (
     <div className={styles.order_row}>
       <Group justify="space-between">
