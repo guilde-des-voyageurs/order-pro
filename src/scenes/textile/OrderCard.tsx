@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
 
 interface Product {
@@ -66,15 +67,24 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
     return () => unsubscribe();
   }, [order.id, orderDetail]);
 
+  const isComplete = progress.totalCount > 0 && progress.checkedCount === progress.totalCount;
+
   return (
     <Card withBorder className={styles.order_row}>
       <Stack gap="xs">
         <Group justify="space-between">
           <Title order={3}>Commande {order.name}</Title>
           <Group gap="xs">
-            <Text size="sm" color="dimmed">
-              Progression : {progress.checkedCount}/{progress.totalCount}
-            </Text>
+            {isComplete ? (
+              <Text className={styles.progress_complete}>
+                <IconCheck size={16} stroke={3} />
+                Textile préparé ({progress.checkedCount}/{progress.totalCount})
+              </Text>
+            ) : (
+              <Text size="sm" color="dimmed">
+                Progression : {progress.checkedCount}/{progress.totalCount}
+              </Text>
+            )}
             <Text size="sm" color="dimmed">Textile commandé</Text>
             <OrderCheckbox orderId={order.id} className={styles.checkbox_label} />
           </Group>

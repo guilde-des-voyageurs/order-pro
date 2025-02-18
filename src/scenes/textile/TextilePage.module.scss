@@ -1,8 +1,8 @@
 .view {
   flex: 1;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  padding: 2rem;
   gap: 2rem;
   overflow: auto;
 }
@@ -20,19 +20,40 @@
 
 .order_row {
   padding: 1rem;
-  border: 1px solid #eee;
+  border: 1px solid var(--mantine-color-gray-3);
   border-radius: 0.5rem;
   background-color: white;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--mantine-color-gray-5);
+  }
 }
 
 .checkbox_label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  cursor: pointer;
   
   input[type="checkbox"] {
     width: 1.2rem;
     height: 1.2rem;
     cursor: pointer;
+  }
+}
+
+.progress_complete {
+  font-weight: 700;
+  color: var(--mantine-color-green-7);
+  background: var(--mantine-color-green-1);
+  padding: 4px 12px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    background: var(--mantine-color-green-2);
   }
 }

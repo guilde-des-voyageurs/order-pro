@@ -115,6 +115,16 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId
     }
 
     try {
+      setCheckboxes(prev => {
+        const newState = [...prev];
+        newState[index] = {
+          ...prev[index],
+          loading: true,
+          error: null
+        };
+        return newState;
+      });
+
       const variantId = encodeVariantId(sku, color, size, index);
       const docRef = doc(db, 'variants-ordered', encodeFirestoreId(variantId));
       const document: VariantDocument = {
@@ -138,14 +148,21 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId
         checkedCount: increment(checked ? 1 : -1)
       }, { merge: true });
 
-      if (onChange) {
-        onChange(checkboxes.map(checkbox => checkbox.checked));
-      }
+      setCheckboxes(prev => {
+        const newState = [...prev];
+        newState[index] = {
+          checked,
+          loading: false,
+          error: null
+        };
+        return newState;
+      });
     } catch (error) {
       setCheckboxes(prev => {
         const newState = [...prev];
         newState[index] = {
           ...prev[index],
+          loading: false,
           error: error instanceof Error ? error.message : 'Erreur inconnue'
         };
         return newState;
@@ -157,16 +174,15 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId
 
   return (
     <Group gap={4}>
-      {checkboxes.map((checkbox, index) => 
-        !checkbox.loading && !checkbox.error && (
-          <Checkbox
-            key={index}
-            checked={checkbox.checked}
-            onChange={(event) => handleChange(index, event.currentTarget.checked)}
-            className={className}
-          />
-        )
-      )}
+      {checkboxes.map((checkbox, index) => (
+        <Checkbox
+          key={index}
+          checked={checkbox.checked}
+          onChange={(event) => handleChange(index, event.currentTarget.checked)}
+          className={className}
+          disabled={checkbox.loading}
+        />
+      ))}
     </Group>
   );
 };
