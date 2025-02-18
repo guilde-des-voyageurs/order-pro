@@ -56,7 +56,6 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
   if (!hasMounted) {
     return (
       <Stack mt="md" mb="xl">
-        <Title order={3}>Total des produits commandés</Title>
         <Text size="sm" color="dimmed">Chargement...</Text>
       </Stack>
     );
@@ -125,7 +124,6 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
 
   return (
     <Stack mt="md" mb="xl">
-      <Title order={3}>Total des produits commandés</Title>
       <Grid>
         {productsBySku.map((skuGroup) => (
           <Grid.Col key={skuGroup.sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>

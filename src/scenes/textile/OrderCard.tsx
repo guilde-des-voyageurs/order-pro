@@ -97,15 +97,13 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
             {isComplete ? (
               <Text className={styles.progress_complete}>
                 <IconCheck size={16} stroke={3} />
-                Textile préparé ({progress.checkedCount}/{progress.totalCount})
+                {progress.checkedCount}/{progress.totalCount}
               </Text>
             ) : (
               <Text size="sm" color="dimmed">
-                Progression : {progress.checkedCount}/{progress.totalCount}
+                {progress.checkedCount}/{progress.totalCount}
               </Text>
             )}
-            <Text size="sm" color="dimmed">Textile commandé</Text>
-            <OrderCheckbox orderId={order.id} className={styles.checkbox_label} />
           </Group>
         </Group>
 
