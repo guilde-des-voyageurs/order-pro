@@ -22,6 +22,7 @@ export const MainLayout = ({ children }: { children: any }) => {
 
   const menuItems = [
     { href: '/', label: 'Commandes' },
+    { href: '/textile', label: 'Textile' },
   ];
 
   return (
