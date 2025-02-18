@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
 import { encodeFirestoreId, decodeFirestoreId } from '@/utils/firestore-helpers';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface VariantCheckboxProps {
   sku: string;
@@ -52,12 +53,13 @@ export const VariantCheckbox = ({
   orderId,
   className 
 }: VariantCheckboxProps) => {
+  const hasMounted = useHasMounted();
   const [checkboxes, setCheckboxes] = useState<CheckboxState[]>(
     Array(quantity).fill({ checked: false, loading: true, error: null })
   );
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !hasMounted) return;
 
     const unsubscribes = Array(quantity).fill(null).map((_, index) => {
       const variantId = generateVariantId(orderId, sku, color, size, index);
@@ -77,7 +79,7 @@ export const VariantCheckbox = ({
     });
 
     return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-  }, [sku, color, size, quantity, orderId]);
+  }, [sku, color, size, quantity, orderId, hasMounted]);
 
   const handleChange = async (index: number, checked: boolean) => {
     if (!auth.currentUser) {
@@ -147,6 +149,21 @@ export const VariantCheckbox = ({
       });
     }
   };
+
+  if (!hasMounted) {
+    return (
+      <Group gap={4}>
+        {Array(quantity).fill(null).map((_, index) => (
+          <Checkbox
+            key={`${orderId}-${sku}-${color}-${size}-${index}`}
+            checked={false}
+            disabled
+            className={className}
+          />
+        ))}
+      </Group>
+    );
+  }
 
   return (
     <Group gap={4}>

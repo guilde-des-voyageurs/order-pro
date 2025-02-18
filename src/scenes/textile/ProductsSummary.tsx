@@ -3,6 +3,8 @@
 import { Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { useHasMounted } from '@/hooks/useHasMounted';
+import styles from './TextilePage.module.scss';
 
 interface Product {
   quantity: number;
@@ -30,16 +32,36 @@ interface ProductVariant {
   size?: string;
   quantity: number;
   orderId: string;
-  orderName?: string;
+}
+
+interface GroupedVariant {
+  sku: string;
+  color?: string;
+  size?: string;
+  variants: ProductVariant[];
 }
 
 interface ProductGroup {
   sku: string;
-  variants: ProductVariant[];
+  groupedVariants: GroupedVariant[];
   totalQuantity: number;
 }
 
+const variantKey = (variant: ProductVariant) => 
+  `${variant.sku}--${variant.color || 'no-color'}--${variant.size || 'no-size'}`;
+
 export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
+  const hasMounted = useHasMounted();
+
+  if (!hasMounted) {
+    return (
+      <Stack mt="md" mb="xl">
+        <Title order={3}>Total des produits commandés</Title>
+        <Text size="sm" color="dimmed">Chargement...</Text>
+      </Stack>
+    );
+  }
+
   // Transformer les produits en gardant les variantes séparées par commande
   const allVariants = Object.entries(orderDetails)
     .filter(([_, detail]): detail is [string, OrderDetail] => detail?.type === 'success')
@@ -63,17 +85,36 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
       })
     );
 
-  // Regrouper par SKU pour l'affichage
+  // Regrouper par SKU et sous-grouper par variantes identiques
   const productsBySku = allVariants.reduce((acc: ProductGroup[], variant) => {
     const existingSku = acc.find(p => p.sku === variant.sku);
+    const variantIdentifier = variantKey(variant);
     
     if (existingSku) {
-      existingSku.variants.push(variant);
+      const existingVariantGroup = existingSku.groupedVariants.find(
+        v => variantKey(v) === variantIdentifier
+      );
+
+      if (existingVariantGroup) {
+        existingVariantGroup.variants.push(variant);
+      } else {
+        existingSku.groupedVariants.push({
+          sku: variant.sku,
+          color: variant.color,
+          size: variant.size,
+          variants: [variant]
+        });
+      }
       existingSku.totalQuantity += variant.quantity;
     } else {
       acc.push({
         sku: variant.sku,
-        variants: [variant],
+        groupedVariants: [{
+          sku: variant.sku,
+          color: variant.color,
+          size: variant.size,
+          variants: [variant]
+        }],
         totalQuantity: variant.quantity
       });
     }
@@ -90,25 +131,32 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
           <Grid.Col key={skuGroup.sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
             <Stack>
               <Title order={4}>{skuGroup.sku} (Total: {skuGroup.totalQuantity})</Title>
-              {skuGroup.variants.map((variant, index) => (
-                <Group key={`${variant.orderId}-${index}`} gap="sm">
-                  <Group align="center" gap="xs">
-                    <VariantCheckbox 
-                      sku={variant.sku}
-                      color={variant.color}
-                      size={variant.size}
-                      quantity={variant.quantity}
-                      orderId={encodeFirestoreId(variant.orderId)}
-                    />
-                    <Text component="span" size="sm">
-                      {variant.sku}
-                      {variant.color ? ` - ${variant.color}` : ''}
-                      {variant.size ? ` - ${variant.size}` : ''}
-                      {' '}<Text span c="dimmed">({variant.orderId})</Text>
+              {skuGroup.groupedVariants
+                .sort((a, b) => b.variants.length - a.variants.length)
+                .map((groupedVariant) => (
+                  <Stack key={variantKey(groupedVariant)} spacing={4}>
+                    <Text size="sm" fw={500}>
+                      {groupedVariant.sku}
+                      {groupedVariant.color ? ` - ${groupedVariant.color}` : ''}
+                      {groupedVariant.size ? ` - ${groupedVariant.size}` : ''}
+                      {' '}({groupedVariant.variants.length} unité{groupedVariant.variants.length > 1 ? 's' : ''})
                     </Text>
-                  </Group>
-                </Group>
-              ))}
+                    <Group gap={4}>
+                      {groupedVariant.variants
+                        .sort((a, b) => a.orderId.localeCompare(b.orderId))
+                        .map((variant, index) => (
+                          <VariantCheckbox
+                            key={`${variant.orderId}-${index}`}
+                            sku={variant.sku}
+                            color={variant.color}
+                            size={variant.size}
+                            quantity={variant.quantity}
+                            orderId={encodeFirestoreId(variant.orderId)}
+                          />
+                        ))}
+                    </Group>
+                  </Stack>
+                ))}
             </Stack>
           </Grid.Col>
         ))}

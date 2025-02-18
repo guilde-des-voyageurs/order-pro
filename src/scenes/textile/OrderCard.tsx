@@ -9,6 +9,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface Product {
   quantity: number;
@@ -37,6 +38,7 @@ interface OrderCardProps {
 }
 
 export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
+  const hasMounted = useHasMounted();
   const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });
 
   const getOptionValue = (product: Product, optionName: string) => {
@@ -46,7 +48,7 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
   };
 
   useEffect(() => {
-    if (!auth.currentUser || !orderDetail?.type === 'success') return;
+    if (!auth.currentUser || !orderDetail?.type === 'success' || !hasMounted) return;
 
     // Calculer le nombre total de variantes
     const total = orderDetail.data.products.reduce((acc, product) => acc + product.quantity, 0);
@@ -65,9 +67,26 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
     });
 
     return () => unsubscribe();
-  }, [order.id, orderDetail]);
+  }, [order.id, orderDetail, hasMounted]);
 
   const isComplete = progress.totalCount > 0 && progress.checkedCount === progress.totalCount;
+
+  if (!hasMounted) {
+    return (
+      <Card withBorder className={styles.order_row}>
+        <Stack gap="xs">
+          <Group justify="space-between">
+            <Title order={3}>Commande {order.name}</Title>
+            <Group gap="xs">
+              <Text size="sm" color="dimmed">
+                Chargement...
+              </Text>
+            </Group>
+          </Group>
+        </Stack>
+      </Card>
+    );
+  }
 
   return (
     <Card withBorder className={styles.order_row}>
