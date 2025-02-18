@@ -174,7 +174,7 @@ const Content = ({ id }: { id: string }) => {
 
               <Box p="md" bg="gray.1" style={{ borderRadius: '4px' }}>
                 <Text>⚠️ Penser à :</Text>
-                <Stack gap="xs" spacing={0} mt={2}>
+                <Stack gap="xs" mt={2}>
                   <Text size="sm">- retirer les étiquettes du produit</Text>
                   <Text size="sm">- glisser le mot de remerciement</Text>
                   <Text size="sm">- le sticker</Text>

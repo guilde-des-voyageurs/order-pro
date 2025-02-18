@@ -46,7 +46,7 @@ interface ProductGroup {
   totalQuantity: number;
 }
 
-const variantKey = (variant: ProductVariant) => 
+const variantKey = (variant: ProductVariant | GroupedVariant) => 
   `${variant.sku}--${variant.color || 'no-color'}--${variant.size || 'no-size'}`;
 
 export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
@@ -62,7 +62,10 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
 
   // Transformer les produits en gardant les variantes séparées par commande
   const allVariants = Object.entries(orderDetails)
-    .filter(([_, detail]): detail is [string, OrderDetail] => detail?.type === 'success')
+    .filter((entry): entry is [string, OrderDetail] => {
+      const [_, detail] = entry;
+      return detail?.type === 'success';
+    })
     .flatMap(([orderId, detail]) => 
       detail.data.products.flatMap(product => {
         const color = product.selectedOptions.find(
