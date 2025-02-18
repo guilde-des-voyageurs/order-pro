@@ -13,29 +13,57 @@ interface OrderCardProps {
   };
 }
 
+interface Product {
+  quantity: number;
+  sku: string;
+  selectedOptions: Array<{
+    name: string;
+    value: string;
+  }>;
+}
+
+interface OrderDetailSuccess {
+  type: 'success';
+  data: {
+    id: string;
+    name: string;
+    products: Product[];
+  };
+}
+
+interface OrderDetailError {
+  type: 'error';
+  error: string;
+}
+
+type OrderDetailResponse = OrderDetailSuccess | OrderDetailError;
+
 export const OrderCard = ({ order }: OrderCardProps) => {
-  const { data } = useQuery({
+  const { data: orderDetail } = useQuery<OrderDetailResponse, Error>({
     queryKey: ['order-detail', order.id],
-    queryFn: () => fetchOrderDetailAction(order.id),
+    queryFn: async (): Promise<OrderDetailResponse> => {
+      const response = await fetchOrderDetailAction(order.id);
+      return response as OrderDetailResponse;
+    },
   });
 
   return (
     <div className={styles.order_row}>
-      <Group position="apart">
+      <Group justify="space-between">
         <Title order={3}>Commande {order.name}</Title>
-        <Group spacing="xs">
+        <Group gap="xs">
           <Text size="sm" color="dimmed">Textile commandé</Text>
           <OrderCheckbox orderId={order.id} className={styles.checkbox_label} />
         </Group>
       </Group>
-      {data && data.type === 'success' && (
-        <Stack spacing="xs" mt="md">
-          {data.data.products.map((product: any, index: number) => {
+      {orderDetail?.type === 'success' && (
+        <Stack gap="xs" mt="md">
+          {orderDetail.data.products.map((product: Product, index: number) => {
             const color = product.selectedOptions.find(
-              (opt: any) => opt.name.toLowerCase().includes('couleur')
+              (opt) => opt.name.toLowerCase().includes('couleur')
             )?.value;
             const size = product.selectedOptions.find(
-              (opt: any) => opt.name.toLowerCase().includes('taille')
+              (opt) => opt.name.toLowerCase().includes('taille')
             )?.value;
 
             return (

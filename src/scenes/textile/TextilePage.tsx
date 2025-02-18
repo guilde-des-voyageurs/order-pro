@@ -16,7 +16,7 @@ export const TextilePage = () => {
           Commandes depuis le 16 janvier 2025
         </Text>
         <section className={styles.section}>
-          <Stack spacing="lg">
+          <Stack gap="lg">
             {openOrders.map((order) => (
               <OrderCard key={order.id} order={order} />
             ))}
