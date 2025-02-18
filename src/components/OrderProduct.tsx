@@ -43,8 +43,10 @@ export const OrderProduct = ({ product }: OrderProductProps) => {
               <br />
             </span>
           ))}
-          <b>SKU</b> : {product.sku}
-          <br />
+          <span className={styles.print_hidden}>
+            <b>SKU</b> : {product.sku}
+            <br />
+          </span>
           <b>Poids</b> : {product.weightInKg} kg
         </Text>
       </Box>

@@ -8,6 +8,7 @@ import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useHasMounted } from '@/hooks/useHasMounted';
 import styles from '@/scenes/home/OrderDetailsSection.module.scss';
+import { transformColor } from '@/utils/color-transformer';
 
 interface OrderVariantListProps {
   orderId: string;
@@ -99,26 +100,26 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
         <Text size="sm" mb={2} fw={600} c={progress.checkedCount === progress.totalCount ? 'green' : 'dimmed'}>
           Textile commandé : {progress.checkedCount}/{progress.totalCount}
         </Text>
-        {Object.values(groupedProducts).map((group: any) => (
-          <Stack key={`${group.sku}--${group.color}--${group.size}`} spacing={0} mt={4}>
-            <Group align="center" gap={4}>
-              <Group gap={1}>
+        {Object.values(groupedProducts).map((group) => (
+          <Stack key={group.sku} spacing={4}>
+            <Group gap="xs" align="center">
+              <Group gap={4}>
                 {group.variants.map((variant: any, index: number) => (
                   <VariantCheckbox
-                    key={`${orderId}-${index}`}
+                    key={`${orderId}-${variant.sku}-${variant.color}-${variant.size}-${index}`}
+                    orderId={encodeFirestoreId(orderId)}
                     sku={variant.sku}
                     color={variant.color}
                     size={variant.size}
                     quantity={1}
-                    orderId={encodeFirestoreId(orderId)}
                   />
                 ))}
               </Group>
               <Text size="sm" fw={500}>
                 {group.sku}
-                {group.color ? ` - ${group.color}` : ''}
-                {group.size ? ` - ${group.size}` : ''}
-                {' '}({group.quantity} unité{group.quantity > 1 ? 's' : ''})
+                {group.color && ` - ${transformColor(group.color)}`}
+                {group.size && ` - ${group.size}`}
+                {' '}({group.quantity})
               </Text>
             </Group>
           </Stack>

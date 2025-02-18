@@ -3,7 +3,7 @@
 import styles from './OrderDetailsSection.module.scss';
 import { clsx } from 'clsx';
 import { Badge } from '@/components/Badge';
-import { Box, Button, Flex, Image, Stack, Text, Title } from '@mantine/core';
+import { Box, Button, Flex, Image, Stack, Text, Title, Group } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
@@ -127,26 +127,28 @@ const Content = ({ id }: { id: string }) => {
               </Text>
             )}
             {order.products.length > 0 && (
-              <>
-                <Text mt={5}>
-                  <b>Poids</b> : {order.weightInKg}kg
-                </Text>
-                <Box>
+              <Stack gap="md">
+                <Group gap="xs">
+                  <Text fw={500}>Poids :</Text>
+                  <Text>{order.weightInKg}kg</Text>
+                </Group>
+
+                <Stack gap="xs">
                   <OrderVariantList 
                     orderId={id}
                     products={order.products}
                   />
-                </Box>
-                <Flex align="center" gap="md">
-                  <Text>
-                    <b>Facturé</b> : {unitCostInEuros} = {unitCostSum}€
-                  </Text>
+                </Stack>
+
+                <Group gap="xs">
+                  <Text fw={500}>Facturé :</Text>
+                  <Text>{unitCostInEuros} = {unitCostSum}€</Text>
                   <BillingCheckbox 
                     orderId={id} 
                     className={styles.checkbox}
                   />
-                </Flex>
-              </>
+                </Group>
+              </Stack>
             )}
           </Box>
         </div>
