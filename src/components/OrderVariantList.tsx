@@ -5,7 +5,7 @@ import { VariantCheckbox } from './VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useHasMounted } from '@/hooks/useHasMounted';
 import styles from '@/scenes/home/OrderDetailsSection.module.scss';
 
@@ -30,16 +30,23 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
 
     // Calculer le nombre total de variantes
     const total = products.reduce((acc, product) => acc + product.quantity, 0);
-    setProgress(prev => ({ ...prev, totalCount: total }));
 
-    // Écouter les changements du compteur de la commande
+    // Initialiser ou mettre à jour le totalCount dans Firestore
     const encodedOrderId = encodeFirestoreId(orderId);
     const orderRef = doc(db, 'orders-progress', encodedOrderId);
+    setDoc(orderRef, {
+      totalCount: total,
+      userId: auth.currentUser.uid,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // Écouter les changements du compteur de la commande
     const unsubscribe = onSnapshot(orderRef, (doc) => {
       if (doc.exists()) {
         setProgress(prev => ({ 
           ...prev, 
-          checkedCount: doc.data()?.checkedCount || 0 
+          checkedCount: doc.data()?.checkedCount || 0,
+          totalCount: doc.data()?.totalCount || 0
         }));
       }
     });

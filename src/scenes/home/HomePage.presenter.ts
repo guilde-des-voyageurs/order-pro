@@ -52,5 +52,6 @@ export const useHomePagePresenter = () => {
     selected,
     setSelected,
     openOrderQuantityPerTypeStr,
+    isLoading: query.isLoading
   };
 };
