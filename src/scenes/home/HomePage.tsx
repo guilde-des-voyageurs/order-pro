@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/firebase/config';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 
 export const HomePage = () => {
   const {
@@ -45,23 +46,23 @@ export const HomePage = () => {
       for (const order of allOrders) {
         console.log('Processing order:', {
           id: order.id,
-          name: order.name,
-          products: order.products,
-          lineItems: order.lineItems,
-          fulfillmentOrders: order.fulfillmentOrders
+          name: order.name
         });
 
-        // Vérifier si on a des line items
-        const lineItems = order.lineItems?.nodes || [];
-        const total = lineItems.reduce((acc, item) => acc + (item.totalQuantity || 0), 0);
-        
-        console.log('Order', order.id, 'has', total, 'items from lineItems');
-        
-        if (total === 0) {
-          console.log('Skipping order', order.id, 'with no items');
+        // Récupérer les détails de la commande
+        const orderDetail = await fetchOrderDetailAction(order.id);
+        if (orderDetail.type !== 'success') {
+          console.log('Failed to get order details for', order.id);
           continue;
         }
 
+        // Calculer le total des items
+        const total = orderDetail.data.products.reduce((acc, product) => {
+          return acc + product.quantity;
+        }, 0);
+
+        console.log('Order', order.id, 'has', total, 'items');
+        
         const encodedOrderId = encodeFirestoreId(order.id);
         const orderRef = doc(db, 'orders-progress', encodedOrderId);
         

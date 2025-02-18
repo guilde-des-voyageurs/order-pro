@@ -9,7 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
-import { OrderCheckbox } from '@/components/OrderCheckbox';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { OrderProduct } from '@/components/OrderProduct';
 import { OrderVariantList } from '@/components/OrderVariantList';

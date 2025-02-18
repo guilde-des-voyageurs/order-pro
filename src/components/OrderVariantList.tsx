@@ -95,13 +95,13 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
   }, {} as Record<string, any>);
 
   return (
-    <Stack spacing={0}>
+    <Stack>
       <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
         <Text size="sm" mb={2} fw={600} c={progress.checkedCount === progress.totalCount ? 'green' : 'dimmed'}>
           Textile commandé : {progress.checkedCount}/{progress.totalCount}
         </Text>
         {Object.values(groupedProducts).map((group) => (
-          <Stack key={group.sku} spacing={4}>
+          <Stack key={group.sku}>
             <Group gap="xs" align="center">
               <Group gap={4}>
                 {group.variants.map((variant: any, index: number) => (

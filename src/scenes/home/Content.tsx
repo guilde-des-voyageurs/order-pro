@@ -13,13 +13,7 @@ import { getOrderVariantsCheckedAction } from '@/actions/get-order-variants-chec
 import styles from './OrderDetailsSection.module.scss';
 
 // Composants avec fallback pour le chargement
-const OrderCheckboxWithSuspense = ({ orderId, className }: { orderId: string; className?: string }) => (
-  <Suspense fallback={<div>Chargement...</div>}>
-    <OrderCheckbox orderId={orderId} className={className} />
-  </Suspense>
-);
-
-const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color?: string; size?: string; quantity: number; orderId: string }) => (
+const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color: string | null; size: string | null; quantity: number; orderId: string }) => (
   <Suspense fallback={<div>Chargement...</div>}>
     <VariantCheckbox sku={sku} color={color} size={size} quantity={quantity} orderId={orderId} />
   </Suspense>
@@ -111,10 +105,10 @@ const Content = ({ id }: { id: string }) => {
 
           return (
             <Flex key={`${product.sku}-${sizeOption?.value}-${colorOption?.value}`} align="center" gap="md">
-              <VariantCheckbox
+              <VariantCheckboxWithSuspense
                 sku={product.sku}
-                color={colorOption?.value}
-                size={sizeOption?.value}
+                color={colorOption?.value ?? null}
+                size={sizeOption?.value ?? null}
                 quantity={product.quantity}
                 orderId={id}
               />

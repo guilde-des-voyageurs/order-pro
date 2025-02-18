@@ -1,7 +1,6 @@
 'use client';
 
 import { Group, Stack, Text, Title, Card } from '@mantine/core';
-import { OrderCheckbox } from '@/components/OrderCheckbox';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
@@ -41,14 +40,15 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
   const hasMounted = useHasMounted();
   const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });
 
-  const getOptionValue = (product: Product, optionName: string) => {
-    return product.selectedOptions.find(
+  const getOptionValue = (product: Product, optionName: string): string | null => {
+    const value = product.selectedOptions.find(
       opt => opt.name.toLowerCase().includes(optionName.toLowerCase())
     )?.value;
+    return value ?? null;
   };
 
   useEffect(() => {
-    if (!auth.currentUser || !orderDetail?.type === 'success' || !hasMounted) return;
+    if (!auth.currentUser || orderDetail?.type !== 'success' || !hasMounted) return;
 
     // Calculer le nombre total de variantes
     const total = orderDetail.data.products.reduce((acc, product) => acc + product.quantity, 0);

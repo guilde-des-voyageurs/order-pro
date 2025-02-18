@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { encodeFirestoreId } from '@/utils/firestore-helpers';
 
 interface Product {
   quantity: number;
@@ -13,17 +14,18 @@ interface Product {
   }>;
 }
 
-const encodeVariantId = (
+const generateVariantId = (
+  orderId: string,
   sku: string, 
   color: string | null, 
-  size: string | null, 
+  size: string | null,
   index: number
 ): string => {
-  const id = `${sku}-${color || 'no-color'}-${size || 'no-size'}-${index}`;
-  return Buffer.from(id).toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
+  const id = `${orderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${index}`;
+  return encodeFirestoreId(id);
 };
 
-export const useVariantsProgress = (products: Product[]) => {
+export const useVariantsProgress = (products: Product[], orderId: string) => {
   const [checkedCount, setCheckedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -38,19 +40,19 @@ export const useVariantsProgress = (products: Product[]) => {
     const variantIds = products.flatMap(product => {
       const color = product.selectedOptions.find(
         opt => opt.name.toLowerCase().includes('couleur')
-      )?.value;
+      )?.value || null;
       const size = product.selectedOptions.find(
         opt => opt.name.toLowerCase().includes('taille')
-      )?.value;
+      )?.value || null;
 
       return Array(product.quantity)
         .fill(null)
-        .map((_, index) => encodeVariantId(product.sku, color, size, index));
+        .map((_, index) => generateVariantId(orderId, product.sku, color, size, index));
     });
 
     // Créer plusieurs listeners pour des groupes de 10 variants (limite Firestore)
     const batchSize = 10;
-    const unsubscribes = [];
+    const unsubscribes: (() => void)[] = [];
     
     for (let i = 0; i < variantIds.length; i += batchSize) {
       const batchIds = variantIds.slice(i, i + batchSize);
@@ -81,7 +83,7 @@ export const useVariantsProgress = (products: Product[]) => {
     }
 
     return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-  }, [products]);
+  }, [products, orderId]);
 
   return { checkedCount, totalCount };
 };
