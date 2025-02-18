@@ -1,7 +1,6 @@
 'use client';
 
-import { Group } from '@mantine/core';
-import { Checkbox } from '@mantine/core';
+import { Checkbox, Group } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
@@ -9,46 +8,12 @@ import { encodeFirestoreId, decodeFirestoreId } from '@/utils/firestore-helpers'
 
 interface VariantCheckboxProps {
   sku: string;
-  color?: string;
-  size?: string;
-  quantity: number;
-  className?: string;
-  orderId: string;
-  onChange?: (checked: boolean[]) => void;
-}
-
-interface VariantDocument {
-  checked: boolean;
-  sku: string;
-  color?: string;
-  size?: string;
-  index: number;
-  originalId: string;
-  userId: string;
-  updatedAt: string;
-  orderId: string;
-}
-
-interface VariantId {
-  sku: string;
   color: string | null;
   size: string | null;
-  index: number;
+  quantity: number;
+  orderId: string;
+  className?: string;
 }
-
-const encodeVariantId = (
-  sku: string, 
-  color: string | null, 
-  size: string | null, 
-  index: number
-): string => {
-  const id = `${sku}--${color || 'no-color'}--${size || 'no-size'}--${index}`;
-  return encodeFirestoreId(id);
-};
-
-const decodeVariantId = (encodedId: string): string => {
-  return decodeFirestoreId(encodedId);
-};
 
 interface CheckboxState {
   checked: boolean;
@@ -56,50 +21,63 @@ interface CheckboxState {
   error: string | null;
 }
 
-export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId }: VariantCheckboxProps) => {
+interface VariantDocument {
+  checked: boolean;
+  sku: string;
+  color: string | null;
+  size: string | null;
+  index: number;
+  originalId: string;
+  userId: string;
+  updatedAt: string;
+  orderId: string;
+}
+
+const generateVariantId = (
+  orderId: string,
+  sku: string, 
+  color: string | null, 
+  size: string | null,
+  index: number
+): string => {
+  const id = `${orderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${index}`;
+  return encodeFirestoreId(id);
+};
+
+export const VariantCheckbox = ({ 
+  sku, 
+  color, 
+  size, 
+  quantity,
+  orderId,
+  className 
+}: VariantCheckboxProps) => {
   const [checkboxes, setCheckboxes] = useState<CheckboxState[]>(
     Array(quantity).fill({ checked: false, loading: true, error: null })
   );
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setCheckboxes(prev => prev.map(checkbox => ({
-        ...checkbox,
-        loading: false,
-        error: 'Utilisateur non connecté'
-      })));
-      return;
-    }
+    if (!auth.currentUser) return;
 
     const unsubscribes = Array(quantity).fill(null).map((_, index) => {
-      const variantId = encodeVariantId(sku, color, size, index);
-      const docRef = doc(db, 'variants-ordered', encodeFirestoreId(variantId));
-      
-      return onSnapshot(docRef, (doc) => {
+      const variantId = generateVariantId(orderId, sku, color, size, index);
+      const docRef = doc(db, 'variants-ordered', variantId);
+
+      return onSnapshot(docRef, (snapshot) => {
         setCheckboxes(prev => {
           const newState = [...prev];
           newState[index] = {
-            checked: doc.exists() ? doc.data()?.checked || false : false,
+            checked: snapshot.exists() ? snapshot.data()?.checked : false,
             loading: false,
             error: null
-          };
-          return newState;
-        });
-      }, (error) => {
-        setCheckboxes(prev => {
-          const newState = [...prev];
-          newState[index] = {
-            ...prev[index],
-            loading: false,
-            error: error.message
           };
           return newState;
         });
       });
     });
 
-    return () => unsubscribes.forEach(unsubscribe => unsubscribe?.());
-  }, [sku, color, size, quantity]);
+    return () => unsubscribes.forEach(unsubscribe => unsubscribe());
+  }, [sku, color, size, quantity, orderId]);
 
   const handleChange = async (index: number, checked: boolean) => {
     if (!auth.currentUser) {
@@ -125,15 +103,15 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId
         return newState;
       });
 
-      const variantId = encodeVariantId(sku, color, size, index);
-      const docRef = doc(db, 'variants-ordered', encodeFirestoreId(variantId));
+      const variantId = generateVariantId(orderId, sku, color, size, index);
+      const docRef = doc(db, 'variants-ordered', variantId);
       const document: VariantDocument = {
         checked,
         sku,
         color,
         size,
         index,
-        originalId: decodeVariantId(variantId),
+        originalId: decodeFirestoreId(variantId),
         userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString(),
         orderId
@@ -170,13 +148,11 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId
     }
   };
 
-  if (checkboxes.every(c => c.error)) return null;
-
   return (
     <Group gap={4}>
       {checkboxes.map((checkbox, index) => (
         <Checkbox
-          key={index}
+          key={`${orderId}-${sku}-${color}-${size}-${index}`}
           checked={checkbox.checked}
           onChange={(event) => handleChange(index, event.currentTarget.checked)}
           className={className}
