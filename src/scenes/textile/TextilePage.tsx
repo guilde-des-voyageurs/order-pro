@@ -1,11 +1,12 @@
 'use client';
 
 import styles from './TextilePage.module.scss';
-import { Box, Card, Stack, Text, Title } from '@mantine/core';
+import { Box, Card, Stack, Text, Title, Group } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { fetchOrdersSummaryAction } from '@/actions/fetch-orders-summary-action';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { isAfter, parseISO } from 'date-fns';
+import { OrderCheckbox } from '@/components/OrderCheckbox';
 
 const OrderCard = ({ order }: { order: any }) => {
   const query = useQuery({
@@ -27,9 +28,15 @@ const OrderCard = ({ order }: { order: any }) => {
       radius="md"
       withBorder
     >
-      <Title order={3} mb="md">
-        Commande {orderDetail.name}
-      </Title>
+      <Group position="apart" mb="md">
+        <Title order={3}>
+          Commande {orderDetail.name}
+        </Title>
+        <Group spacing="xs">
+          <Text size="sm" color="dimmed">Textile commandé</Text>
+          <OrderCheckbox orderId={orderDetail.id} className={styles.checkbox_label} />
+        </Group>
+      </Group>
       <Stack spacing="xs">
         {orderDetail.products.map((product: any, index: number) => (
           <Box key={index}>
