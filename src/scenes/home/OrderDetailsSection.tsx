@@ -131,16 +131,7 @@ const Content = ({ id }: { id: string }) => {
                 <Text mt={5}>
                   <b>Poids</b> : {order.weightInKg}kg
                 </Text>
-                <Flex align="center" gap="md">
-                  <div>
-                    <b>Textile commandé</b> : 
-                  </div>
-                  <OrderCheckbox 
-                    orderId={id} 
-                    className={styles.checkbox}
-                  />
-                </Flex>
-                <Box ml="md">
+                <Box>
                   <OrderVariantList 
                     orderId={id}
                     products={order.products}
@@ -149,8 +140,6 @@ const Content = ({ id }: { id: string }) => {
                 <Flex align="center" gap="md">
                   <Text>
                     <b>Facturé</b> : {unitCostInEuros} = {unitCostSum}€
-                    <br />
-                    <p>Le prix final comprend la manutention de l'envoi.</p>
                   </Text>
                   <BillingCheckbox 
                     orderId={id} 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text, Box } from '@mantine/core';
 import { VariantCheckbox } from './VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { useEffect, useState } from 'react';
@@ -87,34 +87,36 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
   }, {} as Record<string, any>);
 
   return (
-    <Stack spacing={0} className={styles.variant_list}>
-      <Text size="sm" mb={2} fw={600} c={progress.checkedCount === progress.totalCount ? 'green' : 'dimmed'}>
-        Progression : {progress.checkedCount}/{progress.totalCount}
-      </Text>
-      {Object.values(groupedProducts).map((group: any) => (
-        <Stack key={`${group.sku}--${group.color}--${group.size}`} spacing={0} mt={-8}>
-          <Group align="center" gap={4}>
-            <Group gap={1}>
-              {group.variants.map((variant: any, index: number) => (
-                <VariantCheckbox
-                  key={`${orderId}-${index}`}
-                  sku={variant.sku}
-                  color={variant.color}
-                  size={variant.size}
-                  quantity={1}
-                  orderId={encodeFirestoreId(orderId)}
-                />
-              ))}
+    <Stack spacing={0}>
+      <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
+        <Text size="sm" mb={2} fw={600} c={progress.checkedCount === progress.totalCount ? 'green' : 'dimmed'}>
+          Textile commandé : {progress.checkedCount}/{progress.totalCount}
+        </Text>
+        {Object.values(groupedProducts).map((group: any) => (
+          <Stack key={`${group.sku}--${group.color}--${group.size}`} spacing={0} mt={4}>
+            <Group align="center" gap={4}>
+              <Group gap={1}>
+                {group.variants.map((variant: any, index: number) => (
+                  <VariantCheckbox
+                    key={`${orderId}-${index}`}
+                    sku={variant.sku}
+                    color={variant.color}
+                    size={variant.size}
+                    quantity={1}
+                    orderId={encodeFirestoreId(orderId)}
+                  />
+                ))}
+              </Group>
+              <Text size="sm" fw={500}>
+                {group.sku}
+                {group.color ? ` - ${group.color}` : ''}
+                {group.size ? ` - ${group.size}` : ''}
+                {' '}({group.quantity} unité{group.quantity > 1 ? 's' : ''})
+              </Text>
             </Group>
-            <Text size="sm" fw={500}>
-              {group.sku}
-              {group.color ? ` - ${group.color}` : ''}
-              {group.size ? ` - ${group.size}` : ''}
-              {' '}({group.quantity} unité{group.quantity > 1 ? 's' : ''})
-            </Text>
-          </Group>
-        </Stack>
-      ))}
+          </Stack>
+        ))}
+      </Box>
     </Stack>
   );
 };
