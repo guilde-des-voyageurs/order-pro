@@ -25,7 +25,19 @@ interface VariantDocument {
   updatedAt: string;
 }
 
-const encodeVariantId = (sku: string, color?: string, size?: string, index: number): string => {
+interface VariantId {
+  sku: string;
+  color: string | null;
+  size: string | null;
+  index: number;
+}
+
+const encodeVariantId = (
+  sku: string, 
+  color: string | null, 
+  size: string | null, 
+  index: number
+): string => {
   const id = `${sku}-${color || 'no-color'}-${size || 'no-size'}-${index}`;
   return Buffer.from(id).toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
 };
