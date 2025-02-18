@@ -101,7 +101,23 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
           sku: variant.sku,
           color: variant.color,
           size: variant.size,
-          variants: [variant]
+          variants: [variant],
+        });
+        // Trier les variantes par couleur puis par taille
+        existingSku.groupedVariants.sort((a, b) => {
+          // D'abord par couleur
+          const colorCompare = (a.color || '').localeCompare(b.color || '');
+          if (colorCompare !== 0) return colorCompare;
+
+          // Ensuite par taille (avec un tri spécial pour les tailles standard)
+          const sizeOrder = { 'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6 };
+          const aSize = a.size || '';
+          const bSize = b.size || '';
+          const aOrder = sizeOrder[aSize as keyof typeof sizeOrder] || 99;
+          const bOrder = sizeOrder[bSize as keyof typeof sizeOrder] || 99;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          
+          return aSize.localeCompare(bSize);
         });
       }
       existingSku.totalQuantity += variant.quantity;
@@ -112,12 +128,11 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
           sku: variant.sku,
           color: variant.color,
           size: variant.size,
-          variants: [variant]
+          variants: [variant],
         }],
-        totalQuantity: variant.quantity
+        totalQuantity: variant.quantity,
       });
     }
-    
     return acc;
   }, [])
   .sort((a, b) => b.totalQuantity - a.totalQuantity);
@@ -127,34 +142,30 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
       <Grid>
         {productsBySku.map((skuGroup) => (
           <Grid.Col key={skuGroup.sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-            <Stack>
-              <Title order={4}>{skuGroup.sku} (Total: {skuGroup.totalQuantity})</Title>
-              {skuGroup.groupedVariants
-                .sort((a, b) => b.variants.length - a.variants.length)
-                .map((groupedVariant) => (
-                  <Stack key={variantKey(groupedVariant)} spacing={4}>
-                    <Text size="sm" fw={500}>
-                      {groupedVariant.sku}
-                      {groupedVariant.color ? ` - ${groupedVariant.color}` : ''}
-                      {groupedVariant.size ? ` - ${groupedVariant.size}` : ''}
-                      {' '}({groupedVariant.variants.length} unité{groupedVariant.variants.length > 1 ? 's' : ''})
-                    </Text>
-                    <Group gap={4}>
-                      {groupedVariant.variants
-                        .sort((a, b) => a.orderId.localeCompare(b.orderId))
-                        .map((variant, index) => (
-                          <VariantCheckbox
-                            key={`${variant.orderId}-${index}`}
-                            sku={variant.sku}
-                            color={variant.color}
-                            size={variant.size}
-                            quantity={variant.quantity}
-                            orderId={encodeFirestoreId(variant.orderId)}
-                          />
-                        ))}
-                    </Group>
-                  </Stack>
-                ))}
+            <Stack gap="xs">
+              <Text fw={500}>{skuGroup.sku}</Text>
+              {skuGroup.groupedVariants.map((variant, index) => (
+                <Group key={index} gap="xs">
+                  <Text size="sm" c="dimmed">
+                    {variant.color && `${variant.color}`}
+                    {variant.size && variant.color && ' - '}
+                    {variant.size && `${variant.size}`}
+                    {' '}({variant.variants.length})
+                  </Text>
+                  <Group gap={4}>
+                    {variant.variants.map((v, i) => (
+                      <VariantCheckbox
+                        key={`${v.orderId}-${i}`}
+                        orderId={v.orderId}
+                        sku={v.sku}
+                        color={v.color || null}
+                        size={v.size || null}
+                        quantity={1}
+                      />
+                    ))}
+                  </Group>
+                </Group>
+              ))}
             </Stack>
           </Grid.Col>
         ))}
