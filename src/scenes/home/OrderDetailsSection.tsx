@@ -100,15 +100,13 @@ const Content = ({ id }: { id: string }) => {
         <div className={styles.print_hidden}>
           <div className={styles.header}>
             <Title order={3}>
-              <b>{order.name}</b>&nbsp;&nbsp;
-              <span>{order.createdAtFormatted}</span>
+              <b>{order.name}</b>&nbsp;&nbsp;du&nbsp;&nbsp;{order.createdAtFormatted}
             </Title>
             {order.status === 'OPEN' && <Badge variant={'orange'}>En cours</Badge>}
             {order.status === 'CLOSED' && <Badge variant={'green'}>Traitée</Badge>}
           </div>
 
           <Box>
-            <Text c={'gray.7'}>Numéro Boxtal: {order.name}</Text>
             {order.displayFinancialStatus === 'PENDING' && (
               <Text c="orange" fw={600} mt={5}>
                 ⚠️ Commande en attente de paiement (ne pas commander le textile)

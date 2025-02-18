@@ -3,6 +3,7 @@
 import { shopifyClient } from '@/shopify/shopify-client';
 import { OrderDetailViewModel } from '@/view-model/order-detail-view-model';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { ShopifyIds } from '@/utils/shopify-ids';
 
 const query = `
@@ -141,7 +142,7 @@ export const fetchOrderDetailAction = async (
       name: order.name,
       status: fulfillment.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
       createdAt: order.createdAt,
-      createdAtFormatted: format(new Date(order.createdAt), 'dd-MM-yyyy'),
+      createdAtFormatted: format(new Date(order.createdAt), 'dd MMMM yyyy', { locale: fr }),
       displayFinancialStatus: order.displayFinancialStatus,
       weightInKg: fulfillment.lineItems.nodes
         .filter(lineItem => lineItem.lineItem.refundableQuantity > 0)
