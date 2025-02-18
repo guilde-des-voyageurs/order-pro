@@ -12,6 +12,7 @@ import { useRef } from 'react';
 import { OrderCheckbox } from '@/components/OrderCheckbox';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { OrderProduct } from '@/components/OrderProduct';
+import { OrderVariantList } from '@/components/OrderVariantList';
 
 export const OrderDetailsSection = ({
   selected,
@@ -140,11 +141,10 @@ const Content = ({ id }: { id: string }) => {
                   />
                 </Flex>
                 <Box ml="md">
-                  {textileDetails.split('\n').map((detail, index) => (
-                    <div key={index}>
-                      {detail}
-                    </div>
-                  ))}
+                  <OrderVariantList 
+                    orderId={id}
+                    products={order.products}
+                  />
                 </Box>
                 <Flex align="center" gap="md">
                   <Text>
