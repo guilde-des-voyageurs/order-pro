@@ -1,6 +1,7 @@
 'use client';
 
-import { Stack, Text, Title } from '@mantine/core';
+import { Grid, Group, Stack, Text, Title } from '@mantine/core';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
 
 interface Product {
   quantity: number;
@@ -29,9 +30,15 @@ interface ProductTotal {
   total: number;
 }
 
+interface ProductsBySku {
+  sku: string;
+  variants: ProductTotal[];
+  totalQuantity: number;
+}
+
 export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
   // Agréger les quantités par produit (SKU + couleur + taille)
-  const productTotals = Object.values(orderDetails)
+  const allProducts = Object.values(orderDetails)
     .filter((detail): detail is OrderDetail => detail?.type === 'success')
     .flatMap(detail => detail.data.products)
     .reduce((acc: ProductTotal[], product) => {
@@ -42,7 +49,6 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
         opt => opt.name.toLowerCase().includes('taille')
       )?.value;
 
-      const key = `${product.sku}-${color || ''}-${size || ''}`;
       const existing = acc.find(p => 
         p.sku === product.sku && 
         p.color === color && 
@@ -56,21 +62,55 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
       }
 
       return acc;
-    }, [])
-    .sort((a, b) => b.total - a.total); // Trier par quantité décroissante
+    }, []);
+
+  // Regrouper par SKU
+  const productsBySku = allProducts.reduce((acc: ProductsBySku[], product) => {
+    const existingSku = acc.find(p => p.sku === product.sku);
+    
+    if (existingSku) {
+      existingSku.variants.push(product);
+      existingSku.totalQuantity += product.total;
+    } else {
+      acc.push({
+        sku: product.sku,
+        variants: [product],
+        totalQuantity: product.total
+      });
+    }
+    
+    return acc;
+  }, [])
+  .sort((a, b) => b.totalQuantity - a.totalQuantity); // Trier par quantité totale décroissante
 
   return (
-    <Stack>
+    <Stack mt="md" mb="xl">
       <Title order={3}>Total des produits commandés</Title>
-      <Stack gap="xs">
-        {productTotals.map((product, index) => (
-          <Text key={index} size="sm">
-            {product.total}x {product.sku}
-            {product.color ? ` - ${product.color}` : ''}
-            {product.size ? ` - ${product.size}` : ''}
-          </Text>
+      <Grid>
+        {productsBySku.map((skuGroup) => (
+          <Grid.Col key={skuGroup.sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
+            <Stack>
+              <Title order={4}>{skuGroup.sku} (Total: {skuGroup.totalQuantity})</Title>
+              {skuGroup.variants
+                .sort((a, b) => b.total - a.total)
+                .map((variant, index) => (
+                  <Group key={index} align="center" gap="sm">
+                    <VariantCheckbox 
+                      sku={variant.sku}
+                      color={variant.color}
+                      size={variant.size}
+                    />
+                    <Text size="sm">
+                      {variant.total}x
+                      {variant.color ? ` - ${variant.color}` : ''}
+                      {variant.size ? ` - ${variant.size}` : ''}
+                    </Text>
+                  </Group>
+                ))}
+            </Stack>
+          </Grid.Col>
         ))}
-      </Stack>
+      </Grid>
     </Stack>
   );
 };
