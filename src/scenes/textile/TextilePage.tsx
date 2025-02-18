@@ -1,9 +1,9 @@
 'use client';
 
 import styles from './TextilePage.module.scss';
-import { Group, Stack, Text, Title } from '@mantine/core';
+import { Stack, Text, Title } from '@mantine/core';
 import { useTextilePagePresenter } from './TextilePage.presenter';
-import { OrderCheckbox } from '@/components/OrderCheckbox';
+import { OrderCard } from './OrderCard';
 
 export const TextilePage = () => {
   const { openOrders } = useTextilePagePresenter();
@@ -18,15 +18,7 @@ export const TextilePage = () => {
         <section className={styles.section}>
           <Stack spacing="lg">
             {openOrders.map((order) => (
-              <div key={order.id} className={styles.order_row}>
-                <Group position="apart">
-                  <Title order={3}>Commande {order.name}</Title>
-                  <Group spacing="xs">
-                    <Text size="sm" color="dimmed">Textile commandé</Text>
-                    <OrderCheckbox orderId={order.id} className={styles.checkbox_label} />
-                  </Group>
-                </Group>
-              </div>
+              <OrderCard key={order.id} order={order} />
             ))}
           </Stack>
         </section>
