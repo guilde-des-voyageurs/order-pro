@@ -4,6 +4,7 @@ import styles from './TextilePage.module.scss';
 import { Loader, Stack, Text, Title } from '@mantine/core';
 import { useTextilePagePresenter } from './TextilePage.presenter';
 import { OrderCard } from './OrderCard';
+import { ProductsSummary } from './ProductsSummary';
 
 export const TextilePage = () => {
   const { openOrders, orderDetails, isLoading, loadingProgress } = useTextilePagePresenter();
@@ -28,9 +29,7 @@ export const TextilePage = () => {
     <div className={styles.view}>
       <div className={styles.main_content}>
         <Title order={2}>Textile</Title>
-        <Text size="sm" color="dimmed" mt="xs">
-          Commandes depuis le 16 janvier 2025
-        </Text>
+        <ProductsSummary orderDetails={orderDetails} />
         <section className={styles.section}>
           <Stack gap="lg">
             {openOrders.map((order) => (
