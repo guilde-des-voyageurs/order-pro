@@ -4,7 +4,8 @@ import { Group } from '@mantine/core';
 import { Checkbox } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
+import { encodeFirestoreId, decodeFirestoreId } from '@/utils/firestore-helpers';
 
 interface VariantCheckboxProps {
   sku: string;
@@ -12,6 +13,8 @@ interface VariantCheckboxProps {
   size?: string;
   quantity: number;
   className?: string;
+  orderId: string;
+  onChange?: (checked: boolean[]) => void;
 }
 
 interface VariantDocument {
@@ -23,6 +26,7 @@ interface VariantDocument {
   originalId: string;
   userId: string;
   updatedAt: string;
+  orderId: string;
 }
 
 interface VariantId {
@@ -38,12 +42,12 @@ const encodeVariantId = (
   size: string | null, 
   index: number
 ): string => {
-  const id = `${sku}-${color || 'no-color'}-${size || 'no-size'}-${index}`;
-  return Buffer.from(id).toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
+  const id = `${sku}--${color || 'no-color'}--${size || 'no-size'}--${index}`;
+  return encodeFirestoreId(id);
 };
 
 const decodeVariantId = (encodedId: string): string => {
-  return Buffer.from(encodedId.replace(/_/g, '/').replace(/-/g, '+'), 'base64').toString();
+  return decodeFirestoreId(encodedId);
 };
 
 interface CheckboxState {
@@ -52,7 +56,7 @@ interface CheckboxState {
   error: string | null;
 }
 
-export const VariantCheckbox = ({ sku, color, size, quantity, className }: VariantCheckboxProps) => {
+export const VariantCheckbox = ({ sku, color, size, quantity, className, orderId }: VariantCheckboxProps) => {
   const [checkboxes, setCheckboxes] = useState<CheckboxState[]>(
     Array(quantity).fill({ checked: false, loading: true, error: null })
   );
@@ -69,7 +73,7 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className }: Varia
 
     const unsubscribes = Array(quantity).fill(null).map((_, index) => {
       const variantId = encodeVariantId(sku, color, size, index);
-      const docRef = doc(db, 'variants-ordered', variantId);
+      const docRef = doc(db, 'variants-ordered', encodeFirestoreId(variantId));
       
       return onSnapshot(docRef, (doc) => {
         setCheckboxes(prev => {
@@ -112,7 +116,7 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className }: Varia
 
     try {
       const variantId = encodeVariantId(sku, color, size, index);
-      const docRef = doc(db, 'variants-ordered', variantId);
+      const docRef = doc(db, 'variants-ordered', encodeFirestoreId(variantId));
       const document: VariantDocument = {
         checked,
         sku,
@@ -121,9 +125,22 @@ export const VariantCheckbox = ({ sku, color, size, quantity, className }: Varia
         index,
         originalId: decodeVariantId(variantId),
         userId: auth.currentUser.uid,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        orderId
       };
       await setDoc(docRef, document);
+
+      // Mettre à jour le compteur de la commande
+      const orderRef = doc(db, 'orders-progress', orderId);
+      await setDoc(orderRef, {
+        userId: auth.currentUser.uid,
+        updatedAt: new Date().toISOString(),
+        checkedCount: increment(checked ? 1 : -1)
+      }, { merge: true });
+
+      if (onChange) {
+        onChange(checkboxes.map(checkbox => checkbox.checked));
+      }
     } catch (error) {
       setCheckboxes(prev => {
         const newState = [...prev];
