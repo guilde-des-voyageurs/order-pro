@@ -118,21 +118,15 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
 
                   return (
                     <Group key={variantId} spacing="xs">
-                      <Group spacing={4}>
-                        <Text size="xs" c="dimmed">#{index + 1}</Text>
-                        <VariantCheckbox
-                          sku={variant.sku}
-                          color={variant.color}
-                          size={variant.size}
-                          quantity={1}
-                          orderId={orderId}
-                          productIndex={variant.productIndex}
-                          variantId={variantId}
-                        />
-                      </Group>
-                      <Text size="xs" c="dimmed">
-                        ({variantId})
-                      </Text>
+                      <VariantCheckbox
+                        sku={variant.sku}
+                        color={variant.color}
+                        size={variant.size}
+                        quantity={1}
+                        orderId={orderId}
+                        productIndex={variant.productIndex}
+                        variantId={variantId}
+                      />
                     </Group>
                   );
                 })}

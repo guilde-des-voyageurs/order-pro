@@ -1,6 +1,6 @@
 'use client';
 
-import { SimpleGrid, Stack, Text, Group } from '@mantine/core';
+import { SimpleGrid, Text, Group } from '@mantine/core';
 import { useMemo } from 'react';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
@@ -59,23 +59,53 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
           const groupedVariants = groupVariantsByAttributes(variants);
           
           return (
-            <Stack key={sku} spacing="xs">
-              <Text size="sm" fw={500}>{sku}</Text>
-              {Object.entries(groupedVariants).map(([key, variants]) => {
-                const firstVariant = variants[0];
-                const quantity = variants.length;
+            <div key={sku} style={{ display: 'flex', flexDirection: 'column' }}>
+              <Text size="sm" fw={700} mb={4}>{sku}</Text>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {Object.entries(groupedVariants).map(([key, variants]) => {
+                  const firstVariant = variants[0];
+                  const quantity = variants.length;
 
-                return (
-                  <Stack key={key} spacing={4}>
-                    <Group spacing={4}>
-                      <Text size="sm">{quantity}x</Text>
-                      {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
-                      {firstVariant.size && <Text size="sm">{firstVariant.size}</Text>}
-                    </Group>
-                  </Stack>
-                );
-              })}
-            </Stack>
+                  return (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{ whiteSpace: 'nowrap', color: '#666', display: 'flex', alignItems: 'center' }}>
+                        <Text component="span" size="sm">{quantity}x</Text>
+                        {firstVariant.color && <Text component="span" size="sm" ml={5}>{transformColor(firstVariant.color)}</Text>}
+                        {firstVariant.size && <Text component="span" size="sm" ml={5} fw={700}>{firstVariant.size}</Text>}
+                      </div>
+                      <div style={{ display: 'flex', margin: 0, padding: 0, paddingLeft: 10 }}>
+                        {variants.map((variant, index) => {
+                          const variantId = generateVariantId(
+                            variant.orderId,
+                            variant.sku,
+                            variant.color,
+                            variant.size,
+                            variant.productIndex,
+                            variant.variantIndex,
+                            orderDetails[variant.orderId]?.type === 'success' 
+                              ? orderDetails[variant.orderId].data.products 
+                              : undefined
+                          );
+
+                          return (
+                            <VariantCheckbox
+                              key={variantId}
+                              sku={variant.sku}
+                              color={variant.color}
+                              size={variant.size}
+                              quantity={1}
+                              orderId={variant.orderId}
+                              productIndex={variant.productIndex}
+                              variantId={variantId}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </SimpleGrid>
@@ -89,58 +119,53 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
         const groupedVariants = groupVariantsByAttributes(variants);
         
         return (
-          <Stack key={sku} spacing="xs">
-            <Text size="sm" fw={500}>{sku}</Text>
-            {Object.entries(groupedVariants).map(([key, variants]) => {
-              const firstVariant = variants[0];
-              const quantity = variants.length;
+          <div key={sku} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Text size="sm" fw={700} mb={4}>{sku}</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {Object.entries(groupedVariants).map(([key, variants]) => {
+                const firstVariant = variants[0];
+                const quantity = variants.length;
 
-              return (
-                <Stack key={key} spacing={4}>
-                  <Group spacing={4}>
-                    <Text size="sm">{quantity}x</Text>
-                    {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
-                    {firstVariant.size && <Text size="sm">{firstVariant.size}</Text>}
-                  </Group>
-                  <Stack spacing={4} ml="sm">
-                    {variants.map((variant, index) => {
-                      const variantId = generateVariantId(
-                        variant.orderId,
-                        variant.sku,
-                        variant.color,
-                        variant.size,
-                        variant.productIndex,
-                        variant.variantIndex,
-                        orderDetails[variant.orderId]?.type === 'success' 
-                          ? orderDetails[variant.orderId].data.products 
-                          : undefined
-                      );
+                return (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ whiteSpace: 'nowrap', color: '#666', display: 'flex', alignItems: 'center' }}>
+                      <Text component="span" size="sm">{quantity}x</Text>
+                      {firstVariant.color && <Text component="span" size="sm" ml={5}>{transformColor(firstVariant.color)}</Text>}
+                      {firstVariant.size && <Text component="span" size="sm" ml={5} fw={700}>{firstVariant.size}</Text>}
+                    </div>
+                    <div style={{ display: 'flex', margin: 0, padding: 0, paddingLeft: 10 }}>
+                      {variants.map((variant, index) => {
+                        const variantId = generateVariantId(
+                          variant.orderId,
+                          variant.sku,
+                          variant.color,
+                          variant.size,
+                          variant.productIndex,
+                          variant.variantIndex,
+                          orderDetails[variant.orderId]?.type === 'success' 
+                            ? orderDetails[variant.orderId].data.products 
+                            : undefined
+                        );
 
-                      return (
-                        <Group key={variantId} spacing="xs">
-                          <Group spacing={4}>
-                            <Text size="xs" c="dimmed">#{index + 1}</Text>
-                            <VariantCheckbox
-                              sku={variant.sku}
-                              color={variant.color}
-                              size={variant.size}
-                              quantity={1}
-                              orderId={variant.orderId}
-                              productIndex={variant.productIndex}
-                              variantId={variantId}
-                            />
-                          </Group>
-                          <Text size="xs" c="dimmed">
-                            ({variantId})
-                          </Text>
-                        </Group>
-                      );
-                    })}
-                  </Stack>
-                </Stack>
-              );
-            })}
-          </Stack>
+                        return (
+                          <VariantCheckbox
+                            key={variantId}
+                            sku={variant.sku}
+                            color={variant.color}
+                            size={variant.size}
+                            quantity={1}
+                            orderId={variant.orderId}
+                            productIndex={variant.productIndex}
+                            variantId={variantId}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         );
       })}
     </SimpleGrid>

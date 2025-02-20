@@ -111,6 +111,16 @@ export const VariantCheckbox = ({
       checked={checked}
       onChange={handleCheckboxChange}
       disabled={!auth.currentUser}
+      styles={{
+        root: {
+          margin: 0,
+          padding: 0,
+          marginRight: 2
+        },
+        inner: {
+          margin: 0
+        }
+      }}
     />
   );
 };
