@@ -11,8 +11,8 @@ export interface Product {
 
 export interface Variant {
   sku: string;
-  color: string | null;
-  size: string | null;
+  color: string;
+  size: string;
   quantity: number;
   productIndex: number;
   variantIndex: number;
