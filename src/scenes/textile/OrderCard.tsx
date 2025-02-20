@@ -1,6 +1,6 @@
 'use client';
 
-import { Group, Stack, Text, Title, Card } from '@mantine/core';
+import { Group, Stack, Text, Title, Card, Box } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
@@ -9,7 +9,7 @@ import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
 import { useHasMounted } from '@/hooks/useHasMounted';
-import { calculateGlobalVariantIndex, generateVariantId } from '@/utils/variant-helpers';
+import { generateVariantId, getProductColor, getProductSize } from '@/utils/variants';
 
 interface Product {
   quantity: number;
@@ -40,13 +40,6 @@ interface OrderCardProps {
 export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
   const hasMounted = useHasMounted();
   const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });
-
-  const getOptionValue = (product: Product, optionName: string): string | null => {
-    const value = product.selectedOptions.find(
-      opt => opt.name.toLowerCase().includes(optionName.toLowerCase())
-    )?.value;
-    return value ?? null;
-  };
 
   useEffect(() => {
     if (!auth.currentUser || orderDetail?.type !== 'success' || !hasMounted) return;
@@ -111,12 +104,18 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
         {orderDetail?.type === 'success' && (
           <Stack gap="xs" mt="md">
             {orderDetail.data.products.map((product, productIndex) => {
-              const color = getOptionValue(product, 'couleur') || 'no-color';
-              const size = getOptionValue(product, 'taille') || 'no-size';
-              
+              const color = getProductColor(product);
+              const size = getProductSize(product);
+
               return (
-                <Group key={productIndex}>
-                  <Stack spacing={4}>
+                <Stack key={productIndex} spacing={4}>
+                  <Group spacing={4}>
+                    <Text size="sm">{product.quantity}x</Text>
+                    <Text size="sm">{product.sku}</Text>
+                    {color && <Text size="sm">{color}</Text>}
+                    {size && <Text size="sm">{size}</Text>}
+                  </Group>
+                  <Stack spacing={4} ml="sm">
                     {Array.from({ length: product.quantity }).map((_, index) => {
                       const variantId = generateVariantId(
                         order.id,
@@ -142,17 +141,14 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
                               variantId={variantId}
                             />
                           </Group>
-                          <Text size="xs" c="dimmed">({variantId})</Text>
+                          <Text size="xs" c="dimmed">
+                            ({variantId})
+                          </Text>
                         </Group>
                       );
                     })}
-                    <Text component="span" size="sm">
-                      {product.quantity}x {product.sku}
-                      {color ? ` - ${color}` : ''}
-                      {size ? ` - ${size}` : ''}
-                    </Text>
                   </Stack>
-                </Group>
+                </Stack>
               );
             })}
           </Stack>

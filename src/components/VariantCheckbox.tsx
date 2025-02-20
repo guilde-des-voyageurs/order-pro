@@ -3,8 +3,9 @@
 import { Checkbox, Group } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
-import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, increment } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface VariantCheckboxProps {
   sku: string;
@@ -15,12 +16,6 @@ interface VariantCheckboxProps {
   productIndex: number;
   variantId: string;
   className?: string;
-}
-
-interface CheckboxState {
-  checked: boolean;
-  loading: boolean;
-  error: string | null;
 }
 
 interface VariantDocument {
@@ -45,115 +40,77 @@ export const VariantCheckbox = ({
   variantId,
   className 
 }: VariantCheckboxProps) => {
-  const [checkboxState, setCheckboxState] = useState<CheckboxState>({
-    checked: false,
-    loading: true,
-    error: null
-  });
+  const [checked, setChecked] = useState(false);
+  const hasMounted = useHasMounted();
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !hasMounted) return;
 
-    const docRef = doc(db, 'variants-ordered', variantId);
-    const unsubscribe = onSnapshot(docRef, (snapshot) => {
-      setCheckboxState({
-        checked: snapshot.exists() ? snapshot.data()?.checked ?? false : false,
-        loading: false,
-        error: null
-      });
-    }, (error) => {
-      console.error('Error fetching variant state:', error);
-      setCheckboxState({
-        checked: false,
-        loading: false,
-        error: 'Erreur lors du chargement'
-      });
+    // Écouter les changements de la variante
+    const variantRef = doc(db, 'variants-ordered', variantId);
+    const unsubscribe = onSnapshot(variantRef, (doc) => {
+      if (doc.exists()) {
+        setChecked(doc.data()?.checked || false);
+      }
     });
 
     return () => unsubscribe();
-  }, [variantId]);
+  }, [variantId, hasMounted]);
 
-  const handleChange = async (checked: boolean) => {
-    if (!auth.currentUser) {
-      setCheckboxState(prev => ({
-        ...prev,
-        error: 'Utilisateur non connecté'
-      }));
-      return;
-    }
+  const handleCheckboxChange = async (event: any) => {
+    if (!auth.currentUser) return;
 
-    try {
-      setCheckboxState(prev => ({
-        ...prev,
-        loading: true,
-        error: null
-      }));
+    const newChecked = event.target.checked;
+    setChecked(newChecked);
 
-      console.log('Mise à jour de la variante:', {
-        variantId,
-        orderId,
-        sku,
-        color,
-        size,
-        productIndex,
-        checked
-      });
+    const document: VariantDocument = {
+      checked: newChecked,
+      sku,
+      color,
+      size,
+      productIndex,
+      originalId: orderId,
+      userId: auth.currentUser.uid,
+      updatedAt: new Date().toISOString(),
+      orderId
+    };
 
-      const docRef = doc(db, 'variants-ordered', variantId);
-      const document: VariantDocument = {
-        checked,
-        sku,
-        color,
-        size,
-        productIndex,
-        originalId: orderId,
-        userId: auth.currentUser.uid,
-        updatedAt: new Date().toISOString(),
-        orderId
-      };
+    // Mettre à jour le document de la variante
+    const variantRef = doc(db, 'variants-ordered', variantId);
+    await setDoc(variantRef, document);
 
-      console.log('Document à sauvegarder:', document);
-      await setDoc(docRef, document);
-      console.log('Document sauvegardé avec succès');
+    // Mettre à jour le compteur de la commande
+    const encodedOrderId = encodeFirestoreId(orderId);
+    const orderRef = doc(db, 'orders-progress', encodedOrderId);
+    const orderDoc = await getDoc(orderRef);
 
-      // Mettre à jour le compteur de la commande
-      const encodedOrderId = encodeFirestoreId(orderId);
-      const orderRef = doc(db, 'orders-progress', encodedOrderId);
-      console.log('Mise à jour du compteur:', {
-        orderId: encodedOrderId,
-        increment: checked ? 1 : -1
-      });
-
+    if (orderDoc.exists()) {
+      const currentCount = orderDoc.data()?.checkedCount || 0;
       await setDoc(orderRef, {
+        checkedCount: newChecked ? currentCount + 1 : currentCount - 1,
         userId: auth.currentUser.uid,
-        updatedAt: new Date().toISOString(),
-        checkedCount: increment(checked ? 1 : -1)
+        updatedAt: new Date().toISOString()
       }, { merge: true });
-      console.log('Compteur mis à jour avec succès');
-
-      setCheckboxState(prev => ({
-        ...prev,
-        checked,
-        loading: false,
-        error: null
-      }));
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
-      setCheckboxState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue'
-      }));
     }
   };
 
+  // Rendu côté serveur
+  if (typeof window === 'undefined') {
+    return (
+      <Checkbox
+        checked={false}
+        onChange={() => {}}
+        disabled
+      />
+    );
+  }
+
+  // Rendu côté client
   return (
     <Checkbox
-      checked={checkboxState.checked}
-      onChange={(event) => handleChange(event.currentTarget.checked)}
-      disabled={checkboxState.loading}
-      className={className}
-      size="xs"
+      checked={checked}
+      onChange={handleCheckboxChange}
+      disabled={!auth.currentUser}
     />
   );
 };

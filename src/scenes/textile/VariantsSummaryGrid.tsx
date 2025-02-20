@@ -1,165 +1,132 @@
 'use client';
 
-import { Stack, Text, Grid, Paper, Group, Checkbox } from '@mantine/core';
+import { SimpleGrid, Stack, Text, Group } from '@mantine/core';
 import { useMemo } from 'react';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
-import { generateVariantId } from '@/utils/variant-helpers';
-
-interface Product {
-  quantity: number;
-  sku: string;
-  selectedOptions: Array<{
-    name: string;
-    value: string;
-  }>;
-}
-
-interface OrderDetail {
-  type: 'success';
-  data: {
-    products: Product[];
-  };
-}
+import { Product, Variant, generateVariantId, getProductColor, getProductSize, productToVariants, groupVariantsByAttributes, transformColor } from '@/utils/variants';
 
 interface VariantsSummaryGridProps {
-  orderDetails: Record<string, OrderDetail>;
-}
-
-interface VariantInfo {
-  sku: string;
-  color: string;
-  size: string;
-  quantity: number;
-  orderIds: Array<{
-    orderId: string;
-    productIndex: number;
+  orderDetails: Record<string, {
+    type: 'success';
+    data: {
+      products: Product[];
+    };
   }>;
-}
-
-interface VariantCheckboxProps {
-  sku: string;
-  color: string;
-  size: string;
-  quantity: number;
-  orderId: string;
-  productIndex: number;
-  variantId: string;
 }
 
 export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) => {
-  const variantsBySku = useMemo(() => {
-    const variants: Record<string, VariantInfo[]> = {};
-    
-    // Collect all variants
-    Object.entries(orderDetails).forEach(([orderId, detail]) => {
-      if (detail.type === 'success') {
-        detail.data.products.forEach((product, productIndex) => {
-          const color = product.selectedOptions.find(opt => opt.name === 'Couleur')?.value || 'no-color';
-          const size = product.selectedOptions.find(opt => opt.name === 'Taille')?.value || 'no-size';
-          
-          if (!variants[product.sku]) {
-            variants[product.sku] = [];
-          }
-          
-          // Check if variant already exists
-          const existingVariant = variants[product.sku].find(
-            v => v.color === color && v.size === size
-          );
-          
-          if (existingVariant) {
-            existingVariant.quantity += product.quantity;
-            // Ne pas ajouter d'autres orderIds, on garde celui d'origine
-          } else {
-            variants[product.sku].push({
-              sku: product.sku,
-              color,
-              size,
-              quantity: product.quantity,
-              orderIds: [{ orderId, productIndex }]
-            });
-          }
-        });
-      }
-    });
-    
-    // Sort variants for each SKU
-    Object.keys(variants).forEach(sku => {
-      variants[sku].sort((a, b) => {
-        // Sort by color first
-        if (a.color !== b.color) {
-          return a.color.localeCompare(b.color);
+  // Collecter toutes les variantes par SKU
+  const variants: Record<string, Variant[]> = {};
+
+  // Collecter toutes les variantes
+  Object.entries(orderDetails).forEach(([orderId, detail]) => {
+    if (detail.type === 'success') {
+      detail.data.products.forEach((product, productIndex) => {
+        const newVariants = productToVariants(product, productIndex, orderId);
+        const key = product.sku;
+        
+        if (!variants[key]) {
+          variants[key] = [];
         }
-        // Then by size
-        return a.size.localeCompare(b.size);
+        
+        variants[key].push(...newVariants);
       });
-    });
-    
-    return variants;
-  }, [orderDetails]);
-  
-  const skus = Object.keys(variantsBySku).sort();
-  
-  if (skus.length === 0) {
-    return <Text>Aucune variante trouvée</Text>;
-  }
-  
-  return (
-    <Paper p="md" mb="xl" withBorder>
-      <Grid>
-        {skus.map((sku) => (
-          <Grid.Col key={sku} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-            <Stack>
-              <Text fw={700}>{sku}</Text>
-              {variantsBySku[sku].map((variant) => {
-                const { orderId, productIndex } = variant.orderIds[0];
-                const detail = orderDetails[orderId];
-                
+    }
+  });
+
+  // Rendu côté serveur
+  if (typeof window === 'undefined') {
+    return (
+      <SimpleGrid cols={Object.keys(variants).length} spacing="md">
+        {Object.entries(variants).map(([sku, variants]) => {
+          const groupedVariants = groupVariantsByAttributes(variants);
+          
+          return (
+            <Stack key={sku} spacing="xs">
+              <Text size="sm" fw={500}>{sku}</Text>
+              {Object.entries(groupedVariants).map(([key, variants]) => {
+                const firstVariant = variants[0];
+                const quantity = variants.length;
+
                 return (
-                  <Stack key={`${variant.color}-${variant.size}`} spacing="xs">
-                    <Text size="sm">
-                      {variant.color} - {variant.size} ({variant.quantity})
-                    </Text>
-                    <Stack spacing={4} ml="sm">
-                      {Array.from({ length: variant.quantity }).map((_, index) => {
-                        const variantId = generateVariantId(
-                          orderId,
-                          variant.sku,
-                          variant.color,
-                          variant.size,
-                          productIndex,
-                          index,
-                          detail.type === 'success' ? detail.data.products : undefined
-                        );
-                        
-                        return (
-                          <Group key={variantId} spacing="xs" align="center">
-                            <Group spacing={4}>
-                              <Text size="xs" c="dimmed">#{index + 1}</Text>
-                              <VariantCheckbox
-                                sku={variant.sku}
-                                color={variant.color}
-                                size={variant.size}
-                                quantity={1}
-                                orderId={orderId}
-                                productIndex={productIndex}
-                                variantId={variantId}
-                              />
-                            </Group>
-                            <Text size="xs" c="dimmed">
-                              ({variantId})
-                            </Text>
-                          </Group>
-                        );
-                      })}
-                    </Stack>
+                  <Stack key={key} spacing={4}>
+                    <Group spacing={4}>
+                      <Text size="sm">{quantity}x</Text>
+                      {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
+                      {firstVariant.size && <Text size="sm">{firstVariant.size}</Text>}
+                    </Group>
                   </Stack>
                 );
               })}
             </Stack>
-          </Grid.Col>
-        ))}
-      </Grid>
-    </Paper>
+          );
+        })}
+      </SimpleGrid>
+    );
+  }
+
+  // Rendu côté client
+  return (
+    <SimpleGrid cols={Object.keys(variants).length} spacing="md">
+      {Object.entries(variants).map(([sku, variants]) => {
+        const groupedVariants = groupVariantsByAttributes(variants);
+        
+        return (
+          <Stack key={sku} spacing="xs">
+            <Text size="sm" fw={500}>{sku}</Text>
+            {Object.entries(groupedVariants).map(([key, variants]) => {
+              const firstVariant = variants[0];
+              const quantity = variants.length;
+
+              return (
+                <Stack key={key} spacing={4}>
+                  <Group spacing={4}>
+                    <Text size="sm">{quantity}x</Text>
+                    {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
+                    {firstVariant.size && <Text size="sm">{firstVariant.size}</Text>}
+                  </Group>
+                  <Stack spacing={4} ml="sm">
+                    {variants.map((variant, index) => {
+                      const variantId = generateVariantId(
+                        variant.orderId,
+                        variant.sku,
+                        variant.color,
+                        variant.size,
+                        variant.productIndex,
+                        variant.variantIndex,
+                        orderDetails[variant.orderId]?.type === 'success' 
+                          ? orderDetails[variant.orderId].data.products 
+                          : undefined
+                      );
+
+                      return (
+                        <Group key={variantId} spacing="xs">
+                          <Group spacing={4}>
+                            <Text size="xs" c="dimmed">#{index + 1}</Text>
+                            <VariantCheckbox
+                              sku={variant.sku}
+                              color={variant.color}
+                              size={variant.size}
+                              quantity={1}
+                              orderId={variant.orderId}
+                              productIndex={variant.productIndex}
+                              variantId={variantId}
+                            />
+                          </Group>
+                          <Text size="xs" c="dimmed">
+                            ({variantId})
+                          </Text>
+                        </Group>
+                      );
+                    })}
+                  </Stack>
+                </Stack>
+              );
+            })}
+          </Stack>
+        );
+      })}
+    </SimpleGrid>
   );
 };
