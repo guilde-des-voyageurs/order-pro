@@ -10,14 +10,47 @@ import { OrderProduct } from '@/components/OrderProduct';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { getOrderVariantsCheckedAction } from '@/actions/get-order-variants-checked-action';
+import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 import styles from './OrderDetailsSection.module.scss';
 
 // Composants avec fallback pour le chargement
-const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color: string | null; size: string | null; quantity: number; orderId: string }) => (
-  <Suspense fallback={<div>Chargement...</div>}>
-    <VariantCheckbox sku={sku} color={color} size={size} quantity={quantity} orderId={orderId} />
-  </Suspense>
-);
+const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color: string | null; size: string | null; quantity: number; orderId: string }) => {
+  const { data: orderDetail } = useQuery({
+    queryKey: ['order-details', orderId],
+    queryFn: () => fetchOrderDetailAction(orderId),
+  });
+
+  if (!orderDetail?.products) {
+    return <div>Chargement...</div>;
+  }
+
+  const products = orderDetail.products;
+  const product = products.find(p => p.sku === sku);
+  const productIndex = products.findIndex(p => p.sku === sku);
+
+  if (!product || productIndex === -1) {
+    return <div>Chargement...</div>;
+  }
+
+  const globalIndex = calculateGlobalVariantIndex(
+    products,
+    product,
+    productIndex
+  );
+
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <VariantCheckbox 
+        sku={sku} 
+        color={color} 
+        size={size} 
+        quantity={quantity} 
+        orderId={orderId}
+        productIndex={globalIndex}
+      />
+    </Suspense>
+  );
+};
 
 const BillingCheckboxWithSuspense = ({ orderId, className }: { orderId: string; className?: string }) => (
   <Suspense fallback={<div>Chargement...</div>}>
