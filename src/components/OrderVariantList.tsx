@@ -70,8 +70,8 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
             const quantity = variants.length;
 
             return (
-              <Stack key={key} spacing={4}>
-                <Group spacing={4}>
+              <Stack key={key}>
+                <Group>
                   <Text size="sm">{quantity}x</Text>
                   <Text size="sm">{firstVariant.sku}</Text>
                   {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
@@ -97,14 +97,14 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
           const quantity = variants.length;
 
           return (
-            <Stack key={key} spacing={4}>
-              <Group spacing={4}>
+            <Stack key={key}>
+              <Group>
                 <Text size="sm">{quantity}x</Text>
                 <Text size="sm">{firstVariant.sku}</Text>
                 {firstVariant.color && <Text size="sm">{transformColor(firstVariant.color)}</Text>}
                 {firstVariant.size && <Text size="sm">{firstVariant.size}</Text>}
               </Group>
-              <Stack spacing={4} ml="sm">
+              <Stack ml="sm">
                 {variants.map((variant, index) => {
                   const variantId = generateVariantId(
                     orderId,
@@ -117,7 +117,7 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
                   );
 
                   return (
-                    <Group key={variantId} spacing="xs">
+                    <Group key={variantId}>
                       <VariantCheckbox
                         sku={variant.sku}
                         color={variant.color}

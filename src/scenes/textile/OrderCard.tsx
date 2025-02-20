@@ -108,14 +108,14 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
               const size = getProductSize(product);
 
               return (
-                <Stack key={productIndex} spacing={4}>
-                  <Group spacing={4}>
+                <Stack key={productIndex}>
+                  <Group>
                     <Text size="sm">{product.quantity}x</Text>
                     <Text size="sm">{product.sku}</Text>
                     {color && <Text size="sm">{color}</Text>}
                     {size && <Text size="sm">{size}</Text>}
                   </Group>
-                  <Stack spacing={4} ml="sm">
+                  <Stack ml="sm">
                     {Array.from({ length: product.quantity }).map((_, index) => {
                       const variantId = generateVariantId(
                         order.id,
@@ -128,13 +128,13 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
                       );
 
                       return (
-                        <Group key={index} spacing="xs">
-                          <Group spacing={4}>
+                        <Group key={index}>
+                          <Group>
                             <Text size="xs" c="dimmed">#{index + 1}</Text>
                             <VariantCheckbox
                               sku={product.sku}
-                              color={color}
-                              size={size}
+                              color={color || ''}
+                              size={size || ''}
                               quantity={1}
                               orderId={order.id}
                               productIndex={productIndex}

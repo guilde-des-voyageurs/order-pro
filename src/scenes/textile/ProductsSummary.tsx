@@ -3,6 +3,7 @@
 import { Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { generateVariantId } from '@/utils/variants';
 import { useHasMounted } from '@/hooks/useHasMounted';
 import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 
@@ -184,10 +185,21 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
                           key={`${v.orderId}-${i}`}
                           orderId={encodeFirestoreId(v.orderId)}
                           sku={v.sku}
-                          color={v.color || null}
-                          size={v.size || null}
+                          color={v.color || ''}
+                          size={v.size || ''}
                           quantity={1}
                           productIndex={globalIndex}
+                          variantId={generateVariantId(
+                            encodeFirestoreId(v.orderId),
+                            v.sku,
+                            v.color || '',
+                            v.size || '',
+                            globalIndex,
+                            i,
+                            orderDetails[v.orderId]?.type === 'success' 
+                              ? orderDetails[v.orderId].data.products 
+                              : undefined
+                          )}
                         />
                       );
                     })}

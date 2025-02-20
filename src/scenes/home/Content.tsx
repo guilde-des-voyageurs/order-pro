@@ -11,6 +11,7 @@ import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 import { getOrderVariantsCheckedAction } from '@/actions/get-order-variants-checked-action';
 import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
+import { generateVariantId } from '@/utils/variants';
 import styles from './OrderDetailsSection.module.scss';
 
 interface Product {
@@ -33,7 +34,13 @@ interface OrderDetail {
 }
 
 // Composants avec fallback pour le chargement
-const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color: string | null; size: string | null; quantity: number; orderId: string }) => {
+const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { 
+  sku: string; 
+  color: string; 
+  size: string; 
+  quantity: number; 
+  orderId: string 
+}) => {
   const { data: response } = useQuery({
     queryKey: ['order-details', orderId],
     queryFn: () => fetchOrderDetailAction(orderId),
@@ -67,6 +74,15 @@ const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { 
         quantity={quantity} 
         orderId={orderId}
         productIndex={globalIndex}
+        variantId={generateVariantId(
+          orderId,
+          sku,
+          color,
+          size,
+          globalIndex,
+          0,
+          products
+        )}
       />
     </Suspense>
   );
@@ -161,8 +177,8 @@ const Content = ({ id }: { id: string }) => {
             <Flex key={`${product.sku}-${sizeOption?.value}-${colorOption?.value}`} align="center" gap="md">
               <VariantCheckboxWithSuspense
                 sku={product.sku}
-                color={colorOption?.value ?? null}
-                size={sizeOption?.value ?? null}
+                color={colorOption?.value ?? ''}
+                size={sizeOption?.value ?? ''}
                 quantity={product.quantity}
                 orderId={id}
               />
