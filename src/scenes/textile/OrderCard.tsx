@@ -9,7 +9,7 @@ import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
 import { useHasMounted } from '@/hooks/useHasMounted';
-import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
+import { calculateGlobalVariantIndex, generateVariantId } from '@/utils/variant-helpers';
 
 interface Product {
   quantity: number;
@@ -114,30 +114,43 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
               const color = getOptionValue(product, 'couleur');
               const size = getOptionValue(product, 'taille');
               
-              // Calculer l'index global pour cette variante
-              const globalIndex = calculateGlobalVariantIndex(
-                orderDetail.data.products,
-                product,
-                productIndex
-              );
-              
               return (
                 <Group key={productIndex}>
-                  <Group gap="sm">
-                    <VariantCheckbox
-                      sku={product.sku}
-                      color={color}
-                      size={size}
-                      quantity={product.quantity}
-                      orderId={encodeFirestoreId(order.id)}
-                      productIndex={globalIndex}
-                    />
+                  <Stack spacing={4}>
+                    {Array.from({ length: product.quantity }).map((_, index) => {
+                      const variantId = generateVariantId(
+                        encodeFirestoreId(order.id),
+                        product.sku,
+                        color || 'no-color',
+                        size || 'no-size',
+                        productIndex,
+                        index
+                      );
+
+                      return (
+                        <Group key={index} spacing="xs">
+                          <Group spacing={4}>
+                            <Text size="xs" c="dimmed">#{index + 1}</Text>
+                            <VariantCheckbox
+                              sku={product.sku}
+                              color={color}
+                              size={size}
+                              quantity={1}
+                              orderId={encodeFirestoreId(order.id)}
+                              productIndex={productIndex}
+                              variantId={variantId}
+                            />
+                          </Group>
+                          <Text size="xs" c="dimmed">({variantId})</Text>
+                        </Group>
+                      );
+                    })}
                     <Text component="span" size="sm">
                       {product.quantity}x {product.sku}
                       {color ? ` - ${color}` : ''}
                       {size ? ` - ${size}` : ''}
                     </Text>
-                  </Group>
+                  </Stack>
                 </Group>
               );
             })}

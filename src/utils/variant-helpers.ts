@@ -1,3 +1,5 @@
+import { encodeFirestoreId } from './firestore-helpers';
+
 export const calculateGlobalVariantIndex = (
   products: Array<{
     sku: string;
@@ -36,4 +38,18 @@ export const calculateGlobalVariantIndex = (
       return key === currentKey;
     })
     .length;
+};
+
+export const generateVariantId = (
+  orderId: string,
+  sku: string, 
+  color: string | null, 
+  size: string | null,
+  productIndex: number,
+  index: number
+): string => {
+  // S'assurer que l'ID de la commande est déjà encodé
+  const encodedOrderId = orderId.includes('--') ? orderId : encodeFirestoreId(orderId);
+  const id = `${encodedOrderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${productIndex}--${index}`;
+  return encodeFirestoreId(id);
 };
