@@ -109,12 +109,24 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
 
         {orderDetail?.type === 'success' && (
           <Stack gap="xs" mt="md">
-            {orderDetail.data.products.map((product, index) => {
+            {orderDetail.data.products.map((product, productIndex) => {
               const color = getOptionValue(product, 'couleur');
               const size = getOptionValue(product, 'taille');
               
+              // Calculer l'index global pour cette variante
+              const variantKey = `${product.sku}--${color || 'no-color'}--${size || 'no-size'}`;
+              const globalIndex = orderDetail.data.products
+                .slice(0, productIndex)
+                .filter(p => {
+                  const pColor = getOptionValue(p, 'couleur');
+                  const pSize = getOptionValue(p, 'taille');
+                  const pKey = `${p.sku}--${pColor || 'no-color'}--${pSize || 'no-size'}`;
+                  return pKey === variantKey;
+                })
+                .length;
+              
               return (
-                <Group key={index}>
+                <Group key={productIndex}>
                   <Group gap="sm">
                     <VariantCheckbox
                       sku={product.sku}
@@ -122,6 +134,7 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
                       size={size}
                       quantity={product.quantity}
                       orderId={encodeFirestoreId(order.id)}
+                      productIndex={globalIndex}
                     />
                     <Text component="span" size="sm">
                       {product.quantity}x {product.sku}

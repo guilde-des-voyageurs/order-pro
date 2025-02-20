@@ -166,11 +166,12 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
                     {variant.variants.map((v, i) => (
                       <VariantCheckbox
                         key={`${v.orderId}-${i}`}
-                        orderId={v.orderId}
+                        orderId={encodeFirestoreId(v.orderId)}
                         sku={v.sku}
                         color={v.color || null}
                         size={v.size || null}
                         quantity={1}
+                        productIndex={i}
                       />
                     ))}
                   </Group>

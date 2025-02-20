@@ -13,6 +13,7 @@ interface VariantCheckboxProps {
   size: string | null;
   quantity: number;
   orderId: string;
+  productIndex: number;
   className?: string;
 }
 
@@ -28,6 +29,7 @@ interface VariantDocument {
   color: string | null;
   size: string | null;
   index: number;
+  productIndex: number;
   originalId: string;
   userId: string;
   updatedAt: string;
@@ -39,9 +41,10 @@ const generateVariantId = (
   sku: string, 
   color: string | null, 
   size: string | null,
+  productIndex: number,
   index: number
 ): string => {
-  const id = `${orderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${index}`;
+  const id = `${orderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${productIndex}--${index}`;
   return encodeFirestoreId(id);
 };
 
@@ -51,6 +54,7 @@ export const VariantCheckbox = ({
   size, 
   quantity,
   orderId,
+  productIndex,
   className 
 }: VariantCheckboxProps) => {
   const hasMounted = useHasMounted();
@@ -65,7 +69,7 @@ export const VariantCheckbox = ({
     setCheckboxes(Array(quantity).fill({ checked: false, loading: true, error: null }));
 
     const unsubscribes = Array(quantity).fill(null).map((_, index) => {
-      const variantId = generateVariantId(orderId, sku, color, size, index);
+      const variantId = generateVariantId(orderId, sku, color, size, productIndex, index);
       const docRef = doc(db, 'variants-ordered', variantId);
 
       return onSnapshot(docRef, (snapshot) => {
@@ -93,7 +97,7 @@ export const VariantCheckbox = ({
     });
 
     return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-  }, [sku, color, size, quantity, orderId, hasMounted]);
+  }, [sku, color, size, quantity, orderId, productIndex, hasMounted]);
 
   const handleChange = async (index: number, checked: boolean) => {
     if (!auth.currentUser) {
@@ -119,7 +123,7 @@ export const VariantCheckbox = ({
         return newState;
       });
 
-      const variantId = generateVariantId(orderId, sku, color, size, index);
+      const variantId = generateVariantId(orderId, sku, color, size, productIndex, index);
       const docRef = doc(db, 'variants-ordered', variantId);
       const document: VariantDocument = {
         checked,
@@ -127,6 +131,7 @@ export const VariantCheckbox = ({
         color,
         size,
         index,
+        productIndex,
         originalId: decodeFirestoreId(variantId),
         userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString(),
@@ -143,9 +148,11 @@ export const VariantCheckbox = ({
         checkedCount: increment(checked ? 1 : -1)
       }, { merge: true });
 
+      // Mettre à jour l'état local après le succès
       setCheckboxes(prev => {
         const newState = [...prev];
         newState[index] = {
+          ...prev[index],
           checked,
           loading: false,
           error: null
@@ -170,7 +177,7 @@ export const VariantCheckbox = ({
       <Group gap={4}>
         {Array(quantity).fill(null).map((_, index) => (
           <Checkbox
-            key={`${orderId}-${sku}-${color}-${size}-${index}`}
+            key={`${orderId}-${sku}-${color}-${size}-${productIndex}-${index}`}
             checked={false}
             disabled
             className={className}
