@@ -9,6 +9,7 @@ import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
 import { useHasMounted } from '@/hooks/useHasMounted';
+import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 
 interface Product {
   quantity: number;
@@ -114,16 +115,11 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
               const size = getOptionValue(product, 'taille');
               
               // Calculer l'index global pour cette variante
-              const variantKey = `${product.sku}--${color || 'no-color'}--${size || 'no-size'}`;
-              const globalIndex = orderDetail.data.products
-                .slice(0, productIndex)
-                .filter(p => {
-                  const pColor = getOptionValue(p, 'couleur');
-                  const pSize = getOptionValue(p, 'taille');
-                  const pKey = `${p.sku}--${pColor || 'no-color'}--${pSize || 'no-size'}`;
-                  return pKey === variantKey;
-                })
-                .length;
+              const globalIndex = calculateGlobalVariantIndex(
+                orderDetail.data.products,
+                product,
+                productIndex
+              );
               
               return (
                 <Group key={productIndex}>

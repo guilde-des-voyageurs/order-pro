@@ -4,6 +4,7 @@ import { Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
+import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 
 interface Product {
   quantity: number;
@@ -163,17 +164,33 @@ export const ProductsSummary = ({ orderDetails }: ProductsSummaryProps) => {
                     {' '}({variant.variants.length})
                   </Text>
                   <Group gap={2}>
-                    {variant.variants.map((v, i) => (
-                      <VariantCheckbox
-                        key={`${v.orderId}-${i}`}
-                        orderId={encodeFirestoreId(v.orderId)}
-                        sku={v.sku}
-                        color={v.color || null}
-                        size={v.size || null}
-                        quantity={1}
-                        productIndex={i}
-                      />
-                    ))}
+                    {variant.variants.map((v, i) => {
+                      // Trouver le produit original et son index dans la commande
+                      const orderDetail = orderDetails[v.orderId];
+                      const products = orderDetail?.data.products || [];
+                      const product = products.find(p => p.sku === v.sku);
+                      const productIndex = products.findIndex(p => p.sku === v.sku);
+                      
+                      if (!product || productIndex === -1) return null;
+                      
+                      const globalIndex = calculateGlobalVariantIndex(
+                        products,
+                        product,
+                        productIndex
+                      );
+
+                      return (
+                        <VariantCheckbox
+                          key={`${v.orderId}-${i}`}
+                          orderId={encodeFirestoreId(v.orderId)}
+                          sku={v.sku}
+                          color={v.color || null}
+                          size={v.size || null}
+                          quantity={1}
+                          productIndex={globalIndex}
+                        />
+                      );
+                    })}
                   </Group>
                 </Group>
               ))}

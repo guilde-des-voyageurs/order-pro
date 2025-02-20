@@ -44,7 +44,9 @@ const generateVariantId = (
   productIndex: number,
   index: number
 ): string => {
-  const id = `${orderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${productIndex}--${index}`;
+  // S'assurer que l'ID de la commande est déjà encodé
+  const encodedOrderId = orderId.includes('--') ? orderId : encodeFirestoreId(orderId);
+  const id = `${encodedOrderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${productIndex}--${index}`;
   return encodeFirestoreId(id);
 };
 
@@ -124,6 +126,17 @@ export const VariantCheckbox = ({
       });
 
       const variantId = generateVariantId(orderId, sku, color, size, productIndex, index);
+      console.log('Mise à jour de la variante:', {
+        variantId,
+        orderId,
+        sku,
+        color,
+        size,
+        productIndex,
+        index,
+        checked
+      });
+
       const docRef = doc(db, 'variants-ordered', variantId);
       const document: VariantDocument = {
         checked,
@@ -132,23 +145,31 @@ export const VariantCheckbox = ({
         size,
         index,
         productIndex,
-        originalId: decodeFirestoreId(variantId),
+        originalId: orderId,
         userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString(),
         orderId
       };
+
+      console.log('Document à sauvegarder:', document);
       await setDoc(docRef, document);
+      console.log('Document sauvegardé avec succès');
 
       // Mettre à jour le compteur de la commande
       const encodedOrderId = encodeFirestoreId(orderId);
       const orderRef = doc(db, 'orders-progress', encodedOrderId);
+      console.log('Mise à jour du compteur:', {
+        orderId: encodedOrderId,
+        increment: checked ? 1 : -1
+      });
+
       await setDoc(orderRef, {
         userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString(),
         checkedCount: increment(checked ? 1 : -1)
       }, { merge: true });
+      console.log('Compteur mis à jour avec succès');
 
-      // Mettre à jour l'état local après le succès
       setCheckboxes(prev => {
         const newState = [...prev];
         newState[index] = {
@@ -160,6 +181,7 @@ export const VariantCheckbox = ({
         return newState;
       });
     } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
       setCheckboxes(prev => {
         const newState = [...prev];
         newState[index] = {

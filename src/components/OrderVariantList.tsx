@@ -9,6 +9,7 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useHasMounted } from '@/hooks/useHasMounted';
 import styles from '@/scenes/home/OrderDetailsSection.module.scss';
 import { transformColor } from '@/utils/color-transformer';
+import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 
 interface OrderVariantListProps {
   orderId: string;
@@ -56,7 +57,15 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
   }, [orderId, products, hasMounted]);
 
   if (!hasMounted) {
-    return <Text size="sm" c="dimmed">Chargement...</Text>;
+    return (
+      <Stack>
+        <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
+          <Text size="sm" mb={2} fw={600} c="dimmed">
+            Textile commandé : Chargement...
+          </Text>
+        </Box>
+      </Stack>
+    );
   }
 
   // Transformer les produits en gardant les variantes séparées
@@ -77,6 +86,7 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
         size,
         quantity: 0,
         variants: [],
+        globalStartIndex: 0 // Index de départ pour ce groupe
       };
     }
 
@@ -94,26 +104,47 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
     return acc;
   }, {} as Record<string, any>);
 
+  // Calculer l'index global de départ pour chaque groupe
+  let currentIndex = 0;
+  Object.values(groupedProducts).forEach((group: any) => {
+    group.globalStartIndex = currentIndex;
+    currentIndex += group.variants.length;
+  });
+
   return (
     <Stack>
       <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
         <Text size="sm" mb={2} fw={600} c={progress.checkedCount === progress.totalCount ? 'green' : 'dimmed'}>
           Textile commandé : {progress.checkedCount}/{progress.totalCount}
         </Text>
-        {Object.values(groupedProducts).map((group) => (
+        {Object.values(groupedProducts).map((group: any) => (
           <Stack key={group.sku}>
             <Group gap="xs" align="center">
               <Group gap={4}>
-                {group.variants.map((variant: any, index: number) => (
-                  <VariantCheckbox
-                    key={`${orderId}-${variant.sku}-${variant.color}-${variant.size}-${index}`}
-                    orderId={encodeFirestoreId(orderId)}
-                    sku={variant.sku}
-                    color={variant.color}
-                    size={variant.size}
-                    quantity={1}
-                  />
-                ))}
+                {group.variants.map((variant: any, index: number) => {
+                  const product = products.find(p => p.sku === variant.sku);
+                  const productIndex = products.findIndex(p => p.sku === variant.sku);
+                  
+                  if (!product || productIndex === -1) return null;
+                  
+                  const globalIndex = calculateGlobalVariantIndex(
+                    products,
+                    product,
+                    productIndex
+                  );
+
+                  return (
+                    <VariantCheckbox
+                      key={`${orderId}-${variant.sku}-${variant.color}-${variant.size}-${globalIndex}`}
+                      orderId={encodeFirestoreId(orderId)}
+                      sku={variant.sku}
+                      color={variant.color}
+                      size={variant.size}
+                      quantity={1}
+                      productIndex={globalIndex}
+                    />
+                  );
+                })}
               </Group>
               <Text size="sm" fw={500}>
                 {group.sku}
