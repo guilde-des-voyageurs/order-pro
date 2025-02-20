@@ -61,6 +61,9 @@ export const VariantCheckbox = ({
   useEffect(() => {
     if (!auth.currentUser || !hasMounted) return;
 
+    // Réinitialiser l'état quand les props changent
+    setCheckboxes(Array(quantity).fill({ checked: false, loading: true, error: null }));
+
     const unsubscribes = Array(quantity).fill(null).map((_, index) => {
       const variantId = generateVariantId(orderId, sku, color, size, index);
       const docRef = doc(db, 'variants-ordered', variantId);
@@ -69,9 +72,20 @@ export const VariantCheckbox = ({
         setCheckboxes(prev => {
           const newState = [...prev];
           newState[index] = {
-            checked: snapshot.exists() ? snapshot.data()?.checked : false,
+            checked: snapshot.exists() ? snapshot.data()?.checked ?? false : false,
             loading: false,
             error: null
+          };
+          return newState;
+        });
+      }, (error) => {
+        console.error('Error fetching variant state:', error);
+        setCheckboxes(prev => {
+          const newState = [...prev];
+          newState[index] = {
+            ...prev[index],
+            loading: false,
+            error: 'Erreur lors du chargement'
           };
           return newState;
         });
@@ -168,13 +182,18 @@ export const VariantCheckbox = ({
 
   return (
     <Group gap={4}>
-      {checkboxes.map((checkbox, index) => (
+      {checkboxes.map((state, index) => (
         <Checkbox
-          key={`${orderId}-${sku}-${color}-${size}-${index}`}
-          checked={checkbox.checked}
+          key={index}
+          checked={state.checked}
           onChange={(event) => handleChange(index, event.currentTarget.checked)}
+          disabled={state.loading || !!state.error}
           className={className}
-          disabled={checkbox.loading}
+          styles={{
+            input: {
+              cursor: state.loading ? 'wait' : state.error ? 'not-allowed' : 'pointer'
+            }
+          }}
         />
       ))}
     </Group>
