@@ -7,6 +7,7 @@ export const calculateGlobalVariantIndex = (
       name: string;
       value: string;
     }>;
+    quantity: number;
   }>,
   currentProduct: {
     sku: string;
@@ -24,20 +25,23 @@ export const calculateGlobalVariantIndex = (
     return value ?? null;
   };
 
-  const currentColor = getOptionValue(currentProduct, 'couleur');
-  const currentSize = getOptionValue(currentProduct, 'taille');
-  const currentKey = `${currentProduct.sku}--${currentColor || 'no-color'}--${currentSize || 'no-size'}`;
+  const currentColor = getOptionValue(currentProduct, 'couleur') || 'no-color';
+  const currentSize = getOptionValue(currentProduct, 'taille') || 'no-size';
 
-  // Compter combien de variantes identiques il y a avant celle-ci
-  return products
-    .slice(0, currentIndex)
-    .filter(product => {
-      const color = getOptionValue(product, 'couleur');
-      const size = getOptionValue(product, 'taille');
-      const key = `${product.sku}--${color || 'no-color'}--${size || 'no-size'}`;
-      return key === currentKey;
-    })
-    .length;
+  // Compter le nombre total de variantes identiques avant celle-ci
+  let globalIndex = 0;
+  
+  for (let i = 0; i < currentIndex; i++) {
+    const product = products[i];
+    const color = getOptionValue(product, 'couleur') || 'no-color';
+    const size = getOptionValue(product, 'taille') || 'no-size';
+    
+    if (product.sku === currentProduct.sku && color === currentColor && size === currentSize) {
+      globalIndex += product.quantity;
+    }
+  }
+
+  return globalIndex;
 };
 
 export const generateVariantId = (
@@ -46,10 +50,36 @@ export const generateVariantId = (
   color: string | null, 
   size: string | null,
   productIndex: number,
-  index: number
+  variantIndex: number,
+  products?: Array<{
+    sku: string;
+    selectedOptions: Array<{
+      name: string;
+      value: string;
+    }>;
+    quantity: number;
+  }>
 ): string => {
   // S'assurer que l'ID de la commande est déjà encodé
   const encodedOrderId = orderId.includes('--') ? orderId : encodeFirestoreId(orderId);
-  const id = `${encodedOrderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${productIndex}--${index}`;
+
+  // Si on a la liste des produits, on peut calculer un index global
+  let globalIndex = 0;
+  if (products) {
+    const currentProduct = {
+      sku,
+      selectedOptions: [
+        { name: 'Couleur', value: color || 'no-color' },
+        { name: 'Taille', value: size || 'no-size' }
+      ]
+    };
+    globalIndex = calculateGlobalVariantIndex(products, currentProduct, productIndex);
+    globalIndex += variantIndex;
+  } else {
+    // Sinon on utilise les index fournis
+    globalIndex = productIndex * 100 + variantIndex; // Multiplier par 100 pour éviter les collisions
+  }
+
+  const id = `${encodedOrderId}--${sku}--${color || 'no-color'}--${size || 'no-size'}--${globalIndex}`;
   return encodeFirestoreId(id);
 };

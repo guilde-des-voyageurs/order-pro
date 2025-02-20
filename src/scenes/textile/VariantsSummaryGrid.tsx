@@ -55,8 +55,8 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
     Object.entries(orderDetails).forEach(([orderId, detail]) => {
       if (detail.type === 'success') {
         detail.data.products.forEach((product, productIndex) => {
-          const color = product.selectedOptions.find(opt => opt.name === 'Couleur')?.value || 'N/A';
-          const size = product.selectedOptions.find(opt => opt.name === 'Taille')?.value || 'N/A';
+          const color = product.selectedOptions.find(opt => opt.name === 'Couleur')?.value || 'no-color';
+          const size = product.selectedOptions.find(opt => opt.name === 'Taille')?.value || 'no-size';
           
           if (!variants[product.sku]) {
             variants[product.sku] = [];
@@ -69,7 +69,7 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
           
           if (existingVariant) {
             existingVariant.quantity += product.quantity;
-            existingVariant.orderIds.push({ orderId, productIndex });
+            // Ne pas ajouter d'autres orderIds, on garde celui d'origine
           } else {
             variants[product.sku].push({
               sku: product.sku,
@@ -113,6 +113,7 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
               <Text fw={700}>{sku}</Text>
               {variantsBySku[sku].map((variant) => {
                 const { orderId, productIndex } = variant.orderIds[0];
+                const detail = orderDetails[orderId];
                 
                 return (
                   <Stack key={`${variant.color}-${variant.size}`} spacing="xs">
@@ -127,7 +128,8 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
                           variant.color,
                           variant.size,
                           productIndex,
-                          index
+                          index,
+                          detail.type === 'success' ? detail.data.products : undefined
                         );
                         
                         return (
@@ -140,7 +142,7 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
                                 size={variant.size}
                                 quantity={1}
                                 orderId={orderId}
-                                productIndex={index}
+                                productIndex={productIndex}
                                 variantId={variantId}
                               />
                             </Group>

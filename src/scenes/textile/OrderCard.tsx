@@ -111,20 +111,21 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
         {orderDetail?.type === 'success' && (
           <Stack gap="xs" mt="md">
             {orderDetail.data.products.map((product, productIndex) => {
-              const color = getOptionValue(product, 'couleur');
-              const size = getOptionValue(product, 'taille');
+              const color = getOptionValue(product, 'couleur') || 'no-color';
+              const size = getOptionValue(product, 'taille') || 'no-size';
               
               return (
                 <Group key={productIndex}>
                   <Stack spacing={4}>
                     {Array.from({ length: product.quantity }).map((_, index) => {
                       const variantId = generateVariantId(
-                        encodeFirestoreId(order.id),
+                        order.id,
                         product.sku,
-                        color || 'no-color',
-                        size || 'no-size',
+                        color,
+                        size,
                         productIndex,
-                        index
+                        index,
+                        orderDetail.data.products
                       );
 
                       return (
@@ -136,7 +137,7 @@ export const OrderCard = ({ order, orderDetail }: OrderCardProps) => {
                               color={color}
                               size={size}
                               quantity={1}
-                              orderId={encodeFirestoreId(order.id)}
+                              orderId={order.id}
                               productIndex={productIndex}
                               variantId={variantId}
                             />

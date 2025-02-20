@@ -8,8 +8,8 @@ import { encodeFirestoreId } from '@/utils/firestore-helpers';
 
 interface VariantCheckboxProps {
   sku: string;
-  color: string | null;
-  size: string | null;
+  color: string;
+  size: string;
   quantity: number;
   orderId: string;
   productIndex: number;
@@ -26,9 +26,8 @@ interface CheckboxState {
 interface VariantDocument {
   checked: boolean;
   sku: string;
-  color: string | null;
-  size: string | null;
-  index: number;
+  color: string;
+  size: string;
   productIndex: number;
   originalId: string;
   userId: string;
@@ -106,7 +105,6 @@ export const VariantCheckbox = ({
         sku,
         color,
         size,
-        index: productIndex,
         productIndex,
         originalId: orderId,
         userId: auth.currentUser.uid,
