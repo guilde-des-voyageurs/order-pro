@@ -13,17 +13,37 @@ import { getOrderVariantsCheckedAction } from '@/actions/get-order-variants-chec
 import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';
 import styles from './OrderDetailsSection.module.scss';
 
+interface Product {
+  sku: string;
+  quantity: number;
+  selectedOptions: Array<{
+    name: string;
+    value: string;
+  }>;
+}
+
+interface OrderDetail {
+  id: string;
+  name: string;
+  products: Product[];
+  status: 'OPEN' | 'CLOSED';
+  displayFinancialStatus: 'PENDING' | 'PAID';
+  weightInKg: number;
+  createdAtFormatted: string;
+}
+
 // Composants avec fallback pour le chargement
 const VariantCheckboxWithSuspense = ({ sku, color, size, quantity, orderId }: { sku: string; color: string | null; size: string | null; quantity: number; orderId: string }) => {
-  const { data: orderDetail } = useQuery({
+  const { data: response } = useQuery({
     queryKey: ['order-details', orderId],
     queryFn: () => fetchOrderDetailAction(orderId),
   });
 
-  if (!orderDetail?.products) {
+  if (!response || response.type === 'error' || !response.data?.products) {
     return <div>Chargement...</div>;
   }
 
+  const orderDetail = response.data;
   const products = orderDetail.products;
   const product = products.find(p => p.sku === sku);
   const productIndex = products.findIndex(p => p.sku === sku);
@@ -91,7 +111,8 @@ const Content = ({ id }: { id: string }) => {
     return null;
   }
 
-  const order = query.data.data;
+  const response = query.data;
+  const order = response.data;
 
   // Ne calculer les coûts que s'il y a des produits
   const unitCostInEuros = order.products.length > 0 
