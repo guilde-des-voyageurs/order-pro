@@ -35,6 +35,22 @@ export const VariantsSummaryGrid = ({ orderDetails }: VariantsSummaryGridProps) 
     }
   });
 
+  // Trier les variantes pour chaque SKU
+  Object.keys(variants).forEach(sku => {
+    variants[sku].sort((a, b) => {
+      // Trier par couleur d'abord
+      const colorA = a.color || 'no-color';
+      const colorB = b.color || 'no-color';
+      if (colorA !== colorB) {
+        return colorA.localeCompare(colorB);
+      }
+      // Puis par taille
+      const sizeA = a.size || 'no-size';
+      const sizeB = b.size || 'no-size';
+      return sizeA.localeCompare(sizeB);
+    });
+  });
+
   // Rendu côté serveur
   if (typeof window === 'undefined') {
     return (
