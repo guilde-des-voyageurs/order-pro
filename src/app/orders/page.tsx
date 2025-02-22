@@ -1,11 +1,7 @@
 'use client';
 
-import { Title } from '@mantine/core';
+import { OrdersPage } from '@/scenes/orders/OrdersPage';
 
-export default function OrdersPage() {
-  return (
-    <div>
-      <Title order={2}>Commandes</Title>
-    </div>
-  );
+export default function Orders() {
+  return <OrdersPage />;
 }

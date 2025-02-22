@@ -3,7 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/firebase/config';
 import { encodeFirestoreId } from '@/utils/firestore-helpers';
 
-export const useOrderProgress = (orderId: string) => {
+export const useOrderProgress = (orderId: string | undefined) => {
   const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,24 +15,32 @@ export const useOrderProgress = (orderId: string) => {
       return;
     }
 
+    if (!orderId) {
+      setError('ID de commande manquant');
+      setIsLoading(false);
+      return;
+    }
+
     const encodedOrderId = encodeFirestoreId(orderId);
     const orderRef = doc(db, 'orders-progress', encodedOrderId);
     
     const unsubscribe = onSnapshot(orderRef, 
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
           setProgress({
             checkedCount: data.checkedCount || 0,
-            totalCount: data.totalCount || 0
+            totalCount: data.totalCount || 0,
           });
+        } else {
+          setProgress({ checkedCount: 0, totalCount: 0 });
         }
-        setError(null);
         setIsLoading(false);
+        setError(null);
       },
       (error) => {
-        console.error('Error listening to order progress:', error);
-        setError(error instanceof Error ? error.message : 'Une erreur est survenue');
+        console.error('Error fetching order progress:', error);
+        setError('Erreur lors de la récupération des données');
         setIsLoading(false);
       }
     );

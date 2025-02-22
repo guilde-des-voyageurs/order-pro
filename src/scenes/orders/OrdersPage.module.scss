@@ -1,0 +1,75 @@
+@use "src/style/_mantine.scss" as *;
+
+.view {
+  min-height: 100vh;
+  display: flex;
+}
+
+.main_content {
+  margin-top: 40px;
+  flex-basis: $app-content-width;
+  padding-inline: 32px;
+}
+
+.section {
+  margin-top: 40px;
+
+  & + .section {
+    margin-top: 60px;
+  }
+}
+
+.section_subtitle {
+  margin-top: 12px;
+  color: #525252;
+}
+
+.row_headers {
+  margin-top: 12px;
+  padding: 15px 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #525252;
+  background: #f1f1f1;
+}
+
+.rows {
+  margin-top: 12px;
+  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  padding-inline: 40px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #f8f8f8;
+  }
+
+  &.selected {
+    background: #f0f0f0;
+  }
+}
+
+.order_number {
+  width: 120px;
+}
+
+.status {
+  width: 120px;
+}
+
+.date {
+  width: 200px;
+}

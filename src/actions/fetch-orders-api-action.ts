@@ -18,11 +18,13 @@ const shopifyClient = createAdminApiClient({
 // Requête simplifiée pour tester
 const query = `
 query {
-  orders(first: 10) {
+  orders(first: 10, sortKey: CREATED_AT, reverse: true) {
     nodes {
       id
       name
       createdAt
+      displayFulfillmentStatus
+      displayFinancialStatus
     }
   }
 }`;

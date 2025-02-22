@@ -3,7 +3,7 @@ import { useOrderProgress } from '@/hooks/useOrderProgress';
 import { Text } from '@mantine/core';
 
 interface OrderStatusProps {
-  orderId: string;
+  orderId?: string;
   className?: string;
 }
 
