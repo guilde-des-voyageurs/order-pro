@@ -4,6 +4,11 @@
   padding: 12px;
   border-radius: 8px;
   background: #f8f8f8;
+
+  &.refunded {
+    opacity: 0.6;
+    background-color: var(--mantine-color-gray-1);
+  }
 }
 
 .product_info {

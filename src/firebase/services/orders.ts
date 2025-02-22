@@ -80,6 +80,7 @@ export const ordersService = {
           id: item.id,
           title: item.title,
           quantity: item.quantity,
+          refundableQuantity: item.refundableQuantity,
           price: item.originalUnitPriceSet.shopMoney.amount,
           sku: item.sku,
           variantTitle: item.variant?.title,
@@ -91,6 +92,7 @@ export const ordersService = {
             url: item.image.url,
             altText: item.image.altText,
           } : null,
+          isRefunded: item.quantity > item.refundableQuantity
         })),
         synced_at: new Date().toISOString(),
       };

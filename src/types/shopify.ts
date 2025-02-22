@@ -22,6 +22,7 @@ export interface ShopifyOrder {
     id: string;
     title: string;
     quantity: number;
+    refundableQuantity: number;
     price: string;
     sku: string | null;
     variantTitle: string | null;
@@ -33,5 +34,6 @@ export interface ShopifyOrder {
       url: string;
       altText: string | null;
     };
+    isRefunded?: boolean;
   }>;
 }

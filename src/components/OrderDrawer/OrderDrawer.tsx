@@ -70,7 +70,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
           <Text size="sm" c="dimmed">Produits</Text>
           <Stack gap="md" mt="xs">
             {order.lineItems?.map((item) => (
-              <div key={item.id} className={styles.product_item}>
+              <div key={item.id} className={`${styles.product_item} ${item.isRefunded ? styles.refunded : ''}`}>
                 {item.image && (
                   <Image
                     src={item.image.url}
@@ -81,7 +81,14 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                   />
                 )}
                 <div className={styles.product_info}>
-                  <Text size="sm" fw={500}>{item.title}</Text>
+                  <Group justify="space-between" align="flex-start">
+                    <Text size="sm" fw={500}>{item.title}</Text>
+                    {item.isRefunded && (
+                      <Badge color="gray">
+                        {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} remboursé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </Group>
                   {item.variantTitle && (
                     <Text size="sm" c="dimmed">{item.variantTitle}</Text>
                   )}

@@ -48,6 +48,7 @@ query {
           id
           title
           quantity
+          refundableQuantity
           originalUnitPriceSet {
             shopMoney {
               amount
