@@ -73,24 +73,24 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                   />
                 )}
                 <div className={styles.product_info}>
-                  <Group justify="space-between" align="flex-start">
-                    <Text size="sm" fw={500}>{item.title}</Text>
-                    {item.isCancelled && (
-                      <Badge color="gray">
-                        {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} annulé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
-                      </Badge>
-                    )}
-                  </Group>
-                  {item.variantTitle && (
-                    <Text size="sm" c="dimmed">{item.variantTitle}</Text>
-                  )}
-                  {item.sku && (
-                    <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
-                  )}
-                  <Group gap="xs">
-                    <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
-                    <Text size="sm">x{item.quantity}</Text>
-                    <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
+                  <Group justify="space-between" align="center" w="100%" h="100%">
+                    <div>
+                      <Text size="sm" fw={500}>{item.title}</Text>
+                      {item.isCancelled && (
+                        <Badge color="gray">
+                          {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} annulé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                      {item.variantTitle && (
+                        <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                      )}
+                      {item.sku && (
+                        <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
+                      )}
+                      <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
+                      <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
+                    </div>
+                    <Text size="md" fw={500}>×{item.quantity}</Text>
                   </Group>
                 </div>
               </div>
