@@ -1,7 +1,8 @@
-import { Drawer, Title, Text, Stack, Group, Badge } from '@mantine/core';
+import { Drawer, Title, Text, Stack, Group, Badge, Image } from '@mantine/core';
 import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import type { ShopifyOrder } from '@/types/shopify';
+import styles from './OrderDrawer.module.scss';
 
 interface OrderDrawerProps {
   order: ShopifyOrder | null;
@@ -16,7 +17,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
     <Drawer
       opened={opened}
       onClose={onClose}
-      title={<Title order={3}>Commande {order.name}</Title>}
+      title={<Title order={2}>Commande {order.name}</Title>}
       position="right"
       size="lg"
       padding="xl"
@@ -69,10 +70,30 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
           <Text size="sm" c="dimmed">Produits</Text>
           <Stack gap="md" mt="xs">
             {order.lineItems?.map((item) => (
-              <Group key={item.id} justify="space-between">
-                <Text>{item.title}</Text>
-                <Text>x{item.quantity}</Text>
-              </Group>
+              <div key={item.id} className={styles.product_item}>
+                {item.image && (
+                  <Image
+                    src={item.image.url}
+                    alt={item.image.altText || item.title}
+                    width={60}
+                    height={60}
+                    fit="contain"
+                  />
+                )}
+                <div className={styles.product_info}>
+                  <Text size="sm" fw={500}>{item.title}</Text>
+                  {item.variantTitle && (
+                    <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                  )}
+                  {item.sku && (
+                    <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
+                  )}
+                  <Group gap="xs">
+                    <Text size="sm">{item.price} {order.totalPriceCurrency}</Text>
+                    <Text size="sm">x{item.quantity}</Text>
+                  </Group>
+                </div>
+              </div>
             ))}
           </Stack>
         </div>

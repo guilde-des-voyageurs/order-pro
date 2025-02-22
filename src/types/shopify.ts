@@ -22,5 +22,16 @@ export interface ShopifyOrder {
     id: string;
     title: string;
     quantity: number;
+    price: string;
+    sku: string | null;
+    variantTitle: string | null;
+    vendor: string | null;
+    productId: string;
+    requiresShipping: boolean;
+    taxable: boolean;
+    image?: {
+      url: string;
+      altText: string | null;
+    };
   }>;
 }

@@ -25,8 +25,12 @@ query {
       createdAt
       displayFulfillmentStatus
       displayFinancialStatus
-      totalPrice
-      currencyCode
+      totalPriceSet {
+        shopMoney {
+          amount
+          currencyCode
+        }
+      }
       customer {
         firstName
         lastName
@@ -37,13 +41,31 @@ query {
         address2
         city
         zip
-        country
+        countryCodeV2
       }
       lineItems(first: 50) {
         nodes {
           id
           title
           quantity
+          originalUnitPriceSet {
+            shopMoney {
+              amount
+              currencyCode
+            }
+          }
+          sku
+          variant {
+            title
+          }
+          product {
+            id
+            vendor
+          }
+          image {
+            url
+            altText
+          }
         }
       }
     }

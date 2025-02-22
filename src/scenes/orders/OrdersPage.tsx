@@ -51,7 +51,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect }: {
 }) {
   return (
     <div className={styles.section}>
-      <Title order={3}>{title}</Title>
+      <Title order={4}>{title}</Title>
       <Text size="sm" c="dimmed" className={styles.section_subtitle}>
         {orders.length} commandes
       </Text>
@@ -94,7 +94,7 @@ export function OrdersPage() {
 
   return (
     <div className={styles.main_content}>
-      <Title order={2}>Commandes</Title>
+      <Title order={1}>Commandes</Title>
       <Text size="sm" c="dimmed" className={styles.section_subtitle}>
         {pendingOrders.length + shippedOrders.length} commandes synchronisées
       </Text>
