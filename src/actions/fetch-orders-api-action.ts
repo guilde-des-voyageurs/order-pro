@@ -58,6 +58,12 @@ query {
           sku
           variant {
             title
+            inventoryItem {
+              unitCost {
+                amount
+                currencyCode
+              }
+            }
           }
           product {
             id

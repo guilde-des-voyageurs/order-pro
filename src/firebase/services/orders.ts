@@ -76,24 +76,32 @@ export const ordersService = {
           zip: order.shippingAddress.zip,
           country: order.shippingAddress.countryCodeV2,
         } : null,
-        lineItems: order.lineItems?.nodes?.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          quantity: item.quantity,
-          refundableQuantity: item.refundableQuantity,
-          price: item.originalUnitPriceSet.shopMoney.amount,
-          sku: item.sku,
-          variantTitle: item.variant?.title,
-          vendor: item.product?.vendor,
-          productId: item.product?.id,
-          requiresShipping: item.requiresShipping,
-          taxable: item.taxable,
-          image: item.image ? {
-            url: item.image.url,
-            altText: item.image.altText,
-          } : null,
-          isRefunded: item.quantity > item.refundableQuantity
-        })),
+        lineItems: order.lineItems?.nodes?.map((item: any) => {
+          const unitCost = item.variant?.inventoryItem?.unitCost?.amount || 0;
+          const quantity = item.quantity || 0;
+          const totalCost = unitCost * quantity;
+
+          return {
+            id: item.id,
+            title: item.title,
+            quantity: quantity,
+            refundableQuantity: item.refundableQuantity,
+            price: item.originalUnitPriceSet.shopMoney.amount,
+            sku: item.sku,
+            variantTitle: item.variant?.title,
+            vendor: item.product?.vendor,
+            productId: item.product?.id,
+            requiresShipping: item.requiresShipping,
+            taxable: item.taxable,
+            image: item.image ? {
+              url: item.image.url,
+              altText: item.image.altText,
+            } : null,
+            isCancelled: item.quantity > item.refundableQuantity,
+            unitCost,
+            totalCost
+          };
+        }),
         synced_at: new Date().toISOString(),
       };
 

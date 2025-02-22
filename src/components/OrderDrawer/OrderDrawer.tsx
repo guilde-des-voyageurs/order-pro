@@ -17,7 +17,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
     <Drawer
       opened={opened}
       onClose={onClose}
-      title={<Title order={2}>Commande {order.name}</Title>}
+      title={<Title order={1}>Commande {order.name}</Title>}
       position="right"
       size="lg"
       padding="xl"
@@ -45,14 +45,6 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
         </div>
 
         <div>
-          <Text size="sm" c="dimmed">Client</Text>
-          <Stack gap="xs" mt="xs">
-            <Text>{order.customer?.firstName} {order.customer?.lastName}</Text>
-            <Text>{order.customer?.email}</Text>
-          </Stack>
-        </div>
-
-        <div>
           <Text size="sm" c="dimmed">Adresse de livraison</Text>
           <Stack gap="xs" mt="xs">
             <Text>{order.shippingAddress?.address1}</Text>
@@ -70,7 +62,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
           <Text size="sm" c="dimmed">Produits</Text>
           <Stack gap="md" mt="xs">
             {order.lineItems?.map((item) => (
-              <div key={item.id} className={`${styles.product_item} ${item.isRefunded ? styles.refunded : ''}`}>
+              <div key={item.id} className={`${styles.product_item} ${item.isCancelled ? styles.cancelled : ''}`}>
                 {item.image && (
                   <Image
                     src={item.image.url}
@@ -83,9 +75,9 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                 <div className={styles.product_info}>
                   <Group justify="space-between" align="flex-start">
                     <Text size="sm" fw={500}>{item.title}</Text>
-                    {item.isRefunded && (
+                    {item.isCancelled && (
                       <Badge color="gray">
-                        {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} remboursé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
+                        {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} annulé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
                       </Badge>
                     )}
                   </Group>
@@ -96,8 +88,9 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                     <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
                   )}
                   <Group gap="xs">
-                    <Text size="sm">{item.price} {order.totalPriceCurrency}</Text>
+                    <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
                     <Text size="sm">x{item.quantity}</Text>
+                    <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
                   </Group>
                 </div>
               </div>
@@ -106,9 +99,12 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
         </div>
 
         <div>
-          <Text size="sm" c="dimmed">Total</Text>
+          <Text size="sm" c="dimmed">Total à facturer</Text>
           <Text mt="xs" fw={500}>
-            {order.totalPrice} {order.totalPriceCurrency}
+            {order.lineItems?.reduce((total, item) => 
+              total + (item.isCancelled ? 0 : item.totalCost),
+              0
+            ).toFixed(2)} {order.totalPriceCurrency}
           </Text>
         </div>
       </Stack>

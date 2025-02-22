@@ -34,6 +34,8 @@ export interface ShopifyOrder {
       url: string;
       altText: string | null;
     };
-    isRefunded?: boolean;
+    isCancelled?: boolean;
+    unitCost: number;
+    totalCost: number;
   }>;
 }
