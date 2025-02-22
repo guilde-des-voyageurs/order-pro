@@ -1,6 +1,8 @@
 import { Drawer, Title, Text, Stack, Group, Badge, Image } from '@mantine/core';
 import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { generateVariantId } from '@/utils/variant-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 import styles from './OrderDrawer.module.scss';
 
@@ -89,6 +91,25 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                       )}
                       <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
                       <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
+                      <Group gap="xs">
+                        {Array.from({ length: item.quantity }).map((_, index) => {
+                          const color = item.variantTitle?.split(' / ')[0] || '';
+                          const size = item.variantTitle?.split(' / ')[1] || '';
+                          const variantId = generateVariantId(order.id, item.sku || '', color, size, index);
+                          return (
+                            <VariantCheckbox
+                              key={variantId}
+                              sku={item.sku || ''}
+                              color={color}
+                              size={size}
+                              quantity={1}
+                              orderId={order.id}
+                              productIndex={index}
+                              variantId={variantId}
+                            />
+                          );
+                        })}
+                      </Group>
                     </div>
                     <Text size="md" fw={500}>×{item.quantity}</Text>
                   </Group>
