@@ -7,6 +7,7 @@ import { Button } from '@mantine/core';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
+import { SyncButton } from '@/components/SyncButton/SyncButton';
 
 export const MainLayout = ({ children }: { children: any }) => {
   const { signOut, user } = useAuthContext();
@@ -29,6 +30,9 @@ export const MainLayout = ({ children }: { children: any }) => {
     <div className={styles.view}>
       <div className={styles.menu}>
         <img className={styles.menu_logo} src={Logo.src} alt="Runes de Chêne" />
+        <div className={styles.menu_sync}>
+          <SyncButton />
+        </div>
         <ul className={styles.menu_links}>
           {menuItems.map((item) => (
             <li key={item.href}>
