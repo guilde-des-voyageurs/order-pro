@@ -25,6 +25,27 @@ query {
       createdAt
       displayFulfillmentStatus
       displayFinancialStatus
+      totalPrice
+      currencyCode
+      customer {
+        firstName
+        lastName
+        email
+      }
+      shippingAddress {
+        address1
+        address2
+        city
+        zip
+        country
+      }
+      lineItems(first: 50) {
+        nodes {
+          id
+          title
+          quantity
+        }
+      }
     }
   }
 }`;

@@ -4,19 +4,23 @@ export interface ShopifyOrder {
   createdAt: string;
   displayFulfillmentStatus: string;
   displayFinancialStatus: string;
-  lineItems: {
-    nodes: Array<{
-      id: string;
-      title: string;
-      quantity: number;
-      price: string;
-      sku: string | null;
-      variantTitle: string | null;
-      vendor: string | null;
-      productId: string | null;
-      requiresShipping: boolean;
-      taxable: boolean;
-      giftCard: boolean;
-    }>;
+  totalPrice: string;
+  totalPriceCurrency: string;
+  customer?: {
+    firstName: string;
+    lastName: string;
+    email: string;
   };
+  shippingAddress?: {
+    address1: string;
+    address2?: string;
+    city: string;
+    zip: string;
+    country: string;
+  };
+  lineItems?: Array<{
+    id: string;
+    title: string;
+    quantity: number;
+  }>;
 }

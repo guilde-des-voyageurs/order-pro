@@ -8,7 +8,8 @@ import type { ShopifyOrder } from '@/types/shopify';
 export function useOrdersPagePresenter() {
   const [orders, setOrders] = useState<ShopifyOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     const ordersRef = collection(db, 'orders');
@@ -44,11 +45,23 @@ export function useOrdersPagePresenter() {
     });
   }, [orders]);
 
+  const handleSelectOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    setSelectedOrder(order || null);
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+  };
+
   return {
     pendingOrders,
     shippedOrders,
-    selected,
-    setSelected,
+    selectedOrder,
+    isDrawerOpen,
+    onSelectOrder: handleSelectOrder,
+    onCloseDrawer: handleCloseDrawer,
     isLoading,
   };
 }

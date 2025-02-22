@@ -6,6 +6,7 @@ import { useOrdersPagePresenter } from './OrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 
 interface OrderRowProps {
   order: any;
@@ -42,10 +43,10 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   );
 }
 
-function OrdersSection({ title, orders, selected, onSelect }: { 
+function OrdersSection({ title, orders, selectedOrder, onSelect }: { 
   title: string;
   orders: any[];
-  selected: string | null;
+  selectedOrder: any;
   onSelect: (id: string) => void;
 }) {
   return (
@@ -67,7 +68,7 @@ function OrdersSection({ title, orders, selected, onSelect }: {
           <OrderRow
             key={order.id}
             order={order}
-            isSelected={selected === order.id}
+            isSelected={selectedOrder?.id === order.id}
             onSelect={onSelect}
           />
         ))}
@@ -77,7 +78,15 @@ function OrdersSection({ title, orders, selected, onSelect }: {
 }
 
 export function OrdersPage() {
-  const { pendingOrders, shippedOrders, selected, setSelected, isLoading } = useOrdersPagePresenter();
+  const { 
+    pendingOrders, 
+    shippedOrders, 
+    selectedOrder,
+    isDrawerOpen,
+    onSelectOrder,
+    onCloseDrawer,
+    isLoading 
+  } = useOrdersPagePresenter();
 
   if (isLoading) {
     return <Loader />;
@@ -93,15 +102,21 @@ export function OrdersPage() {
       <OrdersSection
         title="Commandes en cours"
         orders={pendingOrders}
-        selected={selected}
-        onSelect={setSelected}
+        selectedOrder={selectedOrder}
+        onSelect={onSelectOrder}
       />
 
       <OrdersSection
         title="Commandes expédiées"
         orders={shippedOrders}
-        selected={selected}
-        onSelect={setSelected}
+        selectedOrder={selectedOrder}
+        onSelect={onSelectOrder}
+      />
+
+      <OrderDrawer
+        order={selectedOrder}
+        opened={isDrawerOpen}
+        onClose={onCloseDrawer}
       />
     </div>
   );

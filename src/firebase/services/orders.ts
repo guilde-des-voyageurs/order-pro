@@ -30,10 +30,23 @@ export const ordersService = {
     orders.forEach((order) => {
       const sanitizedId = sanitizeShopifyId(order.id);
       const docRef = doc(ordersRef, sanitizedId);
-      batch.set(docRef, {
-        ...order,
+
+      // Transformer les données avant sauvegarde
+      const orderData = {
+        id: order.id,
+        name: order.name,
+        createdAt: order.createdAt,
+        displayFulfillmentStatus: order.displayFulfillmentStatus,
+        displayFinancialStatus: order.displayFinancialStatus,
+        totalPrice: order.totalPrice,
+        totalPriceCurrency: order.currencyCode,
+        customer: order.customer,
+        shippingAddress: order.shippingAddress,
+        lineItems: order.lineItems?.nodes || [],
         synced_at: new Date().toISOString(),
-      });
+      };
+
+      batch.set(docRef, orderData, { merge: true });
     });
 
     await batch.commit();
