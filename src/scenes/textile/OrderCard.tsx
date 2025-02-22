@@ -5,7 +5,7 @@ import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { IconCheck } from '@tabler/icons-react';
 import styles from './TextilePage.module.scss';
 import { useHasMounted } from '@/hooks/useHasMounted';

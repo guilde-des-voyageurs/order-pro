@@ -3,6 +3,10 @@ import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { generateVariantId } from '@/utils/variant-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { useEffect } from 'react';
+import { db, auth } from '@/firebase/config';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import type { ShopifyOrder } from '@/types/shopify';
 import styles from './OrderDrawer.module.scss';
 
@@ -14,6 +18,37 @@ interface OrderDrawerProps {
 
 export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
   if (!order) return null;
+
+  useEffect(() => {
+    async function initializeProgress() {
+      if (!auth.currentUser || !opened) return;
+
+      // Calculer le nombre total de variants
+      const totalCount = order.lineItems.reduce((acc, item) => acc + item.quantity, 0);
+
+      // Compter les variants déjà cochés
+      const variantsRef = collection(db, 'variants-ordered');
+      const variantsQuery = query(
+        variantsRef,
+        where('orderId', '==', order.id),
+        where('checked', '==', true)
+      );
+      const snapshot = await getDocs(variantsQuery);
+      const checkedCount = snapshot.size;
+
+      // Initialiser ou mettre à jour le document dans Firestore
+      const encodedOrderId = encodeFirestoreId(order.id);
+      const orderRef = doc(db, 'orders-progress', encodedOrderId);
+      await setDoc(orderRef, {
+        totalCount,
+        checkedCount,
+        userId: auth.currentUser.uid,
+        updatedAt: new Date().toISOString()
+      }, { merge: false });
+    }
+
+    initializeProgress();
+  }, [order, opened]);
 
   return (
     <Drawer

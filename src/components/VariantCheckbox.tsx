@@ -4,7 +4,7 @@ import { Checkbox, Group } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc, getDoc, increment } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
 
 interface VariantCheckboxProps {
@@ -82,16 +82,11 @@ export const VariantCheckbox = ({
     // Mettre à jour le compteur de la commande
     const encodedOrderId = encodeFirestoreId(orderId);
     const orderRef = doc(db, 'orders-progress', encodedOrderId);
-    const orderDoc = await getDoc(orderRef);
-
-    if (orderDoc.exists()) {
-      const currentCount = orderDoc.data()?.checkedCount || 0;
-      await setDoc(orderRef, {
-        checkedCount: newChecked ? currentCount + 1 : currentCount - 1,
-        userId: auth.currentUser.uid,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-    }
+    await setDoc(orderRef, {
+      checkedCount: increment(newChecked ? 1 : -1),
+      userId: auth.currentUser.uid,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
   };
 
   // Rendu côté serveur

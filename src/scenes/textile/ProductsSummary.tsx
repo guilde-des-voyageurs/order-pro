@@ -2,7 +2,7 @@
 
 import { Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variants';
 import { useHasMounted } from '@/hooks/useHasMounted';
 import { calculateGlobalVariantIndex } from '@/utils/variant-helpers';

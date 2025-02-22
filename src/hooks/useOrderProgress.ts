@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/firebase/config';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 export const useOrderProgress = (orderId: string | undefined) => {
   const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });

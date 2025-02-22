@@ -12,7 +12,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/firebase/config';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { fetchOrderDetailAction } from '@/actions/fetch-order-detail-action';
 
 export const HomePage = () => {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface Product {
   quantity: number;

@@ -2,7 +2,7 @@
 
 import { SimpleGrid, Text, Group } from '@mantine/core';
 import { useMemo } from 'react';
-import { encodeFirestoreId } from '@/utils/firestore-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { Product, Variant, generateVariantId, getProductColor, getProductSize, productToVariants, groupVariantsByAttributes, transformColor } from '@/utils/variants';
 
