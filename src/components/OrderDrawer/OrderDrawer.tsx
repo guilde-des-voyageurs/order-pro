@@ -23,8 +23,12 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
     async function initializeProgress() {
       if (!auth.currentUser || !opened) return;
 
-      // Calculer le nombre total de variants
-      const totalCount = order.lineItems.reduce((acc, item) => acc + item.quantity, 0);
+      // Calculer le nombre total de variants (en excluant les produits annulés)
+      const totalCount = order.lineItems.reduce((acc, item) => {
+        // Ne pas compter les produits annulés
+        if (item.isCancelled) return acc;
+        return acc + item.quantity;
+      }, 0);
 
       // Compter les variants déjà cochés
       const variantsRef = collection(db, 'variants-ordered');
@@ -126,25 +130,27 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                       )}
                       <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
                       <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
-                      <Group gap="xs">
-                        {Array.from({ length: item.quantity }).map((_, index) => {
-                          const color = item.variantTitle?.split(' / ')[0] || '';
-                          const size = item.variantTitle?.split(' / ')[1] || '';
-                          const variantId = generateVariantId(order.id, item.sku || '', color, size, index);
-                          return (
-                            <VariantCheckbox
-                              key={variantId}
-                              sku={item.sku || ''}
-                              color={color}
-                              size={size}
-                              quantity={1}
-                              orderId={order.id}
-                              productIndex={index}
-                              variantId={variantId}
-                            />
-                          );
-                        })}
-                      </Group>
+                      {!item.isCancelled && (
+                        <Group gap="xs">
+                          {Array.from({ length: item.quantity }).map((_, index) => {
+                            const color = item.variantTitle?.split(' / ')[0] || '';
+                            const size = item.variantTitle?.split(' / ')[1] || '';
+                            const variantId = generateVariantId(order.id, item.sku || '', color, size, index);
+                            return (
+                              <VariantCheckbox
+                                key={variantId}
+                                sku={item.sku || ''}
+                                color={color}
+                                size={size}
+                                quantity={1}
+                                orderId={order.id}
+                                productIndex={index}
+                                variantId={variantId}
+                              />
+                            );
+                          })}
+                        </Group>
+                      )}
                     </div>
                     <Text size="md" fw={500}>×{item.quantity}</Text>
                   </Group>
