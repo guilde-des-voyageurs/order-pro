@@ -2,6 +2,7 @@
 
 import { createAdminApiClient } from '@shopify/admin-api-client';
 import type { ShopifyOrder } from '@/types/shopify';
+import { TEST_QUERY, ORDERS_QUERY } from '@/graphql/queries';
 
 if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
   throw new Error('Missing Shopify credentials in environment variables');
@@ -12,74 +13,6 @@ const shopifyClient = createAdminApiClient({
   apiVersion: '2024-01',
   accessToken: process.env.SHOPIFY_TOKEN,
 });
-
-const query = `
-query {
-  orders(
-    first: 100, 
-    sortKey: CREATED_AT, 
-    reverse: true,
-    query: "created_at:>='2025-01-16' AND (financial_status:active OR financial_status:paid OR financial_status:partially_paid OR financial_status:partially_refunded OR financial_status:pending)"
-  ) {
-    nodes {
-      id
-      name
-      createdAt
-      displayFulfillmentStatus
-      displayFinancialStatus
-      totalPriceSet {
-        shopMoney {
-          amount
-          currencyCode
-        }
-      }
-      customer {
-        firstName
-        lastName
-        email
-      }
-      shippingAddress {
-        address1
-        address2
-        city
-        zip
-        countryCode
-      }
-      lineItems(first: 50) {
-        nodes {
-          id
-          title
-          quantity
-          refundableQuantity
-          originalUnitPriceSet {
-            shopMoney {
-              amount
-            }
-          }
-          sku
-          variant {
-            title
-            inventoryItem {
-              unitCost {
-                amount
-              }
-            }
-          }
-          product {
-            vendor
-            id
-          }
-          requiresShipping
-          taxable
-          image {
-            url
-            altText
-          }
-        }
-      }
-    }
-  }
-}`;
 
 interface ShopifyResponse {
   orders: {
@@ -146,20 +79,10 @@ interface ShopifyResponse {
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
   try {
     // Test d'abord la connexion
-    const testQuery = `
-      query {
-        shop {
-          name
-          primaryDomain {
-            url
-          }
-        }
-      }
-    `;
-    await shopifyClient.request(testQuery);
+    await shopifyClient.request(TEST_QUERY.toString());
 
     // Si le test passe, on fait la vraie requête
-    const result = await shopifyClient.request<ShopifyResponse>(query);
+    const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY.toString());
     
     if (!result?.data?.orders?.nodes) {
       return [];

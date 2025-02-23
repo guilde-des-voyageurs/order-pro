@@ -76,7 +76,7 @@ export const ordersService = {
           zip: order.shippingAddress.zip,
           country: order.shippingAddress.country,
         } : null,
-        lineItems: order.lineItems.map((item) => ({
+        lineItems: order.lineItems?.map((item) => ({
           id: item.id,
           title: item.title,
           quantity: item.quantity,
@@ -92,7 +92,7 @@ export const ordersService = {
           unitCost: item.unitCost,
           totalCost: item.totalCost,
           isCancelled: item.isCancelled
-        })),
+        })) || [],
         synced_at: new Date().toISOString(),
       };
 
@@ -100,12 +100,12 @@ export const ordersService = {
       const orderData = cleanObject(rawOrderData);
 
       if (!orderData) {
-        return;
+        throw new Error(`Invalid order data for order: ${order.id}`);
       }
 
-      batch.set(docRef, orderData, { merge: true });
+      batch.set(docRef, orderData);
     });
 
     await batch.commit();
-  },
+  }
 };

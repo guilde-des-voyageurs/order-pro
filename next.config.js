@@ -1,10 +1,21 @@
 const path = require('path');
+const webpack = require('webpack');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.shopifycdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.shopify.com',
+      }
+    ]
   },
   webpack: (config, { dev, isServer }) => {
     // Optimisation des assets
@@ -27,6 +38,12 @@ const nextConfig = {
         maxAge: 172800000, // 48 heures
       };
     }
+
+    // Ajouter le fallback pour Buffer
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      buffer: false
+    };
 
     return config;
   },

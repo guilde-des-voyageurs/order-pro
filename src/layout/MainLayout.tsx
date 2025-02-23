@@ -31,7 +31,7 @@ export const MainLayout = ({ children }: { children: any }) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
-        <img className={styles.menu_logo} src={Logo.src} alt="Runes de Chêne" />
+        <img className={styles.menu_logo} src={Logo} alt="Runes de Chêne" />
         <div className={styles.menu_sync}>
           <SyncButton />
         </div>
