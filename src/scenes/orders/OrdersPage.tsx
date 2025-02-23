@@ -11,7 +11,7 @@ import { formatAmount } from '@/utils/format-helpers';
 import styles from './OrdersPage.module.scss';
 import { useEffect } from 'react';
 import { db, auth } from '@/firebase/config';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { ShopifyOrder } from '@/types/shopify';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
@@ -128,17 +128,38 @@ export function OrdersPage() {
 
       // Calculer le nombre total de variants (en excluant les produits annulés)
       const totalCount = order.lineItems?.reduce((acc: number, item: NonNullable<ShopifyOrder['lineItems']>[number]) => {
-        // Ne pas compter les produits annulés
         if (item.isCancelled) return acc;
         return acc + item.quantity;
       }, 0) ?? 0;
 
-      // Initialiser le document de progression
+      // Compter le nombre de variants déjà cochés
+      let checkedCount = 0;
+      for (const item of order.lineItems ?? []) {
+        if (item.isCancelled) continue;
+        
+        const color = item.variantTitle?.split(' / ')[0] || '';
+        const size = item.variantTitle?.split(' / ')[1] || '';
+        
+        for (let i = 0; i < item.quantity; i++) {
+          const variantId = generateVariantId(encodeFirestoreId(order.id), item.sku || '', color, size, i);
+          const variantRef = doc(db, 'variants', variantId);
+          try {
+            const variantDoc = await getDoc(variantRef);
+            if (variantDoc.exists() && variantDoc.data()?.checked) {
+              checkedCount++;
+            }
+          } catch (error) {
+            console.error('Error checking variant status:', error);
+          }
+        }
+      }
+
+      // Initialiser le document de progression avec le compte correct
       const progressRef = doc(db, 'textile-progress', encodeFirestoreId(order.id));
       await setDoc(progressRef, {
         totalCount,
-        checkedCount: 0,
-      }, { merge: false });
+        checkedCount,
+      }, { merge: true });
     }
 
     if (selectedOrder) {
