@@ -5,30 +5,39 @@ interface FinancialStatusProps {
 }
 
 export function FinancialStatus({ status }: FinancialStatusProps) {
-  let color: string;
-  let label: string;
+  const getColor = () => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'green';
+      case 'pending':
+        return 'yellow';
+      case 'refunded':
+        return 'red';
+      case 'partially_refunded':
+        return 'orange';
+      default:
+        return 'gray';
+    }
+  };
 
-  switch (status?.toLowerCase()) {
-    case 'paid':
-      color = 'green';
-      label = 'Payé';
-      break;
-    case 'pending':
-      color = 'yellow';
-      label = 'En attente';
-      break;
-    case 'refunded':
-      color = 'red';
-      label = 'Remboursé';
-      break;
-    case 'partially_refunded':
-      color = 'orange';
-      label = 'Partiellement remboursé';
-      break;
-    default:
-      color = 'gray';
-      label = status || 'Inconnu';
-  }
+  const getLabel = () => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'Validé';
+      case 'pending':
+        return 'En attente';
+      case 'refunded':
+        return 'Remboursé';
+      case 'partially_refunded':
+        return 'Partiellement remboursé';
+      default:
+        return status || 'Inconnu';
+    }
+  };
 
-  return <Badge color={color}>{label}</Badge>;
+  return (
+    <Badge color={getColor()}>
+      {getLabel()}
+    </Badge>
+  );
 }

@@ -1,8 +1,8 @@
 import { Drawer, Title, Text, Stack, Group, Badge, Image } from '@mantine/core';
-import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
+import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useEffect } from 'react';
@@ -72,7 +72,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
         <div>
           <Text size="sm" c="dimmed">Textile commandé</Text>
           <Group gap="md" mt="xs">
-            <OrderStatus orderId={order.id} status={order.displayFulfillmentStatus} />
+            <TextileProgress orderId={order.id} />
           </Group>
         </div>
 
@@ -167,7 +167,12 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
         <div>
           <Text size="sm" c="dimmed">Total à facturer</Text>
           <Group gap="md" mt="xs" align="center">
-            <Text fw={500}>{order.totalPrice} {order.totalPriceCurrency}</Text>
+            <Text fw={500}>
+              {order.lineItems?.reduce((total, item) => 
+                total + (item.isCancelled ? 0 : item.totalCost),
+                0
+              ).toFixed(2)} {order.totalPriceCurrency}
+            </Text>
             <InvoiceCheckbox orderId={order.id} />
           </Group>
         </div>

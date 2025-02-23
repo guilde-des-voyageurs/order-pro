@@ -17,7 +17,12 @@ interface OrderRowProps {
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   return (
-    <Table.Tr key={order.id}>
+    <Table.Tr 
+      key={order.id} 
+      className={clsx({ [styles.selected]: isSelected })}
+      onClick={() => onSelect(order.id)}
+      style={{ cursor: 'pointer' }}
+    >
       <Table.Td>{order.name}</Table.Td>
       <Table.Td>
         {new Date(order.createdAt).toLocaleDateString('fr-FR', {
