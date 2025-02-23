@@ -1,12 +1,13 @@
 'use client';
 
-import styles from './OrdersPage.module.scss';
-import { Title, Text, Loader } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group } from '@mantine/core';
 import { useOrdersPagePresenter } from './OrdersPage.presenter';
 import { clsx } from 'clsx';
-import { OrderStatus } from '@/components/OrderStatus';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
+import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
+import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
+import styles from './OrdersPage.module.scss';
 
 interface OrderRowProps {
   order: any;
@@ -16,21 +17,9 @@ interface OrderRowProps {
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   return (
-    <div
-      key={order.id}
-      className={clsx(styles.row, {
-        [styles.selected]: isSelected,
-      })}
-      onClick={() => onSelect(order.id)}
-    >
-      <Text className={styles.order_number}>{order.name}</Text>
-      <div className={styles.status}>
-        <OrderStatus orderId={order.id} status={order.displayFulfillmentStatus} />
-      </div>
-      <div className={styles.status}>
-        <FinancialStatus status={order.displayFinancialStatus} />
-      </div>
-      <Text className={styles.date}>
+    <Table.Tr key={order.id}>
+      <Table.Td>{order.name}</Table.Td>
+      <Table.Td>
         {new Date(order.createdAt).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
@@ -38,8 +27,19 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           hour: '2-digit',
           minute: '2-digit',
         })}
-      </Text>
-    </div>
+      </Table.Td>
+      <Table.Td>
+        <Group gap="xs">
+          <FinancialStatus status={order.displayFinancialStatus} />
+        </Group>
+      </Table.Td>
+      <Table.Td>
+        <TextileProgress orderId={order.id} />
+      </Table.Td>
+      <Table.Td>
+        <InvoiceCheckbox orderId={order.id} />
+      </Table.Td>
+    </Table.Tr>
   );
 }
 
@@ -56,23 +56,27 @@ function OrdersSection({ title, orders, selectedOrder, onSelect }: {
         {orders.length} commandes
       </Text>
 
-      <div className={styles.row_headers}>
-        <Text className={styles.order_number}>Numéro</Text>
-        <Text className={styles.status}>Statut</Text>
-        <Text className={styles.status}>Paiement</Text>
-        <Text className={styles.date}>Date de création</Text>
-      </div>
-
-      <div className={styles.rows}>
-        {orders.map((order) => (
-          <OrderRow
-            key={order.id}
-            order={order}
-            isSelected={selectedOrder?.id === order.id}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Numéro</Table.Th>
+            <Table.Th>Date</Table.Th>
+            <Table.Th>Statut</Table.Th>
+            <Table.Th>Textile</Table.Th>
+            <Table.Th>Facturé</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {orders.map((order) => (
+            <OrderRow
+              key={order.id}
+              order={order}
+              isSelected={selectedOrder?.id === order.id}
+              onSelect={onSelect}
+            />
+          ))}
+        </Table.Tbody>
+      </Table>
     </div>
   );
 }
