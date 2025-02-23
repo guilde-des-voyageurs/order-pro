@@ -62,8 +62,8 @@ export const ordersService = {
         createdAt: order.createdAt,
         displayFulfillmentStatus: order.displayFulfillmentStatus,
         displayFinancialStatus: order.displayFinancialStatus,
-        totalPrice: order.totalPriceSet.shopMoney.amount,
-        totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
+        totalPrice: order.totalPrice,
+        totalPriceCurrency: order.totalPriceCurrency,
         customer: order.customer ? {
           firstName: order.customer.firstName,
           lastName: order.customer.lastName,
@@ -74,34 +74,25 @@ export const ordersService = {
           address2: order.shippingAddress.address2,
           city: order.shippingAddress.city,
           zip: order.shippingAddress.zip,
-          country: order.shippingAddress.countryCodeV2,
+          country: order.shippingAddress.country,
         } : null,
-        lineItems: order.lineItems?.nodes?.map((item: any) => {
-          const unitCost = item.variant?.inventoryItem?.unitCost?.amount || 0;
-          const quantity = item.quantity || 0;
-          const totalCost = unitCost * quantity;
-
-          return {
-            id: item.id,
-            title: item.title,
-            quantity: quantity,
-            refundableQuantity: item.refundableQuantity,
-            price: item.originalUnitPriceSet.shopMoney.amount,
-            sku: item.sku,
-            variantTitle: item.variant?.title,
-            vendor: item.product?.vendor,
-            productId: item.product?.id,
-            requiresShipping: item.requiresShipping,
-            taxable: item.taxable,
-            image: item.image ? {
-              url: item.image.url,
-              altText: item.image.altText,
-            } : null,
-            isCancelled: item.quantity > item.refundableQuantity,
-            unitCost,
-            totalCost
-          };
-        }),
+        lineItems: order.lineItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          quantity: item.quantity,
+          refundableQuantity: item.refundableQuantity,
+          price: item.price,
+          sku: item.sku,
+          variantTitle: item.variantTitle,
+          vendor: item.vendor,
+          productId: item.productId,
+          requiresShipping: item.requiresShipping,
+          taxable: item.taxable,
+          image: item.image,
+          unitCost: item.unitCost,
+          totalCost: item.totalCost,
+          isCancelled: item.isCancelled
+        })),
         synced_at: new Date().toISOString(),
       };
 
