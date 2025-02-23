@@ -3,10 +3,10 @@
 import { Title, Text, Loader, Table, Button, Group, Stack, Paper } from '@mantine/core';
 import { useOrdersPagePresenter } from './OrdersPage.presenter';
 import { clsx } from 'clsx';
-import { FinancialStatus } from '@/components/FinancialStatus';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
+import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { formatAmount } from '@/utils/format-helpers';
 import styles from './OrdersPage.module.scss';
 import { useEffect } from 'react';
@@ -40,9 +40,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         })}
       </Table.Td>
       <Table.Td>
-        <Group gap="xs">
-          <FinancialStatus status={order.displayFinancialStatus} />
-        </Group>
+        <DaysElapsed createdAt={order.createdAt} />
       </Table.Td>
       <Table.Td>
         <TextileProgress orderId={encodeFirestoreId(order.id)} />
@@ -88,7 +86,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
               <Table.Tr>
                 <Table.Th>Numéro</Table.Th>
                 <Table.Th>Date</Table.Th>
-                <Table.Th>Etat</Table.Th>
+                <Table.Th>En attente depuis</Table.Th>
                 <Table.Th>Avancement</Table.Th>
                 <Table.Th>Facturé</Table.Th>
               </Table.Tr>
