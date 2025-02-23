@@ -123,50 +123,6 @@ export function OrdersPage() {
     isLoading 
   } = useOrdersPagePresenter();
 
-  useEffect(() => {
-    const initializeProgress = async (order: ShopifyOrder) => {
-      const orderId = encodeFirestoreId(order.id);
-      const progressRef = doc(db, 'textile-progress', orderId);
-      
-      // Calculer le nombre total de variantes non annulées
-      const totalCount = order.lineItems?.reduce((total, item) => 
-        total + (item.isCancelled ? 0 : item.quantity),
-        0
-      ) ?? 0;
-
-      // Préparer toutes les promesses de vérification des variantes
-      const variantPromises = order.lineItems?.flatMap(item => {
-        if (item.isCancelled) return [];
-        
-        const color = item.variantTitle?.split(' / ')[0] || '';
-        const size = item.variantTitle?.split(' / ')[1] || '';
-        
-        return Array.from({ length: item.quantity }).map((_, i) => {
-          const variantId = generateVariantId(orderId, item.sku || '', color, size, i);
-          return getDoc(doc(db, 'variants', variantId));
-        });
-      }) ?? [];
-
-      // Exécuter toutes les promesses en parallèle
-      try {
-        const variantDocs = await Promise.all(variantPromises);
-        const checkedCount = variantDocs.filter(doc => doc.exists() && doc.data()?.checked).length;
-
-        // Mettre à jour le document de progression
-        await setDoc(progressRef, {
-          totalCount,
-          checkedCount,
-        }, { merge: true });
-      } catch (error) {
-        console.error('Error initializing progress:', error);
-      }
-    };
-
-    if (selectedOrder) {
-      initializeProgress(selectedOrder);
-    }
-  }, [selectedOrder, isDrawerOpen]);
-
   if (isLoading) {
     return <Loader />;
   }

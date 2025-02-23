@@ -39,20 +39,13 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
         0
       ) ?? 0;
 
-      // Compter les variantes cochées
-      const variantsRef = collection(db, 'variants-ordered');
-      const q = query(variantsRef, where('orderId', '==', encodedOrderId), where('checked', '==', true));
-      const querySnapshot = await getDocs(q);
-      const checkedCount = querySnapshot.size;
-
-      // Mettre à jour la progression
+      // Mettre à jour uniquement le total
       const progressRef = doc(db, 'textile-progress', encodedOrderId);
       await setDoc(progressRef, {
-        checkedCount,
         totalCount,
         userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }, { merge: true });  // merge: true pour ne pas écraser checkedCount
     };
 
     updateProgress();

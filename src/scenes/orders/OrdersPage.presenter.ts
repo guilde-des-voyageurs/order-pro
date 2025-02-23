@@ -53,6 +53,7 @@ export function useOrdersPagePresenter() {
 
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
+    setSelectedOrder(null);  // Remettre à null pour forcer le useEffect à se relancer
   };
 
   return {

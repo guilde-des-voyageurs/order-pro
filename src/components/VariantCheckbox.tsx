@@ -63,6 +63,7 @@ export const VariantCheckbox = ({
     const newChecked = event.target.checked;
     setChecked(newChecked);
 
+    const encodedOrderId = encodeFirestoreId(orderId);
     const document: VariantDocument = {
       checked: newChecked,
       sku,
@@ -72,7 +73,7 @@ export const VariantCheckbox = ({
       originalId: orderId,
       userId: auth.currentUser.uid,
       updatedAt: new Date().toISOString(),
-      orderId
+      orderId: encodedOrderId
     };
 
     // Mettre à jour le document de la variante
@@ -80,7 +81,6 @@ export const VariantCheckbox = ({
     await setDoc(variantRef, document);
 
     // Mettre à jour le compteur de la commande
-    const encodedOrderId = encodeFirestoreId(orderId);
     const orderRef = doc(db, 'textile-progress', encodedOrderId);
     await setDoc(orderRef, {
       checkedCount: increment(newChecked ? 1 : -1),
