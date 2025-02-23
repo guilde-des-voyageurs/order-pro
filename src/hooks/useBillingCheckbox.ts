@@ -46,7 +46,6 @@ export const useBillingCheckbox = (orderId: string) => {
         setIsLoading(false);
       },
       (error) => {
-        console.error('Error listening to billing checkbox state:', error);
         setError(error instanceof Error ? error.message : 'Une erreur est survenue');
         setIsLoading(false);
       }
@@ -70,7 +69,6 @@ export const useBillingCheckbox = (orderId: string) => {
         userId: auth.currentUser.uid
       });
     } catch (error) {
-      console.error('Error toggling billing checkbox:', error);
       setError(error instanceof Error ? error.message : 'Une erreur est survenue');
     }
   };

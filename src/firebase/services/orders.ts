@@ -100,7 +100,6 @@ export const ordersService = {
       const orderData = cleanObject(rawOrderData);
 
       if (!orderData) {
-        console.error('Invalid order data:', order);
         return;
       }
 

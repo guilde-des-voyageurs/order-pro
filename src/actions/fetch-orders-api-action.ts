@@ -3,12 +3,10 @@
 import { createAdminApiClient } from '@shopify/admin-api-client';
 import type { ShopifyOrder } from '@/types/shopify';
 
-console.log('Checking Shopify credentials...');
 if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
   throw new Error('Missing Shopify credentials in environment variables');
 }
 
-console.log('Creating Shopify client with URL:', process.env.SHOPIFY_URL);
 const shopifyClient = createAdminApiClient({
   storeDomain: process.env.SHOPIFY_URL,
   apiVersion: '2024-01',
@@ -29,13 +27,9 @@ query {
       createdAt
       displayFulfillmentStatus
       displayFinancialStatus
-      totalPrice: totalPriceSet {
+      totalPriceSet {
         shopMoney {
           amount
-        }
-      }
-      totalPriceCurrency: totalPriceSet {
-        shopMoney {
           currencyCode
         }
       }
@@ -49,7 +43,7 @@ query {
         address2
         city
         zip
-        country: countryCodeV2
+        countryCode
       }
       lineItems(first: 50) {
         nodes {
@@ -57,19 +51,22 @@ query {
           title
           quantity
           refundableQuantity
-          price: originalUnitPriceSet {
+          originalUnitPriceSet {
             shopMoney {
               amount
             }
           }
           sku
-          variantTitle: variant {
+          variant {
             title
+            inventoryItem {
+              unitCost {
+                amount
+              }
+            }
           }
-          vendor: product {
+          product {
             vendor
-          }
-          productId: product {
             id
           }
           requiresShipping
@@ -78,29 +75,75 @@ query {
             url
             altText
           }
-          unitCost: variant {
-            inventoryItem {
-              unitCost {
-                amount
-              }
-            }
-          }
         }
       }
     }
   }
 }`;
 
-interface Result {
-  data: {
-    orders: {
-      nodes: ShopifyOrder[];
-    };
+interface ShopifyResponse {
+  orders: {
+    nodes: Array<{
+      id: string;
+      name: string;
+      createdAt: string;
+      displayFulfillmentStatus: string;
+      displayFinancialStatus: string;
+      totalPriceSet: {
+        shopMoney: {
+          amount: string;
+          currencyCode: string;
+        }
+      };
+      customer?: {
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+      shippingAddress?: {
+        address1: string;
+        address2?: string;
+        city: string;
+        zip: string;
+        countryCode: string;
+      };
+      lineItems: {
+        nodes: Array<{
+          id: string;
+          title: string;
+          quantity: number;
+          refundableQuantity: number;
+          originalUnitPriceSet: {
+            shopMoney: {
+              amount: string;
+            }
+          };
+          sku: string | null;
+          variant: {
+            title: string | null;
+            inventoryItem: {
+              unitCost: {
+                amount: string;
+              }
+            }
+          } | null;
+          product: {
+            vendor: string | null;
+            id: string;
+          } | null;
+          requiresShipping: boolean;
+          taxable: boolean;
+          image: {
+            url: string;
+            altText: string | null;
+          } | null;
+        }>;
+      };
+    }>;
   };
 }
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
-  console.log('Starting fetchOrdersApiAction...');
   try {
     // Test d'abord la connexion
     const testQuery = `
@@ -113,41 +156,50 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         }
       }
     `;
-    console.log('Testing connection first...');
-    const testResult = await shopifyClient.request(testQuery);
-    console.log('Shop info:', testResult);
+    await shopifyClient.request(testQuery);
 
     // Si le test passe, on fait la vraie requête
-    console.log('Making orders request to Shopify...');
-    const result: Result = await shopifyClient.request(query);
-    console.log('Got response from Shopify:', result);
+    const result = await shopifyClient.request<ShopifyResponse>(query);
     
     if (!result?.data?.orders?.nodes) {
-      console.warn('No orders data returned from Shopify API');
       return [];
     }
 
     // Transformer les données pour correspondre à notre type
     const orders = result.data.orders.nodes.map(order => ({
-      ...order,
-      totalPrice: order.totalPrice.shopMoney.amount,
-      totalPriceCurrency: order.totalPriceCurrency.shopMoney.currencyCode,
+      id: order.id,
+      name: order.name,
+      createdAt: order.createdAt,
+      displayFulfillmentStatus: order.displayFulfillmentStatus,
+      displayFinancialStatus: order.displayFinancialStatus,
+      totalPrice: order.totalPriceSet.shopMoney.amount,
+      totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
+      customer: order.customer,
+      shippingAddress: order.shippingAddress ? {
+        ...order.shippingAddress,
+        country: order.shippingAddress.countryCode
+      } : undefined,
       lineItems: order.lineItems.nodes.map(item => ({
-        ...item,
-        price: item.price.shopMoney.amount,
-        variantTitle: item.variantTitle?.title || null,
-        vendor: item.vendor?.vendor || null,
-        productId: item.productId?.id || '',
-        unitCost: parseFloat(item.unitCost?.inventoryItem?.unitCost?.amount || '0'),
-        totalCost: parseFloat(item.unitCost?.inventoryItem?.unitCost?.amount || '0') * item.quantity,
+        id: item.id,
+        title: item.title,
+        quantity: item.quantity,
+        refundableQuantity: item.refundableQuantity,
+        price: item.originalUnitPriceSet.shopMoney.amount,
+        sku: item.sku,
+        variantTitle: item.variant?.title || null,
+        vendor: item.product?.vendor || null,
+        productId: item.product?.id || '',
+        requiresShipping: item.requiresShipping,
+        taxable: item.taxable,
+        image: item.image || undefined,
+        unitCost: parseFloat(item.variant?.inventoryItem?.unitCost?.amount || '0'),
+        totalCost: parseFloat(item.variant?.inventoryItem?.unitCost?.amount || '0') * item.quantity,
         isCancelled: item.quantity > item.refundableQuantity
       }))
     }));
 
-    console.log(`Found ${orders.length} orders`);
     return orders;
   } catch (error) {
-    console.error('Error fetching orders from Shopify:', error);
     throw new Error('Failed to fetch orders from Shopify. Please check your API credentials and try again.');
   }
 };

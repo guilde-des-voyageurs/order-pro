@@ -39,7 +39,6 @@ export const useOrderProgress = (orderId: string | undefined) => {
         setError(null);
       },
       (error) => {
-        console.error('Error fetching order progress:', error);
         setError('Erreur lors de la récupération des données');
         setIsLoading(false);
       }
