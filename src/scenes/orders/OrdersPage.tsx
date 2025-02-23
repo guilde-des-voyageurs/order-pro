@@ -12,8 +12,9 @@ import styles from './OrdersPage.module.scss';
 import { useEffect } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import type { ShopifyOrder } from '@/types/shopify';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { generateVariantId } from '@/utils/variant-helpers';
+import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
   order: any;
@@ -123,44 +124,43 @@ export function OrdersPage() {
   } = useOrdersPagePresenter();
 
   useEffect(() => {
-    async function initializeProgress(order: any) {
-      if (!auth.currentUser || !isDrawerOpen) return;
+    const initializeProgress = async (order: ShopifyOrder) => {
+      const orderId = encodeFirestoreId(order.id);
+      const progressRef = doc(db, 'textile-progress', orderId);
+      
+      // Calculer le nombre total de variantes non annulées
+      const totalCount = order.lineItems?.reduce((total, item) => 
+        total + (item.isCancelled ? 0 : item.quantity),
+        0
+      ) ?? 0;
 
-      // Calculer le nombre total de variants (en excluant les produits annulés)
-      const totalCount = order.lineItems?.reduce((acc: number, item: NonNullable<ShopifyOrder['lineItems']>[number]) => {
-        if (item.isCancelled) return acc;
-        return acc + item.quantity;
-      }, 0) ?? 0;
-
-      // Compter le nombre de variants déjà cochés
-      let checkedCount = 0;
-      for (const item of order.lineItems ?? []) {
-        if (item.isCancelled) continue;
+      // Préparer toutes les promesses de vérification des variantes
+      const variantPromises = order.lineItems?.flatMap(item => {
+        if (item.isCancelled) return [];
         
         const color = item.variantTitle?.split(' / ')[0] || '';
         const size = item.variantTitle?.split(' / ')[1] || '';
         
-        for (let i = 0; i < item.quantity; i++) {
-          const variantId = generateVariantId(encodeFirestoreId(order.id), item.sku || '', color, size, i);
-          const variantRef = doc(db, 'variants', variantId);
-          try {
-            const variantDoc = await getDoc(variantRef);
-            if (variantDoc.exists() && variantDoc.data()?.checked) {
-              checkedCount++;
-            }
-          } catch (error) {
-            console.error('Error checking variant status:', error);
-          }
-        }
-      }
+        return Array.from({ length: item.quantity }).map((_, i) => {
+          const variantId = generateVariantId(orderId, item.sku || '', color, size, i);
+          return getDoc(doc(db, 'variants', variantId));
+        });
+      }) ?? [];
 
-      // Initialiser le document de progression avec le compte correct
-      const progressRef = doc(db, 'textile-progress', encodeFirestoreId(order.id));
-      await setDoc(progressRef, {
-        totalCount,
-        checkedCount,
-      }, { merge: true });
-    }
+      // Exécuter toutes les promesses en parallèle
+      try {
+        const variantDocs = await Promise.all(variantPromises);
+        const checkedCount = variantDocs.filter(doc => doc.exists() && doc.data()?.checked).length;
+
+        // Mettre à jour le document de progression
+        await setDoc(progressRef, {
+          totalCount,
+          checkedCount,
+        }, { merge: true });
+      } catch (error) {
+        console.error('Error initializing progress:', error);
+      }
+    };
 
     if (selectedOrder) {
       initializeProgress(selectedOrder);
