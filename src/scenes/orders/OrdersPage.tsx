@@ -116,7 +116,7 @@ export function OrdersPage() {
       if (!auth.currentUser || !isDrawerOpen) return;
 
       // Calculer le nombre total de variants (en excluant les produits annulés)
-      const totalCount = order.lineItems?.reduce((acc, item) => {
+      const totalCount = order.lineItems?.reduce((acc: number, item: NonNullable<ShopifyOrder['lineItems']>[number]) => {
         // Ne pas compter les produits annulés
         if (item.isCancelled) return acc;
         return acc + item.quantity;
@@ -142,9 +142,6 @@ export function OrdersPage() {
   return (
     <div className={styles.main_content}>
       <Title order={1}>Commandes</Title>
-      <Text size="sm" c="dimmed" className={styles.section_subtitle}>
-        {pendingOrders.length + shippedOrders.length} commandes synchronisées
-      </Text>
 
       <OrdersSection
         title="Commandes en cours"

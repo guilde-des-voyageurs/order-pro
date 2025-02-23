@@ -18,7 +18,12 @@ const shopifyClient = createAdminApiClient({
 // Requête simplifiée pour tester
 const query = `
 query {
-  orders(first: 10, sortKey: CREATED_AT, reverse: true) {
+  orders(
+    first: 100, 
+    sortKey: CREATED_AT, 
+    reverse: true,
+    query: "financial_status:active OR financial_status:paid OR financial_status:partially_paid OR financial_status:partially_refunded OR financial_status:pending"
+  ) {
     nodes {
       id
       name
