@@ -41,7 +41,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
       <Table.Td>
         <TextileProgress orderId={order.id} />
       </Table.Td>
-      <Table.Td>
+      <Table.Td onClick={(e) => e.stopPropagation()}>
         <InvoiceCheckbox orderId={order.id} />
       </Table.Td>
     </Table.Tr>

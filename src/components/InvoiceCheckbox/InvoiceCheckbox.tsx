@@ -53,7 +53,10 @@ export function InvoiceCheckbox({ orderId }: InvoiceCheckboxProps) {
   return (
     <Checkbox
       checked={checked}
-      onChange={(event) => handleChange(event.currentTarget.checked)}
+      onChange={(event) => {
+        event.stopPropagation();
+        handleChange(event.currentTarget.checked);
+      }}
       label="Facturé"
     />
   );

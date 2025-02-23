@@ -119,21 +119,26 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                 )}
                 <div className={styles.product_info}>
                   <Group justify="space-between" align="center" w="100%" h="100%">
-                    <div>
-                      <Text size="sm" fw={500}>{item.title}</Text>
-                      {item.isCancelled && (
-                        <Badge color="gray">
-                          {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} annulé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
-                        </Badge>
-                      )}
+                    <Stack gap={4}>
+                      <Text size="sm" fw={500}>
+                        {item.title}
+                      </Text>
+                      <Text size="sm" c="dimmed">
+                        Coût unitaire: {item.unitCost} {order.totalPriceCurrency}
+                      </Text>
                       {item.variantTitle && (
                         <Text size="sm" c="dimmed">{item.variantTitle}</Text>
                       )}
                       {item.sku && (
                         <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
                       )}
-                      <Text size="sm">Coût unitaire: {item.unitCost} {order.totalPriceCurrency}</Text>
-                      <Text size="sm">Total: {item.totalCost} {order.totalPriceCurrency}</Text>
+                      {item.isCancelled && (
+                        <Badge color="gray">
+                          {item.quantity - item.refundableQuantity} article{item.quantity - item.refundableQuantity > 1 ? 's' : ''} annulé{item.quantity - item.refundableQuantity > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </Stack>
+                    <Group gap="lg" align="center">
                       {!item.isCancelled && (
                         <Group gap="xs">
                           {Array.from({ length: item.quantity }).map((_, index) => {
@@ -155,8 +160,8 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
                           })}
                         </Group>
                       )}
-                    </div>
-                    <Text size="md" fw={500}>×{item.quantity}</Text>
+                      <Text size="sm" c="dimmed">× {item.quantity}</Text>
+                    </Group>
                   </Group>
                 </div>
               </div>
@@ -169,7 +174,7 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
           <Group gap="md" mt="xs" align="center">
             <Text fw={500}>
               {order.lineItems?.reduce((total, item) => 
-                total + (item.isCancelled ? 0 : item.totalCost),
+                total + (item.isCancelled ? 0 : (item.unitCost * item.quantity)),
                 0
               ).toFixed(2)} {order.totalPriceCurrency}
             </Text>
