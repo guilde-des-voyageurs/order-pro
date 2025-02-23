@@ -8,7 +8,7 @@ export function FinancialStatus({ status }: FinancialStatusProps) {
   const getColor = () => {
     switch (status?.toLowerCase()) {
       case 'paid':
-        return 'green';
+        return '#bfead7';
       case 'pending':
         return 'yellow';
       case 'refunded':
@@ -36,7 +36,7 @@ export function FinancialStatus({ status }: FinancialStatusProps) {
   };
 
   return (
-    <Badge color={getColor()}>
+    <Badge color={getColor()} c="#328a64">
       {getLabel()}
     </Badge>
   );

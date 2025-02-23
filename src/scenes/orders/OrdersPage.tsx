@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack } from '@mantine/core';
 import { useOrdersPagePresenter } from './OrdersPage.presenter';
 import { clsx } from 'clsx';
 import { FinancialStatus } from '@/components/FinancialStatus';
@@ -19,12 +19,12 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   return (
     <Table.Tr 
       key={order.id} 
-      className={clsx({ [styles.selected]: isSelected })}
+      className={clsx(styles.tableRow, { [styles.selected]: isSelected })}
       onClick={() => onSelect(order.id)}
       style={{ cursor: 'pointer' }}
     >
       <Table.Td>{order.name}</Table.Td>
-      <Table.Td>
+      <Table.Td className={styles.dateCell}>
         {new Date(order.createdAt).toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
@@ -48,40 +48,49 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   );
 }
 
-function OrdersSection({ title, orders, selectedOrder, onSelect }: { 
+function OrdersSection({ title, orders, selectedOrder, onSelect, type }: { 
   title: string;
   orders: any[];
   selectedOrder: any;
   onSelect: (id: string) => void;
+  type: string;
 }) {
   return (
-    <div className={styles.section}>
-      <Title order={4}>{title}</Title>
-      <Text size="sm" c="dimmed" className={styles.section_subtitle}>
-        {orders.length} commandes
-      </Text>
-
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Numéro</Table.Th>
-            <Table.Th>Date</Table.Th>
-            <Table.Th>Statut</Table.Th>
-            <Table.Th>Textile</Table.Th>
-            <Table.Th>Facturé</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {orders.map((order) => (
-            <OrderRow
-              key={order.id}
-              order={order}
-              isSelected={selectedOrder?.id === order.id}
-              onSelect={onSelect}
-            />
-          ))}
-        </Table.Tbody>
-      </Table>
+    <div className={clsx(styles.section, { [styles.shipped]: type === 'shipped' })}>
+      <Stack gap="md">
+        <div>
+          <Text className={clsx(styles.sectionTitle, {
+            [styles.pending]: type === 'pending',
+            [styles.shipped]: type === 'shipped'
+          })}>
+            {title}
+          </Text>
+          <Text size="sm" c="dimmed" mt={4}>
+            {orders.length} commandes
+          </Text>
+        </div>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Numéro</Table.Th>
+              <Table.Th>Date</Table.Th>
+              <Table.Th>Statut</Table.Th>
+              <Table.Th>Textile</Table.Th>
+              <Table.Th>Facturé</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {orders.map((order) => (
+              <OrderRow
+                key={order.id}
+                order={order}
+                isSelected={selectedOrder?.id === order.id}
+                onSelect={onSelect}
+              />
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Stack>
     </div>
   );
 }
@@ -113,6 +122,7 @@ export function OrdersPage() {
         orders={pendingOrders}
         selectedOrder={selectedOrder}
         onSelect={onSelectOrder}
+        type="pending"
       />
 
       <OrdersSection
@@ -120,6 +130,7 @@ export function OrdersPage() {
         orders={shippedOrders}
         selectedOrder={selectedOrder}
         onSelect={onSelectOrder}
+        type="shipped"
       />
 
       <OrderDrawer

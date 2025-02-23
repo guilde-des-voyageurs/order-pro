@@ -73,3 +73,39 @@
 .date {
   width: 200px;
 }
+
+.tableRow {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  color: #6f7986;
+  
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
+  }
+
+  &.selected {
+    background-color: var(--mantine-color-blue-light);
+  }
+}
+
+.sectionTitle {
+  border-radius: 12px;
+  padding: 10px 20px;
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-weight: 700;
+
+  &.pending {
+    background-color: #f7e1da;
+    color: #d9734f;
+  }
+
+  &.shipped {
+    background-color: #daf7f1;
+    color: #31927c;
+  }
+}
+
+.dateCell {
+  color: #6f7986;
+}

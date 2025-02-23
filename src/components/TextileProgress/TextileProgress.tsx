@@ -38,8 +38,8 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
 
   const getColor = () => {
     if (progress.totalCount === 0) return 'gray';
-    if (progress.checkedCount === 0) return 'red';
-    if (progress.checkedCount === progress.totalCount) return 'green';
+    if (progress.checkedCount === 0) return '#d9734f';
+    if (progress.checkedCount === progress.totalCount) return '#53c593';
     return 'yellow';
   };
 
