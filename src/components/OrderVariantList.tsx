@@ -1,13 +1,13 @@
 'use client';
 
 import { Group, Stack, Text, Box } from '@mantine/core';
+import styles from './OrderVariantList.module.scss';
 import { VariantCheckbox } from './VariantCheckbox';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useHasMounted } from '@/hooks/useHasMounted';
-import styles from '@/scenes/home/OrderDetailsSection.module.scss';
 import { transformColor } from '@/utils/color-transformer';
 import { Product, Variant, productToVariants, generateVariantId, groupVariantsByAttributes } from '@/utils/variants';
 
@@ -63,7 +63,7 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
       <Stack>
         <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
           <Text size="sm" mb={2} fw={600} c="dimmed">
-            Textile commandé : Chargement...
+            Produits commandés : Chargement...
           </Text>
           {Object.entries(groupedVariants).map(([key, variants]) => {
             const firstVariant = variants[0];
@@ -90,7 +90,7 @@ export const OrderVariantList = ({ orderId, products }: OrderVariantListProps) =
     <Stack>
       <Box p="sm" style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}>
         <Text size="sm" mb={2} fw={600} c="dimmed">
-          Textile commandé : {progress.checkedCount} / {progress.totalCount}
+          Produits commandés : {progress.checkedCount} / {progress.totalCount}
         </Text>
         {Object.entries(groupedVariants).map(([key, variants]) => {
           const firstVariant = variants[0];

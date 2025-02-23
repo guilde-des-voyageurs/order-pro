@@ -23,17 +23,9 @@ export const MainLayout = ({ children }: { children: any }) => {
 
   const menuItems = [
     {
-      href: '/',
-      label: 'Accueil',
-    },
-    {
       href: '/orders',
       label: 'Commandes',
-    },
-    { 
-      href: '/textile', 
-      label: 'Textile' 
-    },
+    }
   ];
 
   return (

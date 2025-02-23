@@ -11,7 +11,6 @@ export type OrderSummaryViewModel = {
     createdAtFormatted: string;
     quantity: number;
     quantityPerType: Record<string, number>;
-    textileOrdered: boolean;
     billingDone: boolean;
   }>;
 };

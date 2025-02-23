@@ -117,7 +117,13 @@ export const fetchOrdersSummaryAction =
             displayFulfillmentStatus: order.displayFulfillmentStatus,
             displayFinancialStatus: order.displayFinancialStatus,
             createdAt: order.createdAt,
-            createdAtFormatted: format(new Date(order.createdAt), 'dd/MM/yyyy'),
+            createdAtFormatted: new Date(order.createdAt).toLocaleDateString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
             quantity: relevantFullfillmentOrder.lineItems.nodes.reduce(
               (prev, curr) => prev + curr.totalQuantity,
               0,
@@ -133,7 +139,6 @@ export const fetchOrdersSummaryAction =
               },
               {} as Record<string, number>,
             ),
-            textileOrdered: order.tags.includes('textile_ordered'),
             billingDone: order.tags.includes('billing_done'),
           };
         },

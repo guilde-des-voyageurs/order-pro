@@ -1,5 +1,5 @@
 import { Box, Flex, Image, Text, Title } from '@mantine/core';
-import styles from '@/scenes/home/OrderDetailsSection.module.scss';
+import styles from './OrderProduct.module.scss';
 import { transformColor } from '@/utils/color-transformer';
 
 type OrderProductProps = {

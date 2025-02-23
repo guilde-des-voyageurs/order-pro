@@ -1,5 +1,5 @@
-import { HomePage } from '@/scenes/home/HomePage';
+import { OrdersPage } from '@/scenes/orders/OrdersPage';
 
 export default function Home() {
-  return <HomePage />;
+  return <OrdersPage />;
 }

@@ -1,0 +1,19 @@
+.product {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-sm);
+  margin-bottom: 1rem;
+}
+
+.product_info {
+  flex: 1;
+}
+
+.product_image {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}

@@ -58,17 +58,20 @@ export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
     <Drawer
       opened={opened}
       onClose={onClose}
-      title={<Title order={1}>Commande {order.name}</Title>}
+      title="Détails de la commande"
       position="right"
       size="lg"
       padding="xl"
+      classNames={{ root: styles.drawer }}
     >
       <Stack gap="xl">
+        <Title order={3}>{order.name}</Title>
+        <FinancialStatus status={order.displayFinancialStatus} />
+
         <div>
-          <Text size="sm" c="dimmed">Statuts</Text>
+          <Text size="sm" c="dimmed">Textile commandé</Text>
           <Group gap="md" mt="xs">
             <OrderStatus orderId={order.id} status={order.displayFulfillmentStatus} />
-            <FinancialStatus status={order.displayFinancialStatus} />
           </Group>
         </div>
 
