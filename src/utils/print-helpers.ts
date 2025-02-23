@@ -1,7 +1,6 @@
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface PrintOptions {
-  order: ShopifyOrder;
   content: string;
 }
 

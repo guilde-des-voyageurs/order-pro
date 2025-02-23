@@ -17,7 +17,7 @@ import { generateVariantId } from '@/utils/variant-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
-  order: any;
+  order: ShopifyOrder;
   isSelected: boolean;
   onSelect: (id: string) => void;
 }
@@ -65,8 +65,8 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
 
 function OrdersSection({ title, orders, selectedOrder, onSelect, type }: { 
   title: string;
-  orders: any[];
-  selectedOrder: any;
+  orders: ShopifyOrder[];
+  selectedOrder: ShopifyOrder | undefined;
   onSelect: (id: string) => void;
   type: string;
 }) {
