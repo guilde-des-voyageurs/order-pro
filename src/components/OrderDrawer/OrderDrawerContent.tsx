@@ -11,10 +11,11 @@ import styles from './OrderDrawer.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { Stack, Group, Text, Title, Paper, Image, Alert, List, Badge, Button } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
-
 import { useEffect, useRef } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { generatePrintContent } from '@/utils/print-content';
+import { printInIframe } from '@/utils/print-helpers';
 
 interface OrderDrawerContentProps {
   order: ShopifyOrder;
@@ -22,114 +23,10 @@ interface OrderDrawerContentProps {
 
 export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
   const encodedOrderId = encodeFirestoreId(order.id);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
-    // Créer un iframe temporaire
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-
-    // Écrire le contenu dans l'iframe
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Bordereau ${order.name}</title>
-          <style>
-            @page {
-              size: A4;
-              margin: 20mm;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-              padding: 40px;
-              max-width: 210mm;
-              margin: 0 auto;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 30px;
-            }
-            .item {
-              margin-bottom: 20px;
-              padding: 10px;
-              border: 1px solid #eee;
-            }
-            .variants {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 10px;
-              margin-top: 10px;
-            }
-            .variant {
-              display: flex;
-              align-items: center;
-              gap: 5px;
-            }
-            .checkbox {
-              width: 15px;
-              height: 15px;
-              border: 1px solid #666;
-              display: inline-block;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="print-content">
-            <div class="header">
-              <h2>Bordereau de commande</h2>
-              <div>N° ${order.name}</div>
-            </div>
-            <div>
-              <p>Date: ${new Date(order.createdAt).toLocaleDateString('fr-FR')}</p>
-            </div>
-            <div>
-              <h3>Articles</h3>
-              ${order.lineItems?.map(item => {
-                if (item.isCancelled) return '';
-                
-                const variants = Array.from({ length: item.quantity }).map(() => {
-                  const color = item.variantTitle?.split(' / ')[0] || '';
-                  const size = item.variantTitle?.split(' / ')[1] || '';
-                  return { color, size };
-                });
-
-                return `
-                  <div class="item">
-                    <div><strong>${item.title}</strong></div>
-                    <div style="color: #666">SKU: ${item.sku}</div>
-                    <div class="variants">
-                      ${variants.map(variant => `
-                        <div class="variant">
-                          <span>${variant.color} / ${variant.size}</span>
-                          <span class="checkbox"></span>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                `;
-              }).join('') || ''}
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    if (iframe.contentWindow) {
-      iframe.contentWindow.document.open();
-      iframe.contentWindow.document.write(printContent);
-      iframe.contentWindow.document.close();
-
-      // Attendre que le contenu soit chargé
-      iframe.contentWindow.onafterprint = () => {
-        document.body.removeChild(iframe);
-      };
-
-      iframe.contentWindow.print();
-    }
+    const content = generatePrintContent({ order });
+    printInIframe({ content });
   };
 
   useEffect(() => {
