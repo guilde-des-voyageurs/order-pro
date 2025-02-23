@@ -40,7 +40,10 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         })}
       </Table.Td>
       <Table.Td>
-        <DaysElapsed createdAt={order.createdAt} />
+        <DaysElapsed 
+          createdAt={order.createdAt} 
+          isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
+        />
       </Table.Td>
       <Table.Td>
         <TextileProgress orderId={encodeFirestoreId(order.id)} />

@@ -4,9 +4,18 @@ import { Badge } from '@mantine/core';
 
 interface DaysElapsedProps {
   createdAt: string;
+  isFulfilled?: boolean;
 }
 
-export function DaysElapsed({ createdAt }: DaysElapsedProps) {
+export function DaysElapsed({ createdAt, isFulfilled }: DaysElapsedProps) {
+  if (isFulfilled) {
+    return (
+      <Badge color="green" variant="light">
+        Expédié
+      </Badge>
+    );
+  }
+
   const getColor = (days: number) => {
     if (days <= 14) return 'green';
     if (days <= 20) return 'yellow';
