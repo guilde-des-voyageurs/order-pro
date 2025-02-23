@@ -4,7 +4,6 @@ import { Badge } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface TextileProgressProps {
   orderId: string;
@@ -12,12 +11,13 @@ interface TextileProgressProps {
 
 export function TextileProgress({ orderId }: TextileProgressProps) {
   const [progress, setProgress] = useState<{ checkedCount: number; totalCount: number } | null>(null);
+  const [exists, setExists] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const encodedOrderId = encodeFirestoreId(orderId);
-    const docRef = doc(db, 'orders-progress', encodedOrderId);
+    const docRef = doc(db, 'textile-progress', orderId);
 
     const unsubscribe = onSnapshot(docRef, (doc) => {
+      setExists(doc.exists());
       if (doc.exists()) {
         const data = doc.data();
         setProgress({
@@ -32,8 +32,12 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
     return () => unsubscribe();
   }, [orderId]);
 
-  if (!progress) {
+  if (progress === null || exists === null) {
     return <Badge color="gray">-</Badge>;
+  }
+
+  if (!exists) {
+    return <Badge color="violet">NEW</Badge>;
   }
 
   const getColor = () => {

@@ -21,9 +21,15 @@
 }
 
 .drawer {
+  color: #333;
   :global(.mantine-Drawer-header) {
     min-height: 45px;
     padding-top: 8px;
     padding-bottom: 8px;
   }
+}
+
+.drawer_title
+{
+  color: #4e4c3f;
 }

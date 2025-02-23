@@ -8,6 +8,11 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import styles from './OrdersPage.module.scss';
+import { useEffect } from 'react';
+import { db, auth } from '@/firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
+import type { ShopifyOrder } from '@/types/shopify';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface OrderRowProps {
   order: any;
@@ -39,7 +44,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         </Group>
       </Table.Td>
       <Table.Td>
-        <TextileProgress orderId={order.id} />
+        <TextileProgress orderId={encodeFirestoreId(order.id)} />
       </Table.Td>
       <Table.Td onClick={(e) => e.stopPropagation()}>
         <InvoiceCheckbox orderId={order.id} />
@@ -74,8 +79,8 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
             <Table.Tr>
               <Table.Th>Numéro</Table.Th>
               <Table.Th>Date</Table.Th>
-              <Table.Th>Statut</Table.Th>
-              <Table.Th>Textile</Table.Th>
+              <Table.Th>Etat</Table.Th>
+              <Table.Th>Avancement</Table.Th>
               <Table.Th>Facturé</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -105,6 +110,30 @@ export function OrdersPage() {
     onCloseDrawer,
     isLoading 
   } = useOrdersPagePresenter();
+
+  useEffect(() => {
+    async function initializeProgress(order: any) {
+      if (!auth.currentUser || !isDrawerOpen) return;
+
+      // Calculer le nombre total de variants (en excluant les produits annulés)
+      const totalCount = order.lineItems?.reduce((acc, item) => {
+        // Ne pas compter les produits annulés
+        if (item.isCancelled) return acc;
+        return acc + item.quantity;
+      }, 0) ?? 0;
+
+      // Initialiser le document de progression
+      const progressRef = doc(db, 'textile-progress', encodeFirestoreId(order.id));
+      await setDoc(progressRef, {
+        totalCount,
+        checkedCount: 0,
+      }, { merge: false });
+    }
+
+    if (selectedOrder) {
+      initializeProgress(selectedOrder);
+    }
+  }, [selectedOrder, isDrawerOpen]);
 
   if (isLoading) {
     return <Loader />;
