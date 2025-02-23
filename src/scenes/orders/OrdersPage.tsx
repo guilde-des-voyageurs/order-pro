@@ -82,7 +82,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
             {orders.length} commandes
           </Text>
         </div>
-        <Paper withBorder style={{ maxWidth: 900 }}>
+        <Paper withBorder style={{ maxWidth: 1100 }}>
           <Table>
             <Table.Thead>
               <Table.Tr>

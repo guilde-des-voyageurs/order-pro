@@ -6,25 +6,32 @@ import styles from './OrderDrawer.module.scss';
 import { OrderDrawerContent } from './OrderDrawerContent';
 
 interface OrderDrawerProps {
-  order: ShopifyOrder | null;
+  order?: ShopifyOrder;
   opened: boolean;
   onClose: () => void;
 }
 
 export function OrderDrawer({ order, opened, onClose }: OrderDrawerProps) {
-  if (!order) return null;
-
   return (
     <Drawer
       opened={opened}
       onClose={onClose}
-      title={<span style={{ fontWeight: 600, fontSize: '1.125rem' }}>Commande {order.name}</span>}
       position="right"
-      size="lg"
+      size="800px"
+      title="Détails de la commande"
       padding="xl"
+      styles={{
+        header: {
+          marginBottom: 0,
+          padding: 'var(--mantine-spacing-xl)'
+        },
+        inner: {
+          padding: 0
+        }
+      }}
       classNames={{ root: styles.drawer }}
     >
-      <OrderDrawerContent order={order} />
+      {order && <OrderDrawerContent order={order} />}
     </Drawer>
   );
 }

@@ -9,7 +9,7 @@ import { formatAmount } from '@/utils/format-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 import styles from './OrderDrawer.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { Stack, Group, Text, Title, Paper, Image, Alert, List } from '@mantine/core';
+import { Stack, Group, Text, Title, Paper, Image, Alert, List, Badge } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
 import { useEffect } from 'react';
@@ -99,8 +99,8 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                   />
                 )}
                 <Stack gap="xs" style={{ flex: 1 }} p="md">
-                  <Group justify="space-between" w="100%" align="center" gap="xl">
-                    <Stack gap={4}>
+                  <Group justify="space-between" w="100%" align="center" gap={0} style={{ display: 'flex' }}>
+                    <Stack gap={4} style={{ flex: '1', flexShrink: 0 }}>
                       <Text size="sm" fw={500}>{item.title}</Text>
                       <Text size="sm" c="dimmed">Coût unitaire: {formatAmount(item.unitCost)} {order.totalPriceCurrency}</Text>
                       {item.variantTitle && (
@@ -110,9 +110,11 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                         <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
                       )}
                     </Stack>
-                    <Group gap="md" pr={6}>
-                      {!item.isCancelled && (
-                        <Group gap={4}>
+                    <Group gap="xs" style={{ flex: 1, justifyContent: 'flex-end', display: 'flex' }}>
+                      {item.isCancelled ? (
+                        <Badge color="red" variant="light">Annulée</Badge>
+                      ) : (
+                        <Group gap={4} style={{ flex: 1, justifyContent: 'flex-end', display: 'flex' }}>
                           {Array.from({ length: item.quantity }).map((_, index) => {
                             const color = item.variantTitle?.split(' / ')[0] || '';
                             const size = item.variantTitle?.split(' / ')[1] || '';
@@ -132,7 +134,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                           })}
                         </Group>
                       )}
-                      <Text size="sm" c="dimmed" w={40} ta="right">× {item.quantity}</Text>
+                      <Text size="sm" c="dimmed" w={30} ta="right">×{item.quantity}</Text>
                     </Group>
                   </Group>
                 </Stack>
