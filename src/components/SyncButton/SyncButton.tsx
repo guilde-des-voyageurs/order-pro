@@ -1,12 +1,14 @@
 import { Button, Tooltip } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchOrdersApiAction } from '@/actions/fetch-orders-api-action';
 import { ordersService } from '@/firebase/services/orders';
+import { useHasMounted } from '@/hooks/useHasMounted';
 
 export function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
+  const hasMounted = useHasMounted();
 
   const handleSync = async () => {
     console.log('Starting sync...');
@@ -39,6 +41,12 @@ export function SyncButton() {
       setIsSyncing(false);
     }
   };
+
+  // Synchroniser au chargement de la page
+  useEffect(() => {
+    if (!hasMounted) return;
+    handleSync();
+  }, [hasMounted]);
 
   return (
     <Tooltip label="Synchroniser les commandes avec Shopify">
