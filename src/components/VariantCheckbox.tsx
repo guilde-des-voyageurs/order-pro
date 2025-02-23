@@ -81,7 +81,7 @@ export const VariantCheckbox = ({
 
     // Mettre à jour le compteur de la commande
     const encodedOrderId = encodeFirestoreId(orderId);
-    const orderRef = doc(db, 'orders-progress', encodedOrderId);
+    const orderRef = doc(db, 'textile-progress', encodedOrderId);
     await setDoc(orderRef, {
       checkedCount: increment(newChecked ? 1 : -1),
       userId: auth.currentUser.uid,

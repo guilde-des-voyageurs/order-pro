@@ -1,16 +1,19 @@
 'use client';
 
-import { Checkbox } from '@mantine/core';
+import { Checkbox, Group, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { formatAmount } from '@/utils/format-helpers';
 
 interface InvoiceCheckboxProps {
   orderId: string;
+  totalAmount?: number;
+  currency?: string;
 }
 
-export function InvoiceCheckbox({ orderId }: InvoiceCheckboxProps) {
+export function InvoiceCheckbox({ orderId, totalAmount, currency }: InvoiceCheckboxProps) {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -51,13 +54,15 @@ export function InvoiceCheckbox({ orderId }: InvoiceCheckboxProps) {
   }
 
   return (
-    <Checkbox
-      checked={checked}
-      onChange={(event) => {
-        event.stopPropagation();
-        handleChange(event.currentTarget.checked);
-      }}
-      label="Facturé"
-    />
+    <Group gap="xs" align="center">
+      <Checkbox
+        checked={checked}
+        onChange={(event) => handleChange(event.currentTarget.checked)}
+        label={totalAmount === undefined ? "Facturé" : undefined}
+      />
+      {totalAmount !== undefined && (
+        <Text size="sm" fw={500}>{formatAmount(totalAmount)} {currency}</Text>
+      )}
+    </Group>
   );
 }

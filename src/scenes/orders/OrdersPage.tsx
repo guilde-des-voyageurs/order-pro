@@ -1,12 +1,13 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper } from '@mantine/core';
 import { useOrdersPagePresenter } from './OrdersPage.presenter';
 import { clsx } from 'clsx';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
+import { formatAmount } from '@/utils/format-helpers';
 import styles from './OrdersPage.module.scss';
 import { useEffect } from 'react';
 import { db, auth } from '@/firebase/config';
@@ -47,7 +48,14 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         <TextileProgress orderId={encodeFirestoreId(order.id)} />
       </Table.Td>
       <Table.Td onClick={(e) => e.stopPropagation()}>
-        <InvoiceCheckbox orderId={order.id} />
+        <InvoiceCheckbox 
+          orderId={order.id} 
+          totalAmount={order.lineItems?.reduce((total, item) => 
+            total + (item.isCancelled ? 0 : (item.unitCost * item.quantity)),
+            0
+          ) ?? 0}
+          currency={order.totalPriceCurrency}
+        />
       </Table.Td>
     </Table.Tr>
   );
@@ -74,27 +82,29 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
             {orders.length} commandes
           </Text>
         </div>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Numéro</Table.Th>
-              <Table.Th>Date</Table.Th>
-              <Table.Th>Etat</Table.Th>
-              <Table.Th>Avancement</Table.Th>
-              <Table.Th>Facturé</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {orders.map((order) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                isSelected={selectedOrder?.id === order.id}
-                onSelect={onSelect}
-              />
-            ))}
-          </Table.Tbody>
-        </Table>
+        <Paper withBorder style={{ maxWidth: 900 }}>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Numéro</Table.Th>
+                <Table.Th>Date</Table.Th>
+                <Table.Th>Etat</Table.Th>
+                <Table.Th>Avancement</Table.Th>
+                <Table.Th>Facturé</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {orders.map((order) => (
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  isSelected={selectedOrder?.id === order.id}
+                  onSelect={onSelect}
+                />
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Paper>
       </Stack>
     </div>
   );
