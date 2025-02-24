@@ -108,9 +108,8 @@ export default function TextilePage() {
       <Table.Thead>
         <Table.Tr>
           <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
-          <Table.Th>Nom</Table.Th>
-          <Table.Th>Commandes</Table.Th>
-          <Table.Th>Quantité totale</Table.Th>
+          <Table.Th style={{ width: '100%' }}>Nom</Table.Th>
+          <Table.Th style={{ width: 150 }}>Commandes</Table.Th>
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
@@ -142,7 +141,7 @@ export default function TextilePage() {
                 })}
               </Group>
             </Table.Td>
-            <Table.Td>{group.displayName}</Table.Td>
+            <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
             <Table.Td>
               <Group gap="xs">
                 {group.variants.map(({ variant }) => (
@@ -154,7 +153,6 @@ export default function TextilePage() {
                 ))}
               </Group>
             </Table.Td>
-            <Table.Td>{group.totalQuantity}</Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>
