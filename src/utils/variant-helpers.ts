@@ -49,7 +49,8 @@ export const generateVariantId = (
   sku: string, 
   color: string | null, 
   size: string | null,
-  productIndex: number
+  productIndex: number,
+  lineItemIndex?: number
 ): string => {
   // Nettoyer les valeurs
   const cleanColor = color?.trim() || 'no-color';
@@ -58,6 +59,7 @@ export const generateVariantId = (
   // Encoder l'ID pour Firebase
   const encodedOrderId = encodeFirestoreId(orderId);
   
-  // Créer l'ID
-  return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}`;
+  // Créer l'ID avec l'index de l'article
+  const uniqueIdentifier = lineItemIndex !== undefined ? `--item${lineItemIndex}` : '';
+  return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}${uniqueIdentifier}`;
 };

@@ -70,7 +70,7 @@ export default function TextilePage() {
               variant.sku,
               color,
               size,
-              0 // Index 0 car c'est une vue unique de la variante
+              variant.productIndex // Ajout de l'index de l'article
             );
 
             return (
@@ -82,7 +82,7 @@ export default function TextilePage() {
                     size={size || ''}
                     quantity={variant.totalQuantity}
                     orderId={encodedOrderId}
-                    productIndex={0}
+                    productIndex={variant.productIndex}
                     variantId={variantId}
                   />
                 </Table.Td>

@@ -79,7 +79,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
       <Stack gap="xs">
         <Text size="sm" c="dimmed">Produits</Text>
         <Stack gap="md">
-          {order.lineItems?.map((item) => (
+          {order.lineItems?.map((item, productIndex) => (
             <Paper 
               key={item.id} 
               className={`${styles.product_item} ${item.isCancelled ? styles.cancelled : ''}`}
@@ -117,7 +117,14 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                           {Array.from({ length: item.quantity }).map((_, index) => {
                             const color = item.variantTitle?.split(' / ')[0] || '';
                             const size = item.variantTitle?.split(' / ')[1] || '';
-                            const variantId = generateVariantId(encodedOrderId, item.sku || '', color, size, index);
+                            const variantId = generateVariantId(
+                              encodedOrderId,
+                              item.sku || '',
+                              color,
+                              size,
+                              index,
+                              productIndex
+                            );
                             return (
                               <VariantCheckbox
                                 key={variantId}
@@ -126,7 +133,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                                 size={size}
                                 quantity={1}
                                 orderId={encodedOrderId}
-                                productIndex={index}
+                                productIndex={productIndex}
                                 variantId={variantId}
                               />
                             );
