@@ -16,6 +16,7 @@ import { db, auth } from '@/firebase/config';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { generatePrintContent } from '@/utils/print-content';
 import { printInIframe } from '@/utils/print-helpers';
+import { getDefaultSku } from '@/utils/variant-helpers';
 
 interface OrderDrawerContentProps {
   order: ShopifyOrder;
@@ -117,9 +118,10 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                           {Array.from({ length: item.quantity }).map((_, index) => {
                             const color = item.variantTitle?.split(' / ')[0] || '';
                             const size = item.variantTitle?.split(' / ')[1] || '';
+                            const sku = item.sku || getDefaultSku(item.title);
                             const variantId = generateVariantId(
                               encodedOrderId,
-                              item.sku || '',
+                              sku,
                               color,
                               size,
                               index,
@@ -128,7 +130,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                             return (
                               <VariantCheckbox
                                 key={variantId}
-                                sku={item.sku || ''}
+                                sku={sku}
                                 color={color}
                                 size={size}
                                 quantity={1}

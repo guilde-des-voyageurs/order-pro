@@ -62,7 +62,7 @@ export const getDefaultSku = (title: string): string => {
     return 'MUSER';
   }
   
-  return '';
+  return 'SKU MANQUANT';
 };
 
 export const generateVariantId = (
@@ -73,6 +73,11 @@ export const generateVariantId = (
   productIndex: number,
   lineItemIndex?: number
 ): string => {
+  // Vérifier que le SKU n'est pas vide
+  if (!sku?.trim()) {
+    throw new Error('SKU cannot be empty');
+  }
+  
   // Nettoyer les valeurs
   const cleanColor = color?.trim() || 'no-color';
   const cleanSize = size?.trim() || 'no-size';

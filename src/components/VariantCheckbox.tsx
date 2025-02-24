@@ -66,8 +66,8 @@ export const VariantCheckbox = ({
     const document: VariantDocument = {
       checked: newChecked,
       sku,
-      color,
-      size,
+      color: color || 'no-color',
+      size: size || 'no-size',
       originalId: orderId,
       userId: auth.currentUser.uid,
       updatedAt: new Date().toISOString(),

@@ -3,6 +3,7 @@
 import { createAdminApiClient } from '@shopify/admin-api-client';
 import type { ShopifyOrder } from '@/types/shopify';
 import { TEST_QUERY, ORDERS_QUERY } from '@/graphql/queries';
+import { getDefaultSku } from '@/utils/variant-helpers';
 
 if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
   throw new Error('Missing Shopify credentials in environment variables');
@@ -108,7 +109,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         quantity: item.quantity,
         refundableQuantity: item.refundableQuantity,
         price: item.originalUnitPriceSet.shopMoney.amount,
-        sku: item.sku,
+        sku: item.sku || getDefaultSku(item.title),
         variantTitle: item.variant?.title || null,
         vendor: item.product?.vendor || null,
         productId: item.product?.id || '',
