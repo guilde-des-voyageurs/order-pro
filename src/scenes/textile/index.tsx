@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { Table, Loader, Text } from '@mantine/core';
 import styles from './textile.module.scss';
 import { variantsService, type Variant } from '@/firebase/services/variants';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { generateVariantId } from '@/utils/variant-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 export default function TextilePage() {
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -47,6 +50,7 @@ export default function TextilePage() {
       <Table>
         <Table.Thead>
           <Table.Tr>
+            <Table.Th style={{ width: 40 }}>Commandé</Table.Th>
             <Table.Th>Nom</Table.Th>
             <Table.Th>Variante</Table.Th>
             <Table.Th>SKU</Table.Th>
@@ -57,21 +61,45 @@ export default function TextilePage() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {variants.map((variant) => (
-            <Table.Tr key={`${variant.productId}-${variant.id}`}>
-              <Table.Td>{variant.title}</Table.Td>
-              <Table.Td>{variant.variantTitle}</Table.Td>
-              <Table.Td>{variant.sku}</Table.Td>
-              <Table.Td>{variant.vendor}</Table.Td>
-              <Table.Td>{variant.totalOrders}</Table.Td>
-              <Table.Td>{variant.totalQuantity}</Table.Td>
-              <Table.Td>
-                {variant.unitCost 
-                  ? `${variant.unitCost.toFixed(2)} €` 
-                  : '-'}
-              </Table.Td>
-            </Table.Tr>
-          ))}
+          {variants.map((variant) => {
+            // Extraire la couleur et la taille de variantTitle (format: "Couleur / Taille")
+            const [color, size] = variant.variantTitle?.split(' / ') || [null, null];
+            const encodedOrderId = encodeFirestoreId(variant.productId);
+            const variantId = generateVariantId(
+              encodedOrderId,
+              variant.sku,
+              color,
+              size,
+              0 // Index 0 car c'est une vue unique de la variante
+            );
+
+            return (
+              <Table.Tr key={variantId}>
+                <Table.Td>
+                  <VariantCheckbox
+                    sku={variant.sku}
+                    color={color || ''}
+                    size={size || ''}
+                    quantity={variant.totalQuantity}
+                    orderId={encodedOrderId}
+                    productIndex={0}
+                    variantId={variantId}
+                  />
+                </Table.Td>
+                <Table.Td>{variant.title}</Table.Td>
+                <Table.Td>{variant.variantTitle}</Table.Td>
+                <Table.Td>{variant.sku}</Table.Td>
+                <Table.Td>{variant.vendor}</Table.Td>
+                <Table.Td>{variant.totalOrders}</Table.Td>
+                <Table.Td>{variant.totalQuantity}</Table.Td>
+                <Table.Td>
+                  {variant.unitCost 
+                    ? `${variant.unitCost.toFixed(2)} €` 
+                    : '-'}
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
         </Table.Tbody>
       </Table>
     </div>
