@@ -1,12 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Table, Loader, Text, Stack, Title, Group } from '@mantine/core';
+import { useEffect, useState, useRef } from 'react';
+import { 
+  Table, 
+  Loader, 
+  Text, 
+  Stack, 
+  Title, 
+  Group, 
+  Paper, 
+  Image, 
+  Alert, 
+  List, 
+  Badge, 
+  Button 
+} from '@mantine/core';
+import { IconAlertTriangle, IconMessage } from '@tabler/icons-react';
 import styles from './textile.module.scss';
 import { variantsService, type Variant } from '@/firebase/services/variants';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { db } from '@/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
+import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
+import type { ShopifyOrder } from '@/types/shopify';
 
 interface GroupedVariant {
   sku: string;
@@ -22,10 +40,17 @@ interface GroupedVariant {
   totalQuantity: number;
 }
 
+interface ShopifyOrder {
+  // Définition de l'interface ShopifyOrder
+}
+
 export default function TextilePage() {
   const [variantsBySku, setVariantsBySku] = useState<Map<string, GroupedVariant[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | null>(null);
+  const [drawerOpened, setDrawerOpened] = useState(false);
 
   useEffect(() => {
     loadVariants();
@@ -103,6 +128,32 @@ export default function TextilePage() {
     }
   };
 
+  const handleOrderClick = async (orderId: string) => {
+    try {
+      console.log('Clicking order:', orderId);
+      const sanitizedId = orderId.replace('gid://shopify/Order/', '');
+      console.log('Sanitized ID:', sanitizedId);
+      const orderRef = doc(db, 'orders', sanitizedId);
+      const orderDoc = await getDoc(orderRef);
+      console.log('Order doc:', orderDoc.exists() ? 'exists' : 'does not exist');
+      if (orderDoc.exists()) {
+        const orderData = orderDoc.data() as ShopifyOrder;
+        console.log('Order data:', orderData);
+        setSelectedOrder(orderData);
+        setSelectedOrderId(orderId);
+        setDrawerOpened(true);
+      }
+    } catch (error) {
+      console.error('Error fetching order:', error);
+    }
+  };
+
+  const handleDrawerClose = () => {
+    setDrawerOpened(false);
+    setSelectedOrderId(null);
+    setSelectedOrder(null);
+  };
+
   const renderVariantsTable = (groupedVariants: GroupedVariant[]) => (
     <Table>
       <Table.Thead>
@@ -147,6 +198,15 @@ export default function TextilePage() {
                 {group.variants.map(({ variant }) => (
                   <Text 
                     key={`${variant.orderId}-${variant.productIndex}`}
+                    style={{ 
+                      cursor: 'pointer',
+                      color: 'blue',
+                      textDecoration: 'underline'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOrderClick(variant.orderId);
+                    }}
                   >
                     #{variant.orderNumber}
                   </Text>
@@ -186,6 +246,11 @@ export default function TextilePage() {
           </div>
         ))}
       </Stack>
+      <OrderDrawer
+        order={selectedOrder ?? undefined}
+        opened={drawerOpened}
+        onClose={handleDrawerClose}
+      />
     </div>
   );
 }
