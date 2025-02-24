@@ -1,4 +1,4 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../db';
 import { getDefaultSku } from '@/utils/variant-helpers';
 
@@ -21,18 +21,31 @@ export interface Variant {
 
 export const variantsService = {
   /**
-   * Récupère toutes les variantes uniques des commandes
+   * Récupère toutes les variantes uniques des commandes en cours,
+   * en excluant les pourboires et les articles annulés
    * @returns Promise<Variant[]> Liste des variantes uniques
    */
   async getAllUniqueVariants(): Promise<Variant[]> {
+    // Créer une requête pour obtenir uniquement les commandes en cours
     const ordersRef = collection(db, ORDERS_COLLECTION);
-    const snapshot = await getDocs(ordersRef);
+    const ordersQuery = query(
+      ordersRef,
+      where('displayFulfillmentStatus', '==', 'UNFULFILLED')
+    );
+    const snapshot = await getDocs(ordersQuery);
     
     const variantsMap = new Map<string, Variant>();
     
     snapshot.forEach((doc) => {
       const order = doc.data();
+      
+      // Ne traiter que les articles non annulés et qui ne sont pas des pourboires
       order.lineItems?.forEach((item: any, index: number) => {
+        // Ignorer les articles annulés et les pourboires
+        if (item.isCancelled || item.title.toLowerCase().includes('tip')) {
+          return;
+        }
+        
         const variantKey = `${item.productId}-${item.id}`;
         
         // Si la variante existe déjà, on garde le premier orderId et productIndex trouvés

@@ -51,11 +51,15 @@ export const getDefaultSku = (title: string): string => {
   const normalizedTitle = title.toLowerCase();
   
   if (normalizedTitle.includes('sweatshirt')) {
-    return 'DRUMMER (Peut-être)';
+    return 'DRUMMER (ou CRUISER)';
   }
   
   if (normalizedTitle.includes('t-shirt')) {
-    return 'CREATOR (Peut être)';
+    return 'CREATOR 2.0';
+  }
+
+  if (normalizedTitle.includes('t-shirt femme')) {
+    return 'MUSER';
   }
   
   return '';

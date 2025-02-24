@@ -54,11 +54,8 @@ export default function TextilePage() {
             <Table.Th>Nom</Table.Th>
             <Table.Th>Variante</Table.Th>
             <Table.Th>SKU</Table.Th>
-            <Table.Th>Vendeur</Table.Th>
             <Table.Th>Commande</Table.Th>
-            <Table.Th>Commandes</Table.Th>
             <Table.Th>Quantité totale</Table.Th>
-            <Table.Th>Coût unitaire</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -93,19 +90,12 @@ export default function TextilePage() {
                 <Table.Td>{variant.title}</Table.Td>
                 <Table.Td>{variant.variantTitle}</Table.Td>
                 <Table.Td>{variant.sku}</Table.Td>
-                <Table.Td>{variant.vendor}</Table.Td>
                 <Table.Td>
                   <Anchor href={`/orders/${encodedOrderId}`} target="_blank">
                     #{variant.orderNumber}
                   </Anchor>
                 </Table.Td>
-                <Table.Td>{variant.totalOrders}</Table.Td>
                 <Table.Td>{variant.totalQuantity}</Table.Td>
-                <Table.Td>
-                  {variant.unitCost 
-                    ? `${variant.unitCost.toFixed(2)} €` 
-                    : '-'}
-                </Table.Td>
               </Table.Tr>
             );
           })}
