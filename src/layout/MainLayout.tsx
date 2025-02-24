@@ -25,6 +25,10 @@ export const MainLayout = ({ children }: { children: any }) => {
     {
       href: '/orders',
       label: 'Commandes',
+    },
+    {
+      href: '/textile',
+      label: 'Textile',
     }
   ];
 
