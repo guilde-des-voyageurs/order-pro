@@ -10,6 +10,8 @@ export interface Variant {
   variantTitle: string;
   vendor: string;
   productId: string;
+  orderId: string;  // ID de la commande d'origine
+  productIndex: number;  // Index du produit dans la commande d'origine
   unitCost?: number;
   totalOrders: number;
   totalQuantity: number;
@@ -28,9 +30,10 @@ export const variantsService = {
     
     snapshot.forEach((doc) => {
       const order = doc.data();
-      order.lineItems?.forEach((item: any) => {
+      order.lineItems?.forEach((item: any, index: number) => {
         const variantKey = `${item.productId}-${item.id}`;
         
+        // Si la variante existe déjà, on garde le premier orderId et productIndex trouvés
         if (variantsMap.has(variantKey)) {
           const variant = variantsMap.get(variantKey)!;
           variant.totalOrders += 1;
@@ -43,6 +46,8 @@ export const variantsService = {
             variantTitle: item.variantTitle || '',
             vendor: item.vendor || '',
             productId: item.productId,
+            orderId: doc.id,  // ID de la commande d'origine
+            productIndex: index,  // Index du produit dans la commande d'origine
             unitCost: item.unitCost,
             totalOrders: 1,
             totalQuantity: item.quantity

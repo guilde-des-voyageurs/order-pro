@@ -64,13 +64,16 @@ export default function TextilePage() {
           {variants.map((variant) => {
             // Extraire la couleur et la taille de variantTitle (format: "Couleur / Taille")
             const [color, size] = variant.variantTitle?.split(' / ') || [null, null];
-            const encodedOrderId = encodeFirestoreId(variant.productId);
+            
+            // Utiliser l'ID de commande et l'index d'origine
+            const encodedOrderId = encodeFirestoreId(variant.orderId);
             const variantId = generateVariantId(
               encodedOrderId,
               variant.sku,
               color,
               size,
-              variant.productIndex // Ajout de l'index de l'article
+              0,
+              variant.productIndex // Utiliser l'index original du produit dans la commande
             );
 
             return (
@@ -80,7 +83,7 @@ export default function TextilePage() {
                     sku={variant.sku}
                     color={color || ''}
                     size={size || ''}
-                    quantity={variant.totalQuantity}
+                    quantity={1}
                     orderId={encodedOrderId}
                     productIndex={variant.productIndex}
                     variantId={variantId}

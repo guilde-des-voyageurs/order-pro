@@ -13,7 +13,7 @@ interface VariantCheckboxProps {
   size: string;
   quantity: number;
   orderId: string;
-  productIndex: number;
+  productIndex: number; // Utilisé uniquement pour générer l'ID
   variantId: string;
   className?: string;
 }
@@ -23,7 +23,6 @@ interface VariantDocument {
   sku: string;
   color: string;
   size: string;
-  productIndex: number;
   originalId: string;
   userId: string;
   updatedAt: string;
@@ -36,7 +35,7 @@ export const VariantCheckbox = ({
   size, 
   quantity,
   orderId,
-  productIndex,
+  productIndex, // Non utilisé dans le document Firebase
   variantId,
   className 
 }: VariantCheckboxProps) => {
@@ -69,7 +68,6 @@ export const VariantCheckbox = ({
       sku,
       color,
       size,
-      productIndex,
       originalId: orderId,
       userId: auth.currentUser.uid,
       updatedAt: new Date().toISOString(),
@@ -102,20 +100,23 @@ export const VariantCheckbox = ({
 
   // Rendu côté client
   return (
-    <Checkbox
-      checked={checked}
-      onChange={handleCheckboxChange}
-      disabled={!auth.currentUser}
-      styles={{
-        root: {
-          margin: 0,
-          padding: 0,
-          marginRight: 2
-        },
-        inner: {
-          margin: 0
-        }
-      }}
-    />
+    <Group gap={0}>
+      <Checkbox
+        checked={checked}
+        onChange={handleCheckboxChange}
+        disabled={!auth.currentUser}
+        className={className}
+        styles={{
+          root: {
+            margin: 0,
+            padding: 0,
+            marginRight: 2
+          },
+          inner: {
+            margin: 0
+          }
+        }}
+      />
+    </Group>
   );
 };
