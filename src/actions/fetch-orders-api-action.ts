@@ -23,6 +23,7 @@ interface ShopifyResponse {
       createdAt: string;
       displayFulfillmentStatus: string;
       displayFinancialStatus: string;
+      note: string | null;
       totalPriceSet: {
         shopMoney: {
           amount: string;
@@ -96,6 +97,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
       createdAt: order.createdAt,
       displayFulfillmentStatus: order.displayFulfillmentStatus,
       displayFinancialStatus: order.displayFinancialStatus,
+      note: order.note || undefined,
       totalPrice: order.totalPriceSet.shopMoney.amount,
       totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
       customer: order.customer,

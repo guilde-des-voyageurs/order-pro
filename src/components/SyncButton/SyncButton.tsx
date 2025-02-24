@@ -17,7 +17,7 @@ export function SyncButton() {
 
       notifications.show({
         title: 'Synchronisation réussie',
-        message: `${orders.length} commandes synchronisées`,
+        message: `${orders.length} commandes synchronisées (avec notes)`,
         color: 'green',
       });
     } catch (error) {

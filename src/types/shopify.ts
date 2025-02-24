@@ -6,6 +6,7 @@ export interface ShopifyOrder {
   displayFinancialStatus: string;
   totalPrice: string;
   totalPriceCurrency: string;
+  note?: string;  // Notes de la commande
   customer?: {
     firstName: string;
     lastName: string;

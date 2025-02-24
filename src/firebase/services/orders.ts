@@ -65,6 +65,7 @@ export const ordersService = {
         displayFinancialStatus: order.displayFinancialStatus,
         totalPrice: order.totalPrice,
         totalPriceCurrency: order.totalPriceCurrency,
+        note: order.note,
         customer: order.customer ? {
           firstName: order.customer.firstName,
           lastName: order.customer.lastName,

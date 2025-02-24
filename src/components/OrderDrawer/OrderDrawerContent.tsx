@@ -10,7 +10,7 @@ import type { ShopifyOrder } from '@/types/shopify';
 import styles from './OrderDrawer.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { Stack, Group, Text, Title, Paper, Image, Alert, List, Badge, Button } from '@mantine/core';
-import { IconAlertTriangle } from '@tabler/icons-react';
+import { IconAlertTriangle, IconMessage } from '@tabler/icons-react';
 import { useEffect, useRef } from 'react';
 import { db, auth } from '@/firebase/config';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -151,6 +151,17 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
           ))}
         </Stack>
       </Stack>
+
+      {order.note && (
+        <Alert 
+          icon={<IconMessage size={16} />}
+          title="Note"
+          color="blue"
+          variant="light"
+        >
+          {order.note}
+        </Alert>
+      )}
 
       <Alert 
         icon={<IconAlertTriangle size={16} />}

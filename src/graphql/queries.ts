@@ -23,6 +23,7 @@ query {
       createdAt
       displayFulfillmentStatus
       displayFinancialStatus
+      note
       totalPriceSet {
         shopMoney {
           amount
