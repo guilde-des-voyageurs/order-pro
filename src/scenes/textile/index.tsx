@@ -154,69 +154,70 @@ export default function TextilePage() {
     setSelectedOrder(null);
   };
 
-  const renderVariantsTable = (groupedVariants: GroupedVariant[]) => (
-    <Table>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
-          <Table.Th style={{ width: '100%' }}>Nom</Table.Th>
-          <Table.Th style={{ width: 150 }}>Commandes</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {groupedVariants.map((group) => (
-          <Table.Tr key={`${group.sku}-${group.color}-${group.size}`}>
-            <Table.Td>
-              <Group gap="xs">
-                {group.variants.map(({ variant, encodedOrderId, index }) => {
-                  const variantId = generateVariantId(
-                    encodedOrderId,
-                    variant.sku,
-                    group.color,
-                    group.size,
-                    index,
-                    variant.productIndex
-                  );
-                  return (
-                    <VariantCheckbox
-                      key={variantId}
-                      sku={variant.sku}
-                      color={group.color}
-                      size={group.size}
-                      quantity={1}
-                      orderId={encodedOrderId}
-                      productIndex={variant.productIndex}
-                      variantId={variantId}
-                    />
-                  );
-                })}
-              </Group>
-            </Table.Td>
-            <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
-            <Table.Td>
-              <Group gap="xs">
-                {group.variants.map(({ variant }) => (
-                  <Text 
-                    key={`${variant.orderId}-${variant.productIndex}`}
-                    style={{ 
-                      cursor: 'pointer',
-                      color: 'blue',
-                      textDecoration: 'underline'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOrderClick(variant.orderId);
-                    }}
-                  >
-                    #{variant.orderNumber}
-                  </Text>
-                ))}
-              </Group>
-            </Table.Td>
+  const renderVariantsTable = (variants: GroupedVariant[]) => (
+    <Paper withBorder className={styles.tableContainer}>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
+            <Table.Th style={{ width: '100%' }}>Nom</Table.Th>
+            <Table.Th style={{ width: 150 }}>Commandes</Table.Th>
           </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
+        </Table.Thead>
+        <Table.Tbody>
+          {variants.map((group) => (
+            <Table.Tr 
+              key={`${group.sku}-${group.color}-${group.size}`}
+              className={styles.tableRow}
+            >
+              <Table.Td>
+                <Group gap="xs">
+                  {group.variants.map(({ variant, encodedOrderId, index }) => {
+                    const variantId = generateVariantId(
+                      encodedOrderId,
+                      variant.sku,
+                      group.color,
+                      group.size,
+                      index,
+                      variant.productIndex
+                    );
+                    return (
+                      <VariantCheckbox
+                        key={variantId}
+                        sku={variant.sku}
+                        color={group.color}
+                        size={group.size}
+                        quantity={1}
+                        orderId={encodedOrderId}
+                        productIndex={variant.productIndex}
+                        variantId={variantId}
+                      />
+                    );
+                  })}
+                </Group>
+              </Table.Td>
+              <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
+              <Table.Td>
+                <Group gap="xs">
+                  {group.variants.map(({ variant }) => (
+                    <Text 
+                      key={`${variant.orderId}-${variant.productIndex}`}
+                      className={styles.orderNumber}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOrderClick(variant.orderId);
+                      }}
+                    >
+                      #{variant.orderNumber}
+                    </Text>
+                  ))}
+                </Group>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Paper>
   );
 
   if (loading) {
@@ -236,16 +237,22 @@ export default function TextilePage() {
   }
 
   return (
-    <div className={styles.container}>
-      <h1>Articles Textile</h1>
-      <Stack gap="xl">
+    <div className={styles.pageContainer}>
+      <Stack gap="md">
+        <Title order={2} className={styles.sectionTitle}>
+          Textile
+        </Title>
+        
         {Array.from(variantsBySku.entries()).map(([sku, variants]) => (
-          <div key={sku}>
-            <Title order={2} mb="md">{sku}</Title>
+          <Stack key={sku} className={styles.section}>
+            <Title order={3} className={styles.skuTitle}>
+              {sku}
+            </Title>
             {renderVariantsTable(variants)}
-          </div>
+          </Stack>
         ))}
       </Stack>
+
       <OrderDrawer
         order={selectedOrder ?? undefined}
         opened={drawerOpened}

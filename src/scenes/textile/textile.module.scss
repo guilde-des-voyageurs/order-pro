@@ -1,7 +1,55 @@
-.container {
-  padding: 20px;
+@use "src/style/_mantine.scss" as *;
 
-  h1 {
-    margin-bottom: 24px;
+.pageContainer {
+  padding: 20px 30px;
+  max-width: 1100px;
+}
+
+.tableRow {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  color: #6f7986;
+  
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
   }
+}
+
+.orderNumber {
+  color: var(--mantine-color-blue-6);
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--mantine-color-blue-8);
+  }
+}
+
+.section {
+  margin-top: 40px;
+
+  & + .section {
+    margin-top: 60px;
+  }
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.skuTitle {
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-gray-7);
+}
+
+.tableContainer {
+  background-color: white;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-gray-3);
 }
