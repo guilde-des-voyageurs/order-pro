@@ -1,6 +1,6 @@
 export interface ShopifyOrder {
   id: string;
-  name: string;
+  name: string;  // Le numéro de commande (ex: "#1404")
   createdAt: string;
   displayFulfillmentStatus: string;
   displayFinancialStatus: string;
@@ -24,18 +24,15 @@ export interface ShopifyOrder {
     quantity: number;
     refundableQuantity: number;
     price: string;
-    sku: string | null;
-    variantTitle: string | null;
-    vendor: string | null;
+    sku?: string;
+    variantTitle?: string;
+    vendor?: string;
     productId: string;
     requiresShipping: boolean;
     taxable: boolean;
-    image?: {
-      url: string;
-      altText: string | null;
-    };
+    image?: string;
+    unitCost?: number;
+    totalCost?: number;
     isCancelled?: boolean;
-    unitCost: number;
-    totalCost: number;
   }>;
 }

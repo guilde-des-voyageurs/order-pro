@@ -1,5 +1,6 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../db';
+import { getDefaultSku } from '@/utils/variant-helpers';
 
 const ORDERS_COLLECTION = 'orders';
 
@@ -11,6 +12,7 @@ export interface Variant {
   vendor: string;
   productId: string;
   orderId: string;  // ID de la commande d'origine
+  orderNumber: string; // Numéro de la commande client
   productIndex: number;  // Index du produit dans la commande d'origine
   unitCost?: number;
   totalOrders: number;
@@ -39,14 +41,18 @@ export const variantsService = {
           variant.totalOrders += 1;
           variant.totalQuantity += item.quantity;
         } else {
+          // Déterminer le SKU : utiliser celui de Shopify ou le SKU par défaut basé sur le titre
+          const sku = item.sku || getDefaultSku(item.title);
+          
           variantsMap.set(variantKey, {
             id: item.id,
             title: item.title,
-            sku: item.sku || '',
+            sku: sku,
             variantTitle: item.variantTitle || '',
             vendor: item.vendor || '',
             productId: item.productId,
             orderId: doc.id,  // ID de la commande d'origine
+            orderNumber: order.orderNumber || '', // Numéro de la commande client
             productIndex: index,  // Index du produit dans la commande d'origine
             unitCost: item.unitCost,
             totalOrders: 1,

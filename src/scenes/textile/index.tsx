@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, Loader, Text } from '@mantine/core';
+import { Table, Loader, Text, Anchor } from '@mantine/core';
 import styles from './textile.module.scss';
 import { variantsService, type Variant } from '@/firebase/services/variants';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
@@ -55,6 +55,7 @@ export default function TextilePage() {
             <Table.Th>Variante</Table.Th>
             <Table.Th>SKU</Table.Th>
             <Table.Th>Vendeur</Table.Th>
+            <Table.Th>Commande</Table.Th>
             <Table.Th>Commandes</Table.Th>
             <Table.Th>Quantité totale</Table.Th>
             <Table.Th>Coût unitaire</Table.Th>
@@ -73,7 +74,7 @@ export default function TextilePage() {
               color,
               size,
               0,
-              variant.productIndex // Utiliser l'index original du produit dans la commande
+              variant.productIndex
             );
 
             return (
@@ -93,6 +94,11 @@ export default function TextilePage() {
                 <Table.Td>{variant.variantTitle}</Table.Td>
                 <Table.Td>{variant.sku}</Table.Td>
                 <Table.Td>{variant.vendor}</Table.Td>
+                <Table.Td>
+                  <Anchor href={`/orders/${encodedOrderId}`} target="_blank">
+                    #{variant.orderNumber}
+                  </Anchor>
+                </Table.Td>
                 <Table.Td>{variant.totalOrders}</Table.Td>
                 <Table.Td>{variant.totalQuantity}</Table.Td>
                 <Table.Td>

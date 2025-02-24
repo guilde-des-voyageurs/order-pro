@@ -59,6 +59,7 @@ export const ordersService = {
       const rawOrderData = {
         id: order.id,
         name: order.name,
+        orderNumber: order.name?.replace('#', ''), // Extraire le numéro de commande
         createdAt: order.createdAt,
         displayFulfillmentStatus: order.displayFulfillmentStatus,
         displayFinancialStatus: order.displayFinancialStatus,

@@ -44,6 +44,23 @@ export const calculateGlobalVariantIndex = (
   return globalIndex;
 };
 
+/**
+ * Détermine le SKU par défaut en fonction du titre de l'article
+ */
+export const getDefaultSku = (title: string): string => {
+  const normalizedTitle = title.toLowerCase();
+  
+  if (normalizedTitle.includes('sweatshirt')) {
+    return 'DRUMMER (Peut-être)';
+  }
+  
+  if (normalizedTitle.includes('t-shirt')) {
+    return 'CREATOR (Peut être)';
+  }
+  
+  return '';
+};
+
 export const generateVariantId = (
   orderId: string,
   sku: string, 
