@@ -69,7 +69,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
         <Group gap="md" align="center">
           <Text fw={500}>
             {formatAmount(order.lineItems?.reduce((total, item) => 
-              total + (item.isCancelled ? 0 : (item.unitCost * item.quantity)),
+              total + (item.isCancelled ? 0 : ((item.unitCost ?? 0) * item.quantity)),
               0
             ) ?? 0)} {order.totalPriceCurrency}
           </Text>
@@ -102,7 +102,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                   <Group justify="space-between" w="100%" align="center" gap={0} style={{ display: 'flex' }}>
                     <Stack gap={4} style={{ flex: '1', flexShrink: 0 }}>
                       <Text size="sm" fw={500}>{item.title}</Text>
-                      <Text size="sm" c="dimmed">Coût unitaire: {formatAmount(item.unitCost)} {order.totalPriceCurrency}</Text>
+                      <Text size="sm" c="dimmed">Coût unitaire: {formatAmount(item.unitCost ?? 0)} {order.totalPriceCurrency}</Text>
                       {item.variantTitle && (
                         <Text size="sm" c="dimmed">{item.variantTitle}</Text>
                       )}

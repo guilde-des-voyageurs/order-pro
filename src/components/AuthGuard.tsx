@@ -13,33 +13,29 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
 
   console.log('AuthGuard - pathname:', pathname);
   console.log('AuthGuard - user:', user);
-  console.log('AuthGuard - isLoading:', isLoading);
+  console.log('AuthGuard - loading:', loading);
 
   useEffect(() => {
-    const isPublicPath = PUBLIC_PATHS.includes(pathname);
+    const isPublicPath = pathname ? PUBLIC_PATHS.includes(pathname) : false;
     console.log('AuthGuard - isPublicPath:', isPublicPath);
 
-    if (!isLoading && !user && !isPublicPath) {
+    if (!loading && !user && !isPublicPath) {
       console.log('AuthGuard - redirecting to login');
       router.replace('/login');
     }
-  }, [user, isLoading, router, pathname]);
+  }, [user, loading, router, pathname]);
 
-  // Ne rien afficher pendant le chargement
-  if (isLoading) {
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user && !pathname?.startsWith('/login')) {
     return null;
   }
 
-  // Si on est sur une page publique ou si l'utilisateur est connecté
-  const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  if (isPublicPath || user) {
-    return <>{children}</>;
-  }
-
-  // Dans tous les autres cas, ne rien afficher
-  return null;
+  return <>{children}</>;
 }

@@ -119,9 +119,9 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         productId: item.product?.id || '',
         requiresShipping: item.requiresShipping,
         taxable: item.taxable,
-        image: item.image || undefined,
-        unitCost: parseFloat(item.variant?.inventoryItem?.unitCost?.amount || '0'),
-        totalCost: parseFloat(item.variant?.inventoryItem?.unitCost?.amount || '0') * item.quantity,
+        image: item.image || null,
+        unitCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) : null,
+        totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
         isCancelled: item.quantity > item.refundableQuantity
       }))
     }));

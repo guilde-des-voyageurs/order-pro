@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Text, Badge, Group, Select } from '@mantine/core';
+import { Card, Table, Text, Badge, Group, Select, Stack } from '@mantine/core';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { syncService } from '@/services/sync';
@@ -106,7 +106,7 @@ export function SyncHistory() {
               {logs.map((log) => (
                 <Table.Tr key={log.id}>
                   <Table.Td>
-                    <Text transform="capitalize">
+                    <Text tt="capitalize">
                       {log.type === 'orders' ? 'Commandes' : 'Produits'}
                     </Text>
                   </Table.Td>

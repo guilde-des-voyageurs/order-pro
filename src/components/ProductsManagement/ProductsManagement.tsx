@@ -67,7 +67,7 @@ export function ProductsManagement() {
             </Table.Thead>
             <Table.Tbody>
               {products.map(product => (
-                product.variants.map(variant => (
+                product.variants.map((variant:any) => (
                   <Table.Tr key={`${product.id}-${variant.id}`}>
                     <Table.Td>
                       <Group>
@@ -83,22 +83,26 @@ export function ProductsManagement() {
                        editingInventory?.variantId === variant.id ? (
                         <Group>
                           <NumberInput
-                            value={editingInventory.quantity}
-                            onChange={(value) => setEditingInventory({
-                              ...editingInventory,
-                              quantity: value || 0
-                            })}
+                            value={editingInventory?.quantity ?? 0}
+                            onChange={(value) => setEditingInventory(prev => prev ? {
+                              ...prev,
+                              quantity: typeof value === 'string' ? parseInt(value, 10) : (value ?? 0)
+                            } : null)}
                             min={0}
                             style={{ width: 100 }}
                           />
                           <ActionIcon
                             variant="filled"
                             color="green"
-                            onClick={() => handleInventoryUpdate(
-                              product.id,
-                              variant.id,
-                              editingInventory.quantity
-                            )}
+                            onClick={() => {
+                              if (editingInventory) {
+                                handleInventoryUpdate(
+                                  product.id,
+                                  variant.id,
+                                  editingInventory.quantity
+                                );
+                              }
+                            }}
                           >
                             <IconCheck size={16} />
                           </ActionIcon>

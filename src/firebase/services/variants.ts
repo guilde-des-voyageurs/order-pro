@@ -1,6 +1,7 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../db';
 import { getDefaultSku } from '@/utils/variant-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 const ORDERS_COLLECTION = 'orders-v2';
 
@@ -46,7 +47,10 @@ export const variantsService = {
           return;
         }
         
-        const variantKey = `${item.productId}-${item.id}`;
+        // Encode les IDs Shopify pour les chemins Firebase
+        const encodedProductId = encodeFirestoreId(item.productId);
+        const encodedItemId = encodeFirestoreId(item.id);
+        const variantKey = `${encodedProductId}-${encodedItemId}`;
         
         // Si la variante existe déjà, on garde le premier orderId et productIndex trouvés
         if (variantsMap.has(variantKey)) {
@@ -58,13 +62,13 @@ export const variantsService = {
           const sku = item.sku || getDefaultSku(item.title);
           
           variantsMap.set(variantKey, {
-            id: item.id,
+            id: encodedItemId,
             title: item.title,
             sku: sku,
             variantTitle: item.variantTitle || '',
             vendor: item.vendor || '',
-            productId: item.productId,
-            orderId: doc.id,  // ID de la commande d'origine
+            productId: encodedProductId,
+            orderId: encodeFirestoreId(doc.id),  // ID de la commande d'origine
             orderNumber: order.orderNumber || '', // Numéro de la commande client
             productIndex: index,  // Index du produit dans la commande d'origine
             unitCost: item.unitCost,

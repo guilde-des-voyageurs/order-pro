@@ -80,7 +80,7 @@ export function SettingsPanel() {
           <NumberInput
             label="Intervalle de synchronisation des commandes (minutes)"
             value={settings.sync_config.orders_sync_interval_minutes}
-            onChange={(value) => handleSyncConfigUpdate('orders_sync_interval_minutes', value || 15)}
+            onChange={(value) => handleSyncConfigUpdate('orders_sync_interval_minutes', typeof value === 'string' ? parseInt(value, 10) : (value ?? 15))}
             min={5}
             max={60}
           />
@@ -88,7 +88,7 @@ export function SettingsPanel() {
           <NumberInput
             label="Intervalle de synchronisation des produits (minutes)"
             value={settings.sync_config.products_sync_interval_minutes}
-            onChange={(value) => handleSyncConfigUpdate('products_sync_interval_minutes', value || 60)}
+            onChange={(value) => handleSyncConfigUpdate('products_sync_interval_minutes', typeof value === 'string' ? parseInt(value, 10) : (value ?? 60))}
             min={15}
             max={120}
           />
@@ -96,7 +96,7 @@ export function SettingsPanel() {
           <NumberInput
             label="Nombre maximum d'éléments par synchronisation"
             value={settings.sync_config.max_items_per_sync}
-            onChange={(value) => handleSyncConfigUpdate('max_items_per_sync', value || 100)}
+            onChange={(value) => handleSyncConfigUpdate('max_items_per_sync', typeof value === 'string' ? parseInt(value, 10) : (value ?? 100))}
             min={10}
             max={500}
           />

@@ -7,7 +7,7 @@ export interface ShopifyOrder {
   displayFinancialStatus: string;
   totalPrice: string;
   totalPriceCurrency: string;
-  note?: string;  // Notes de la commande
+  note?: string | null;  // Notes de la commande
   customer?: {
     firstName: string;
     lastName: string;
@@ -15,7 +15,7 @@ export interface ShopifyOrder {
   };
   shippingAddress?: {
     address1: string;
-    address2?: string;
+    address2?: string | null;
     city: string;
     zip: string;
     country: string;
@@ -26,15 +26,18 @@ export interface ShopifyOrder {
     quantity: number;
     refundableQuantity: number;
     price: string;
-    sku?: string;
-    variantTitle?: string;
-    vendor?: string;
+    sku?: string | null;
+    variantTitle?: string | null;
+    vendor?: string | null;
     productId: string;
     requiresShipping: boolean;
     taxable: boolean;
-    image?: string;
-    unitCost?: number;
-    totalCost?: number;
-    isCancelled?: boolean;
+    image?: {
+      url: string;
+      altText: string | null;
+    } | null;
+    unitCost?: number | null;
+    totalCost?: number | null;
+    isCancelled?: boolean | null;
   }>;
 }
