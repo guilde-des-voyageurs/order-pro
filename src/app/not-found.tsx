@@ -1,22 +1,14 @@
-'use client';
-
-import { Container, Title, Text, Button, Group } from '@mantine/core';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import styles from './error.module.scss';
 
 export default function NotFound() {
-  const router = useRouter();
-
   return (
-    <Container size={420} my={40}>
-      <Title ta="center">Page non trouvée</Title>
-      <Text c="dimmed" size="lg" ta="center" mt="xl">
-        La page que vous recherchez n&apos;existe pas ou a été déplacée.
-      </Text>
-      <Group justify="center" mt="xl">
-        <Button onClick={() => router.push('/')}>
-          Retour à l&apos;accueil
-        </Button>
-      </Group>
-    </Container>
+    <div className={styles.errorContainer}>
+      <h1>404 - Page non trouvée</h1>
+      <p>Désolé, la page que vous recherchez n&apos;existe pas.</p>
+      <Link href="/" className={styles.homeLink}>
+        Retour à l&apos;accueil
+      </Link>
+    </div>
   );
 }
