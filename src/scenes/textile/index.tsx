@@ -131,7 +131,7 @@ export default function TextilePage() {
       console.log('Clicking order:', orderId);
       const sanitizedId = orderId.replace('gid://shopify/Order/', '');
       console.log('Sanitized ID:', sanitizedId);
-      const orderRef = doc(db, 'orders', sanitizedId);
+      const orderRef = doc(db, 'orders-v2', sanitizedId);
       const orderDoc = await getDoc(orderRef);
       console.log('Order doc:', orderDoc.exists() ? 'exists' : 'does not exist');
       if (orderDoc.exists()) {
