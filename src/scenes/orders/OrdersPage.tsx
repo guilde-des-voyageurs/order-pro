@@ -7,13 +7,8 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-import { formatAmount } from '@/utils/format-helpers';
 import styles from './OrdersPage.module.scss';
-import { useEffect } from 'react';
-import { db, auth } from '@/firebase/config';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { generateVariantId } from '@/utils/variant-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
