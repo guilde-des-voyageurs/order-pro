@@ -1,64 +1,95 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { productsService } from '@/services/products';
+import { db } from '@/firebase/config';
+import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { notifications } from '@mantine/notifications';
 
-export function useProducts(initialQuery: string = '') {
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface Product {
+  id: string;
+  title: string;
+  status: string;
+  variants: Array<{
+    id: string;
+    title: string;
+    sku: string;
+    price: string;
+    inventory: number;
+  }>;
+}
+
+export function useProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setIsLoading(true);
-        const data = searchQuery
-          ? await productsService.searchProducts(searchQuery)
-          : await productsService.getProducts();
-        setProducts(data);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch products'));
-      } finally {
-        setIsLoading(false);
+    // Écouter les changements des produits dans Firestore
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'products')),
+      (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Product[];
+
+        // Filtrer les produits si une recherche est active
+        const filteredProducts = searchQuery
+          ? productsData.filter(product =>
+              product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              product.variants.some(variant =>
+                variant.sku.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+            )
+          : productsData;
+
+        setProducts(filteredProducts);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err as Error);
+        setLoading(false);
       }
-    };
+    );
 
-    fetchProducts();
-
-    // Subscribe to changes
-    const productsSubscription = supabase
-      .channel('products_channel')
-      .on('postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'products'
-        },
-        () => {
-          fetchProducts();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      productsSubscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, [searchQuery]);
 
   const updateInventory = async (productId: string, variantId: string, quantity: number) => {
     try {
-      await productsService.updateInventory(productId, variantId, quantity);
+      const productRef = doc(db, 'products', productId);
+      const product = products.find(p => p.id === productId);
+      
+      if (!product) throw new Error('Product not found');
+
+      const updatedVariants = product.variants.map(variant =>
+        variant.id === variantId
+          ? { ...variant, inventory: quantity }
+          : variant
+      );
+
+      await updateDoc(productRef, { variants: updatedVariants });
+
+      notifications.show({
+        title: 'Succès',
+        message: 'Stock mis à jour avec succès',
+        color: 'green',
+      });
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to update inventory'));
+      setError(err as Error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de mettre à jour le stock',
+        color: 'red',
+      });
       throw err;
     }
   };
 
   return {
     products,
-    isLoading,
+    isLoading: loading,
     error,
     searchQuery,
     setSearchQuery,

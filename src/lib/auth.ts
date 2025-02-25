@@ -1,10 +1,11 @@
-import { supabase } from './supabase';
+import { auth } from '@/firebase/config';
+import { User } from 'firebase/auth';
 
-export const getServerSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) {
-    console.error('Error getting session:', error);
-    return null;
-  }
-  return session;
-};
+export async function getSession(): Promise<{ user: User | null }> {
+  const user = auth.currentUser;
+  return { user };
+}
+
+export async function signOut() {
+  await auth.signOut();
+}

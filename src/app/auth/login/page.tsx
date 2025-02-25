@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { TextInput, Button, Paper, Title, Container } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { TextInput, Button, Group, Stack, Title, Paper } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { auth } from '@/firebase/config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,29 +18,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log('LoginPage - attempting login with:', { email });
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('LoginPage - login successful:', data);
-      notifications.show({
-        title: 'Connexion réussie',
-        message: 'Vous êtes maintenant connecté',
-        color: 'green',
-      });
-
-      router.replace('/');
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/');
     } catch (error) {
-      console.error('LoginPage - error logging in:', error);
       notifications.show({
         title: 'Erreur',
-        message: error instanceof Error ? error.message : 'Une erreur est survenue lors de la connexion',
+        message: 'Email ou mot de passe incorrect',
         color: 'red',
       });
     } finally {
@@ -48,37 +32,36 @@ export default function LoginPage() {
   };
 
   return (
-    <Container size={420} my={40}>
-      <Title ta="center" mb="xl">Runes de Chêne</Title>
-
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+    <Stack align="center" justify="center" h="100vh" bg="gray.1">
+      <Paper shadow="md" p="xl" w={400}>
         <form onSubmit={handleSubmit}>
-          <TextInput
-            label="Email"
-            placeholder="votre@email.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.currentTarget.value)}
-            mb="md"
-          />
-          <TextInput
-            label="Mot de passe"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.currentTarget.value)}
-            mb="xl"
-          />
-          <Button 
-            type="submit" 
-            fullWidth 
-            loading={loading}
-            color="blue"
-          >
-            Se connecter
-          </Button>
+          <Stack>
+            <Title order={2}>Connexion</Title>
+
+            <TextInput
+              label="Email"
+              placeholder="votre@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <TextInput
+              label="Mot de passe"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <Group justify="flex-end" mt="md">
+              <Button type="submit" loading={loading}>
+                Se connecter
+              </Button>
+            </Group>
+          </Stack>
         </form>
       </Paper>
-    </Container>
+    </Stack>
   );
 }

@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/firebase/config';
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 
 export async function POST() {
   try {
-    // Récupérer les commandes de Shopify
+    const ordersRef = collection(db, 'orders');
+    const syncRef = await addDoc(collection(db, 'syncs'), {
+      startedAt: serverTimestamp(),
+      status: 'running'
+    });
+
+    // Récupérer les commandes depuis Shopify
     const shopifyResponse = await fetch(`${process.env.NEXT_PUBLIC_SHOPIFY_API_URL}/admin/api/2024-01/orders.json`, {
       headers: {
         'X-Shopify-Access-Token': process.env.NEXT_PUBLIC_SHOPIFY_ACCESS_TOKEN || '',
@@ -18,7 +25,7 @@ export async function POST() {
 
     const { orders } = await shopifyResponse.json();
 
-    // Préparer les commandes pour Supabase
+    // Préparer les commandes pour Firestore
     const formattedOrders = orders.map((order: any) => ({
       id: order.id.toString(),
       name: order.name,
@@ -61,27 +68,22 @@ export async function POST() {
       })),
     }));
 
-    // Insérer les commandes dans Supabase
-    const { error } = await supabase
-      .from('orders')
-      .upsert(formattedOrders, {
-        onConflict: 'id',
-      });
-
-    if (error) {
-      throw error;
+    // Sauvegarder les commandes dans Firestore
+    for (const order of formattedOrders) {
+      await addDoc(ordersRef, order);
     }
 
-    return NextResponse.json({
-      success: true,
-      count: formattedOrders.length,
+    // Mettre à jour le statut de la synchronisation
+    await updateDoc(doc(db, 'syncs', syncRef.id), {
+      status: 'completed',
+      completedAt: serverTimestamp()
     });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error syncing orders:', error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Une erreur est survenue lors de la synchronisation',
-      },
+      { error: 'Failed to sync orders' },
       { status: 500 }
     );
   }

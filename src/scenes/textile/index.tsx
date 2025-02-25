@@ -24,7 +24,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
-import type { ShopifyOrder } from '@/types/shopify';
+import { ShopifyOrder } from '@/types/shopify';
 
 interface GroupedVariant {
   sku: string;
@@ -40,9 +40,6 @@ interface GroupedVariant {
   totalQuantity: number;
 }
 
-interface ShopifyOrder {
-  // Définition de l'interface ShopifyOrder
-}
 
 export default function TextilePage() {
   const [variantsBySku, setVariantsBySku] = useState<Map<string, GroupedVariant[]>>(new Map());
@@ -50,6 +47,7 @@ export default function TextilePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | null>(null);
+  
   const [drawerOpened, setDrawerOpened] = useState(false);
 
   useEffect(() => {
