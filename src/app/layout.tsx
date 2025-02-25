@@ -4,10 +4,11 @@ import React from 'react';
 import {
   ColorSchemeScript,
   MantineProvider,
+  createTheme,
 } from '@mantine/core';
-import { theme } from '@/style/theme';
+import { Notifications } from '@mantine/notifications';
 import { QueryClientProvider } from '@/state/QueryClientProvider';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/state/AuthProvider';
 import { MainLayout } from '@/layout/MainLayout';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -31,6 +32,13 @@ export const metadata: Metadata = {
   description: 'App de gestion des commandes',
 };
 
+const theme = createTheme({
+  fontFamily: 'var(--font-inter)',
+  headings: {
+    fontFamily: 'var(--font-alegreya)',
+  },
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -43,6 +51,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${alegreya.variable}`}>
         <MantineProvider theme={theme}>
+          <Notifications />
           <AuthProvider>
             <QueryClientProvider>
               <MainLayout>

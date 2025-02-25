@@ -2,62 +2,66 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TextInput, Button, Paper, Title, Container, Text } from '@mantine/core';
-import { useAuthContext } from '@/context/AuthContext';
+import { TextInput, Button, Group, Stack, Title, Paper } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useAuth } from '@/state/AuthProvider';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { signIn } = useAuthContext();
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { signIn } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
 
     try {
-      const result = await signIn(email, password);
-      if (result.error) {
-        setError(result.error);
-      } else {
-        router.push('/');
-      }
-    } catch (err) {
-      setError('Une erreur inattendue est survenue');
+      await signIn(email, password);
+      router.push('/');
+    } catch (error) {
+      notifications.show({
+        title: 'Erreur',
+        message: error instanceof Error ? error.message : 'Email ou mot de passe incorrect',
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container size={420} my={40}>
-      <Title ta="center">Bienvenue sur OrderPro</Title>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+    <Stack align="center" justify="center" h="100vh" bg="gray.1">
+      <Paper shadow="md" p="xl" w={400}>
         <form onSubmit={handleSubmit}>
-          <TextInput
-            label="Email"
-            placeholder="vous@exemple.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextInput
-            label="Mot de passe"
-            type="password"
-            required
-            mt="md"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {error && (
-            <Text c="red" size="sm" mt="sm">
-              {error}
-            </Text>
-          )}
-          <Button type="submit" fullWidth mt="xl">
-            Se connecter
-          </Button>
+          <Stack>
+            <Title order={2}>Connexion</Title>
+
+            <TextInput
+              label="Email"
+              placeholder="votre@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <TextInput
+              label="Mot de passe"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <Group justify="flex-end" mt="md">
+              <Button type="submit" loading={loading}>
+                Se connecter
+              </Button>
+            </Group>
+          </Stack>
         </form>
       </Paper>
-    </Container>
+    </Stack>
   );
 }

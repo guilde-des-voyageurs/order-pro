@@ -2,26 +2,39 @@
 
 import styles from './MainLayout.module.scss';
 import Logo from '../assets/runesdechene.png';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/state/AuthProvider';
 import { Button } from '@mantine/core';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { SyncButton } from '@/components/SyncButton/SyncButton';
+import { auth } from '@/firebase/config';
+import { signOut } from 'firebase/auth';
 
-export const MainLayout = ({ children }: { children: any }) => {
-  const { signOut, user } = useAuthContext();
+interface MenuItem {
+  href: string;
+  label: string;
+}
+
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+export const MainLayout = ({ children }: MainLayoutProps) => {
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   const handleSignOut = async () => {
-    const result = await signOut();
-    if (!result.error) {
-      router.push('/login');
+    try {
+      await signOut(auth);
+      await router.push('/login');
+    } catch (error) {
+      console.error('Error signing out:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
       href: '/orders',
       label: 'Commandes',
@@ -31,6 +44,10 @@ export const MainLayout = ({ children }: { children: any }) => {
       label: 'Textile',
     }
   ];
+
+  if (!user) {
+    return children;
+  }
 
   return (
     <div className={styles.view}>
@@ -53,20 +70,17 @@ export const MainLayout = ({ children }: { children: any }) => {
             </li>
           ))}
         </ul>
-        {user && (
-          <div className={styles.menu_footer}>
-            <Button
-              variant="subtle"
-              color="gray"
-              onClick={handleSignOut}
-              className={styles.signout_button}
-            >
-              Se déconnecter
-            </Button>
-          </div>
-        )}
+        <Button 
+          onClick={handleSignOut}
+          className={styles.menu_signout}
+          variant="subtle"
+        >
+          Déconnexion
+        </Button>
       </div>
-      <main className={styles.main}>{children}</main>
+      <div className={styles.content}>
+        {children}
+      </div>
     </div>
   );
 };
