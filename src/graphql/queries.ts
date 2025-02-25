@@ -12,10 +12,10 @@ export const TEST_QUERY = Buffer.from(`
 export const ORDERS_QUERY = Buffer.from(`
 query {
   orders(
-    first: 250, 
+    first: 100, 
     sortKey: CREATED_AT, 
     reverse: true,
-    query: "created_at:>='2025-01-24' AND created_at:<='2025-01-30'"
+    query: "created_at:>='2025-02-05' AND created_at:<'2025-02-07'"
   ) {
     nodes {
       id
