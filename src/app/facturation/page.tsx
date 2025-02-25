@@ -33,8 +33,7 @@ interface WeeklyOrders {
 
 export default function FacturationPage() {
   const [weeklyOrders, setWeeklyOrders] = useState<WeeklyOrders[]>([]);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
   const [drawerOpened, setDrawerOpened] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +46,6 @@ export default function FacturationPage() {
       if (orderDoc.exists()) {
         const orderData = orderDoc.data() as ShopifyOrder;
         setSelectedOrder(orderData);
-        setSelectedOrderId(orderId);
         setDrawerOpened(true);
       }
     } catch (error) {
@@ -57,8 +55,7 @@ export default function FacturationPage() {
 
   const handleDrawerClose = () => {
     setDrawerOpened(false);
-    setSelectedOrderId(null);
-    setSelectedOrder(null);
+    setSelectedOrder(undefined);
   };
 
   useEffect(() => {
@@ -207,10 +204,9 @@ export default function FacturationPage() {
       </Stack>
 
       <OrderDrawer
-        orderId={selectedOrderId}
+        order={selectedOrder}
         onClose={handleDrawerClose}
         opened={drawerOpened}
-        order={selectedOrder}
       />
     </div>
   );
