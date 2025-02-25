@@ -178,12 +178,12 @@ export default function TextilePage() {
                         variant.sku,
                         group.color,
                         group.size,
-                        index,
+                        quantityIndex, // Utiliser l'index de quantité pour différencier les variantes
                         variant.productIndex
                       );
                       return (
                         <VariantCheckbox
-                          key={`${variantId}-${quantityIndex}`}
+                          key={`${variantId}`}
                           sku={variant.sku}
                           color={group.color}
                           size={group.size}
