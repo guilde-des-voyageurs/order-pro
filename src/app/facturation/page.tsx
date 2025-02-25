@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Stack, Group, Text, Checkbox } from '@mantine/core';
+import { Title, Paper, Table, Stack, Group, Text, UnstyledButton } from '@mantine/core';
 import styles from './facturation.module.scss';
 import { db } from '@/firebase/config';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { WeeklyBillingCheckbox } from '@/components/WeeklyBillingCheckbox';
 import { WeeklyBillingNote } from '@/components/WeeklyBillingNote';
+import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
+import { ShopifyOrder } from '@/types/shopify';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface Order {
   id: string;
@@ -30,10 +33,37 @@ interface WeeklyOrders {
 
 export default function FacturationPage() {
   const [weeklyOrders, setWeeklyOrders] = useState<WeeklyOrders[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | null>(null);
+  const [drawerOpened, setDrawerOpened] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const handleOrderClick = async (orderId: string) => {
+    try {
+      const encodedId = encodeFirestoreId(orderId);
+      const orderRef = doc(db, 'orders-v2', encodedId);
+      const orderDoc = await getDoc(orderRef);
+      
+      if (orderDoc.exists()) {
+        const orderData = orderDoc.data() as ShopifyOrder;
+        setSelectedOrder(orderData);
+        setSelectedOrderId(orderId);
+        setDrawerOpened(true);
+      }
+    } catch (error) {
+      console.error('Error fetching order:', error);
+    }
+  };
+
+  const handleDrawerClose = () => {
+    setDrawerOpened(false);
+    setSelectedOrderId(null);
+    setSelectedOrder(null);
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
+      setLoading(true);
       try {
         const ordersRef = collection(db, 'orders-v2');
         const q = query(ordersRef, orderBy('createdAt', 'desc'));
@@ -97,18 +127,20 @@ export default function FacturationPage() {
   };
 
   const formatWeekRange = (start: Date, end: Date) => {
-    return `${format(start, 'dd MMMM', { locale: fr })} - ${format(end, 'dd MMMM yyyy', { locale: fr })}`;
+    return `${format(start, 'dd/MM/yyyy', { locale: fr })} - ${format(end, 'dd/MM/yyyy', { locale: fr })}`;
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
   };
 
+  if (loading) {
+    return <div>Chargement...</div>;
+  }
+
   return (
     <div className={styles.container}>
-      <Title order={2} className={styles.title}>
-        Facturation
-      </Title>
+      <Title className={styles.title}>Facturation</Title>
 
       <Stack gap="xl">
         {weeklyOrders.map((week) => (
@@ -135,7 +167,14 @@ export default function FacturationPage() {
                   <Table.Tbody>
                     {week.orders.map((order) => (
                       <Table.Tr key={order.id}>
-                        <Table.Td>{order.name}</Table.Td>
+                        <Table.Td>
+                          <UnstyledButton 
+                            onClick={() => handleOrderClick(`gid://shopify/Order/${order.id}`)}
+                            className={styles.orderLink}
+                          >
+                            {order.name}
+                          </UnstyledButton>
+                        </Table.Td>
                         <Table.Td>{getProductCount(order)}</Table.Td>
                         <Table.Td>
                           <Group gap="md">
@@ -166,6 +205,13 @@ export default function FacturationPage() {
           </div>
         ))}
       </Stack>
+
+      <OrderDrawer
+        orderId={selectedOrderId}
+        onClose={handleDrawerClose}
+        opened={drawerOpened}
+        order={selectedOrder}
+      />
     </div>
   );
-}
+};

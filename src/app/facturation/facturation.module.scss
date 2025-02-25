@@ -20,3 +20,12 @@
   background-color: var(--mantine-color-blue-0);
   border-top: 1px solid var(--mantine-color-gray-3);
 }
+
+.orderLink {
+  color: var(--mantine-color-blue-6);
+  font-weight: 500;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
