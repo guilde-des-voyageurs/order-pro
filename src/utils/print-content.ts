@@ -60,7 +60,7 @@ export function generatePrintContent({ order }: PrintContentProps): string {
       </head>
       <body>
         <div class="print-content">
-          <img src="/images/runesdechene-logo.png" alt="Runes de chêne" class="logo" />
+          <img src="/images/runesdechene-invoice.png" alt="Runes de chêne" class="logo" />
           <div class="header">
             <h2>Bordereau de commande</h2>
             <div>N° ${order.name}</div>
