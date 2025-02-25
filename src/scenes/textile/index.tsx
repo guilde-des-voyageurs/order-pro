@@ -77,8 +77,8 @@ export default function TextilePage() {
           variant.sku,
           color,
           size,
-          0,  // index 0 car une seule variante
-          variant.productIndex  // utiliser comme lineItemIndex
+          variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
+          variant.productIndex
         );
         
         // Chercher un groupe existant avec le même SKU, couleur et taille
@@ -95,7 +95,7 @@ export default function TextilePage() {
             variant, 
             encodedOrderId, 
             variantId,
-            index: 0  // index 0 car une seule variante
+            index: variant.productIndex  // Utiliser l'index du produit dans la commande d'origine
           });
           existingGroup.totalQuantity += variant.totalQuantity;
         } else {
@@ -111,7 +111,7 @@ export default function TextilePage() {
               variant, 
               encodedOrderId, 
               variantId,
-              index: 0  // index 0 car une seule variante
+              index: variant.productIndex  // Utiliser l'index du produit dans la commande d'origine
             }],
             totalQuantity: variant.totalQuantity
           });
@@ -171,26 +171,29 @@ export default function TextilePage() {
               <Table.Td>
                 <Group gap="xs">
                   {group.variants.map(({ variant, encodedOrderId, index }) => {
-                    const variantId = generateVariantId(
-                      encodedOrderId,
-                      variant.sku,
-                      group.color,
-                      group.size,
-                      index,
-                      variant.productIndex
-                    );
-                    return (
-                      <VariantCheckbox
-                        key={variantId}
-                        sku={variant.sku}
-                        color={group.color}
-                        size={group.size}
-                        quantity={1}
-                        orderId={encodedOrderId}
-                        productIndex={variant.productIndex}
-                        variantId={variantId}
-                      />
-                    );
+                    // Créer un tableau de la taille de la quantité de la variante
+                    return Array.from({ length: variant.totalQuantity }, (_, quantityIndex) => {
+                      const variantId = generateVariantId(
+                        encodedOrderId,
+                        variant.sku,
+                        group.color,
+                        group.size,
+                        index,
+                        variant.productIndex
+                      );
+                      return (
+                        <VariantCheckbox
+                          key={`${variantId}-${quantityIndex}`}
+                          sku={variant.sku}
+                          color={group.color}
+                          size={group.size}
+                          quantity={1}
+                          orderId={encodedOrderId}
+                          productIndex={variant.productIndex}
+                          variantId={variantId}
+                        />
+                      );
+                    });
                   })}
                 </Group>
               </Table.Td>
