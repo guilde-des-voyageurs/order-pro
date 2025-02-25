@@ -9,6 +9,7 @@ import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { WeeklyBillingCheckbox } from '@/components/WeeklyBillingCheckbox';
+import { WeeklyBillingNote } from '@/components/WeeklyBillingNote';
 
 interface Order {
   id: string;
@@ -119,44 +120,48 @@ export default function FacturationPage() {
               />
             </Title>
             
-            <Paper withBorder>
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Commande</Table.Th>
-                    <Table.Th>Nombre de produits</Table.Th>
-                    <Table.Th>Facturation</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {week.orders.map((order) => (
-                    <Table.Tr key={order.id}>
-                      <Table.Td>{order.name}</Table.Td>
-                      <Table.Td>{getProductCount(order)}</Table.Td>
+            <Paper withBorder p="md">
+              <Stack gap="md">
+                <WeeklyBillingNote weekStart={week.weekStart} />
+                
+                <Table>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Commande</Table.Th>
+                      <Table.Th>Nombre de produits</Table.Th>
+                      <Table.Th>Facturation</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {week.orders.map((order) => (
+                      <Table.Tr key={order.id}>
+                        <Table.Td>{order.name}</Table.Td>
+                        <Table.Td>{getProductCount(order)}</Table.Td>
+                        <Table.Td>
+                          <Group gap="md">
+                            <BillingCheckbox 
+                              orderId={`gid://shopify/Order/${order.id}`}
+                            />
+                            <Text size="sm" c="dimmed">
+                              {formatPrice(getTotalCost(order))}
+                            </Text>
+                          </Group>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                    <Table.Tr className={styles.totalRow}>
+                      <Table.Td colSpan={2} style={{ textAlign: 'right' }}>
+                        <Text fw={500}>Total de la semaine :</Text>
+                      </Table.Td>
                       <Table.Td>
-                        <Group gap="md">
-                          <BillingCheckbox 
-                            orderId={`gid://shopify/Order/${order.id}`}
-                          />
-                          <Text size="sm" c="dimmed">
-                            {formatPrice(getTotalCost(order))}
-                          </Text>
-                        </Group>
+                        <Text fw={500} size="lg" c="blue">
+                          {formatPrice(week.orders.reduce((total, order) => total + getTotalCost(order), 0))}
+                        </Text>
                       </Table.Td>
                     </Table.Tr>
-                  ))}
-                  <Table.Tr className={styles.totalRow}>
-                    <Table.Td colSpan={2} style={{ textAlign: 'right' }}>
-                      <Text fw={500}>Total de la semaine :</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text fw={500} size="lg" c="blue">
-                        {formatPrice(week.orders.reduce((total, order) => total + getTotalCost(order), 0))}
-                      </Text>
-                    </Table.Td>
-                  </Table.Tr>
-                </Table.Tbody>
-              </Table>
+                  </Table.Tbody>
+                </Table>
+              </Stack>
             </Paper>
           </div>
         ))}
