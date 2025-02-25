@@ -4,6 +4,7 @@ import React from 'react';
 import { ColorSchemeScript } from '@mantine/core';
 import { createTheme } from '@mantine/core';
 import { ClientLayout } from '@/components/ClientLayout';
+import { AuthProvider } from '@/context/AuthContext';
 import '@mantine/core/styles.css';
 import '@mantine/nprogress/styles.css';
 import './globals.scss';
@@ -43,9 +44,11 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body className={`${inter.variable} ${alegreya.variable}`}>
-        <ClientLayout theme={theme}>
-          {children}
-        </ClientLayout>
+        <AuthProvider>
+          <ClientLayout theme={theme}>
+            {children}
+          </ClientLayout>
+        </AuthProvider>
       </body>
     </html>
   );

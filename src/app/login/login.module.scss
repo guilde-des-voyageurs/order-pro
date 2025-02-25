@@ -1,0 +1,13 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--mantine-color-gray-0);
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 400px;
+  background-color: white;
+}
