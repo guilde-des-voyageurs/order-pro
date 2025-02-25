@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Stack } from '@mantine/core';
+import { Title, Paper, Table, Stack, Group, Text } from '@mantine/core';
 import styles from './facturation.module.scss';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
@@ -11,10 +11,12 @@ import { fr } from 'date-fns/locale';
 
 interface Order {
   id: string;
-  orderNumber: string;
+  name: string;  // Le numéro de commande
   createdAt: string;
   lineItems: Array<{
     quantity: number;
+    unitCost?: number | null;
+    totalCost?: number | null;
   }>;
 }
 
@@ -78,8 +80,26 @@ export default function FacturationPage() {
     return order.lineItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const getTotalCost = (order: Order) => {
+    return order.lineItems.reduce((total, item) => {
+      // Si totalCost est disponible, l'utiliser
+      if (item.totalCost) {
+        return total + item.totalCost;
+      }
+      // Sinon calculer avec unitCost * quantity
+      else if (item.unitCost) {
+        return total + (item.quantity * item.unitCost);
+      }
+      return total;
+    }, 0);
+  };
+
   const formatWeekRange = (start: Date, end: Date) => {
     return `${format(start, 'dd MMMM', { locale: fr })} - ${format(end, 'dd MMMM yyyy', { locale: fr })}`;
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
   };
 
   return (
@@ -107,12 +127,17 @@ export default function FacturationPage() {
                 <Table.Tbody>
                   {week.orders.map((order) => (
                     <Table.Tr key={order.id}>
-                      <Table.Td>#{order.orderNumber}</Table.Td>
+                      <Table.Td>#{order.name}</Table.Td>
                       <Table.Td>{getProductCount(order)}</Table.Td>
                       <Table.Td>
-                        <BillingCheckbox 
-                          orderId={`gid://shopify/Order/${order.id}`}
-                        />
+                        <Group gap="md">
+                          <BillingCheckbox 
+                            orderId={`gid://shopify/Order/${order.id}`}
+                          />
+                          <Text size="sm" c="dimmed">
+                            {formatPrice(getTotalCost(order))}
+                          </Text>
+                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   ))}
