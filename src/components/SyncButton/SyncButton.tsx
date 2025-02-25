@@ -1,13 +1,12 @@
 import { Button, Tooltip } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { fetchOrdersApiAction } from '@/actions/fetch-orders-api-action';
 import { ordersService } from '@/firebase/services/orders';
 
 export function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [hasInitialSync, setHasInitialSync] = useState(false);
 
   const handleSync = async () => {
     try {
@@ -28,15 +27,8 @@ export function SyncButton() {
       });
     } finally {
       setIsSyncing(false);
-      setHasInitialSync(true);
     }
   };
-
-  useEffect(() => {
-    if (!hasInitialSync) {
-      handleSync();
-    }
-  }, []);
 
   return (
     <Tooltip label="Synchroniser les commandes">

@@ -1,0 +1,41 @@
+.menu {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.menu_logo {
+  width: 200px;
+  height: auto;
+  margin: 0 auto 2rem;
+}
+
+.menu_links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu_links li {
+  margin-bottom: 0.5rem;
+}
+
+.menu_links a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--mantine-color-gray-7);
+  text-decoration: none;
+  border-radius: var(--mantine-radius-sm);
+  transition: all 0.2s;
+}
+
+.menu_links a:hover {
+  background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-gray-8);
+}
+
+.menu_links a.active {
+  background-color: var(--mantine-color-blue-1);
+  color: var(--mantine-color-blue-7);
+  font-weight: 500;
+}
