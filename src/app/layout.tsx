@@ -5,7 +5,6 @@ import { ColorSchemeScript } from '@mantine/core';
 import { createTheme } from '@mantine/core';
 import { ClientLayout } from '@/components/ClientLayout';
 import '@mantine/core/styles.css';
-import '@mantine/notifications/styles.css';
 import '@mantine/nprogress/styles.css';
 import './globals.scss';
 
