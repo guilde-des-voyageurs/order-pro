@@ -5,6 +5,8 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import type { ShopifyOrder } from '@/types/shopify';
 
+const ORDERS_COLLECTION = 'orders-v2';
+
 export function useOrdersPagePresenter() {
   const [orders, setOrders] = useState<ShopifyOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -12,14 +14,19 @@ export function useOrdersPagePresenter() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
-    const ordersRef = collection(db, 'orders');
+    const ordersRef = collection(db, ORDERS_COLLECTION);
     const q = query(ordersRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        ...doc.data(),
-      })) as ShopifyOrder[];
+      const ordersData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Firebase data for order:', doc.id, data);
+        return {
+          ...data,
+        };
+      }) as ShopifyOrder[];
       
+      console.log('All orders data:', ordersData);
       setOrders(ordersData);
       setIsLoading(false);
     }, (error) => {

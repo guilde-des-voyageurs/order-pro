@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règles pour la base de données de développement
+    match /{document=**} {
+      allow read, write: if true;  // Mode développement uniquement
+    }
+  }
+}

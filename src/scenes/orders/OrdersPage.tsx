@@ -49,6 +49,10 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
       <Table.Td>
         <TextileProgress orderId={encodeFirestoreId(order.id)} />
       </Table.Td>
+      <Table.Td>
+        {console.log('Order data:', order)}
+        <Text size="sm">cancelledAt: {JSON.stringify(order.cancelledAt)}</Text>
+      </Table.Td>
       <Table.Td onClick={(e) => e.stopPropagation()}>
         <InvoiceCheckbox 
           orderId={order.id} 
@@ -92,6 +96,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
                 <Table.Th>Date</Table.Th>
                 <Table.Th>En attente depuis</Table.Th>
                 <Table.Th>Avancement</Table.Th>
+                <Table.Th>Annulée</Table.Th>
                 <Table.Th>Facturé</Table.Th>
               </Table.Tr>
             </Table.Thead>

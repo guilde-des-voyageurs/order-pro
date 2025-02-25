@@ -21,6 +21,7 @@ interface ShopifyResponse {
       id: string;
       name: string;
       createdAt: string;
+      cancelledAt: string | null;
       displayFulfillmentStatus: string;
       displayFinancialStatus: string;
       note: string | null;
@@ -95,6 +96,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
       id: order.id,
       name: order.name,
       createdAt: order.createdAt,
+      cancelledAt: order.cancelledAt,
       displayFulfillmentStatus: order.displayFulfillmentStatus,
       displayFinancialStatus: order.displayFinancialStatus,
       note: order.note || undefined,

@@ -2,7 +2,7 @@ import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { db } from '../db';
 import type { ShopifyOrder } from '@/types/shopify';
 
-const ORDERS_COLLECTION = 'orders';
+const ORDERS_COLLECTION = 'orders-v2';
 
 /**
  * Sanitize un ID Shopify pour qu'il soit utilisable comme chemin Firebase
@@ -17,30 +17,6 @@ const sanitizeShopifyId = (shopifyId: string): string => {
   return matches[1];
 };
 
-// Fonction utilitaire pour nettoyer les objets
-const cleanObject = (obj: any): any => {
-  if (!obj) return null;
-  
-  const cleaned: any = {};
-  
-  Object.entries(obj).forEach(([key, value]) => {
-    if (value === undefined) return;
-    if (value === null) return;
-    
-    if (typeof value === 'object' && !Array.isArray(value)) {
-      cleaned[key] = cleanObject(value);
-    } else if (Array.isArray(value)) {
-      cleaned[key] = value.map(item => 
-        typeof item === 'object' ? cleanObject(item) : item
-      ).filter(Boolean);
-    } else {
-      cleaned[key] = value;
-    }
-  });
-  
-  return Object.keys(cleaned).length ? cleaned : null;
-};
-
 export const ordersService = {
   /**
    * Synchronise les commandes Shopify avec Firebase
@@ -48,66 +24,91 @@ export const ordersService = {
    * @returns Promise<void>
    */
   async syncOrders(orders: ShopifyOrder[]): Promise<void> {
+    console.log(`🔄 Début de la synchronisation de ${orders.length} commandes`);
+    
     const batch = writeBatch(db);
     const ordersRef = collection(db, ORDERS_COLLECTION);
 
     orders.forEach((order) => {
+      const formatDate = (date: string) => {
+        return new Date(date).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      };
+
+      console.log(`
+📦 Commande ${order.name}:
+- ID: ${order.id}
+- Créée le: ${formatDate(order.createdAt)}
+- Annulée le: ${order.cancelledAt}
+- Statut: ${order.displayFulfillmentStatus}
+- Prix total: ${order.totalPrice} ${order.totalPriceCurrency}
+- Client: ${order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : 'Pas de client'}
+- Nb articles: ${order.lineItems?.length || 0}
+      `);
+
       const sanitizedId = sanitizeShopifyId(order.id);
       const docRef = doc(ordersRef, sanitizedId);
 
-      // Transformer les données avant sauvegarde
+      // Transformer les données avant sauvegarde en s'assurant qu'elles sont sérialisables
       const rawOrderData = {
         id: order.id,
         name: order.name,
-        orderNumber: order.name?.replace('#', ''), // Extraire le numéro de commande
+        orderNumber: order.name?.replace('#', ''),
         createdAt: order.createdAt,
+        cancelledAt: order.cancelledAt || null,
         displayFulfillmentStatus: order.displayFulfillmentStatus,
         displayFinancialStatus: order.displayFinancialStatus,
-        totalPrice: order.totalPrice,
+        totalPrice: order.totalPrice?.toString(),
         totalPriceCurrency: order.totalPriceCurrency,
-        note: order.note,
+        note: order.note || null,
         customer: order.customer ? {
-          firstName: order.customer.firstName,
-          lastName: order.customer.lastName,
-          email: order.customer.email,
+          firstName: order.customer.firstName || null,
+          lastName: order.customer.lastName || null,
+          email: order.customer.email || null,
         } : null,
         shippingAddress: order.shippingAddress ? {
-          address1: order.shippingAddress.address1,
-          address2: order.shippingAddress.address2,
-          city: order.shippingAddress.city,
-          zip: order.shippingAddress.zip,
-          country: order.shippingAddress.country,
+          address1: order.shippingAddress.address1 || null,
+          address2: order.shippingAddress.address2 || null,
+          city: order.shippingAddress.city || null,
+          zip: order.shippingAddress.zip || null,
+          country: order.shippingAddress.country || null,
         } : null,
-        lineItems: order.lineItems?.map((item) => ({
+        lineItems: (order.lineItems || []).map((item) => ({
           id: item.id,
-          title: item.title,
-          quantity: item.quantity,
-          refundableQuantity: item.refundableQuantity,
-          price: item.price,
-          sku: item.sku,
-          variantTitle: item.variantTitle,
-          vendor: item.vendor,
-          productId: item.productId,
-          requiresShipping: item.requiresShipping,
-          taxable: item.taxable,
-          image: item.image,
-          unitCost: item.unitCost,
-          totalCost: item.totalCost,
-          isCancelled: item.isCancelled
-        })) || [],
-        synced_at: new Date().toISOString(),
+          title: item.title || null,
+          quantity: item.quantity || 0,
+          refundableQuantity: item.refundableQuantity || 0,
+          price: item.price?.toString() || "0",
+          sku: item.sku || null,
+          variantTitle: item.variantTitle || null,
+          vendor: item.vendor || null,
+          productId: item.productId || null,
+          requiresShipping: !!item.requiresShipping,
+          taxable: !!item.taxable,
+          image: item.image || null,
+          unitCost: item.unitCost || 0,
+          totalCost: item.totalCost || 0,
+          isCancelled: !!item.isCancelled
+        })),
+        synced_at: new Date().toISOString()
       };
 
-      // Nettoyer les données
-      const orderData = cleanObject(rawOrderData);
+      console.log('📝 Données à sauvegarder:', JSON.stringify(rawOrderData, null, 2));
 
-      if (!orderData) {
-        throw new Error(`Invalid order data for order: ${order.id}`);
-      }
-
-      batch.set(docRef, orderData);
+      batch.set(docRef, rawOrderData);
     });
 
-    await batch.commit();
+    try {
+      await batch.commit();
+      console.log('✅ Synchronisation terminée avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors de la synchronisation:', error);
+      throw error;
+    }
   }
 };

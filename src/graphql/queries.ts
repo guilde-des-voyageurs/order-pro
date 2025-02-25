@@ -12,15 +12,16 @@ export const TEST_QUERY = Buffer.from(`
 export const ORDERS_QUERY = Buffer.from(`
 query {
   orders(
-    first: 10, 
+    first: 250, 
     sortKey: CREATED_AT, 
     reverse: true,
-    query: "created_at:>='2025-01-16' AND (financial_status:active OR financial_status:paid OR financial_status:partially_paid OR financial_status:partially_refunded OR financial_status:pending)"
+    query: "created_at:>='2025-01-26' AND created_at:<='2025-01-30'"
   ) {
     nodes {
       id
       name
       createdAt
+      cancelledAt
       displayFulfillmentStatus
       displayFinancialStatus
       note
