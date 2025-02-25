@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Stack, Group, Text } from '@mantine/core';
+import { Title, Paper, Table, Stack, Group, Text, Checkbox } from '@mantine/core';
 import styles from './facturation.module.scss';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { WeeklyBillingCheckbox } from '@/components/WeeklyBillingCheckbox';
 
 interface Order {
   id: string;
@@ -113,6 +114,9 @@ export default function FacturationPage() {
           <div key={week.weekStart.toISOString()}>
             <Title order={3} className={styles.weekTitle}>
               {formatWeekRange(week.weekStart, week.weekEnd)}
+              <WeeklyBillingCheckbox 
+                orderIds={week.orders.map(order => `gid://shopify/Order/${order.id}`)}
+              />
             </Title>
             
             <Paper withBorder>

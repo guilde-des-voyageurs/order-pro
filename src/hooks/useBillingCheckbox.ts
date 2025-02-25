@@ -24,14 +24,23 @@ export const useBillingCheckbox = (orderId: string) => {
   }, [orderId]);
 
   const handleChange = async (checked: boolean) => {
-    const encodedOrderId = encodeFirestoreId(orderId);
-    const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
+    setLoading(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(orderId);
+      const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
 
-    await setDoc(docRef, {
-      orderId: orderId,
-      invoiced: checked,
-      updatedAt: new Date().toISOString()
-    });
+      await setDoc(docRef, {
+        orderId: orderId,
+        invoiced: checked,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      // Remettre l'état précédent en cas d'erreur
+      setChecked(!checked);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return { checked, loading, handleChange };
