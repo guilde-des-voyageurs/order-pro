@@ -46,7 +46,7 @@ export const VariantCheckbox = ({
     if (!auth.currentUser || !hasMounted) return;
 
     // Écouter les changements de la variante
-    const variantRef = doc(db, 'variants-ordered', variantId);
+    const variantRef = doc(db, 'variants-ordered-v2', variantId);
     const unsubscribe = onSnapshot(variantRef, (doc) => {
       if (doc.exists()) {
         setChecked(doc.data()?.checked || false);
@@ -75,11 +75,11 @@ export const VariantCheckbox = ({
     };
 
     // Mettre à jour le document de la variante
-    const variantRef = doc(db, 'variants-ordered', variantId);
+    const variantRef = doc(db, 'variants-ordered-v2', variantId);
     await setDoc(variantRef, document);
 
     // Mettre à jour le compteur de la commande
-    const orderRef = doc(db, 'textile-progress', encodedOrderId);
+    const orderRef = doc(db, 'textile-progress-v2', encodedOrderId);
     await setDoc(orderRef, {
       checkedCount: increment(newChecked ? 1 : -1),
       userId: auth.currentUser.uid,

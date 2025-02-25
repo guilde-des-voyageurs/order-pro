@@ -24,12 +24,14 @@ export const ordersService = {
    * @returns Promise<void>
    */
   async syncOrders(orders: ShopifyOrder[]): Promise<void> {
-    console.log(`🔄 Début de la synchronisation de ${orders.length} commandes`);
+    // Filtrer les commandes non annulées
+    const activeOrders = orders.filter(order => !order.cancelledAt);
+    console.log(`🔄 Début de la synchronisation de ${activeOrders.length} commandes actives sur ${orders.length} commandes totales`);
     
     const batch = writeBatch(db);
     const ordersRef = collection(db, ORDERS_COLLECTION);
 
-    orders.forEach((order) => {
+    activeOrders.forEach((order) => {
       const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('fr-FR', {
           day: '2-digit',

@@ -45,7 +45,7 @@ export const getOrderVariantsCheckedAction = async (
     }
 
     // Récupérer toutes les variantes cochées de la commande
-    const variantsRef = collection(db, 'variants-ordered');
+    const variantsRef = collection(db, 'variants-ordered-v2');
     const q = query(variantsRef, where('orderId', '==', orderId), where('checked', '==', true));
     const querySnapshot = await getDocs(q);
 

@@ -57,7 +57,7 @@ export const useVariantsProgress = (products: Product[], orderId: string) => {
     for (let i = 0; i < variantIds.length; i += batchSize) {
       const batchIds = variantIds.slice(i, i + batchSize);
       const q = query(
-        collection(db, 'variants-ordered'),
+        collection(db, 'variants-ordered-v2'),
         where('userId', '==', auth.currentUser.uid),
         where('__name__', 'in', batchIds)
       );

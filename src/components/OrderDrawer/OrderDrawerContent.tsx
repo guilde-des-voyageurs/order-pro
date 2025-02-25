@@ -41,7 +41,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
       ) ?? 0;
 
       // Mettre à jour uniquement le total
-      const progressRef = doc(db, 'textile-progress', encodedOrderId);
+      const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
       await setDoc(progressRef, {
         totalCount,
         userId: auth.currentUser.uid,

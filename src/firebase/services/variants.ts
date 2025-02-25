@@ -2,7 +2,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../db';
 import { getDefaultSku } from '@/utils/variant-helpers';
 
-const ORDERS_COLLECTION = 'orders';
+const ORDERS_COLLECTION = 'orders-v2';
 
 export interface Variant {
   id: string;

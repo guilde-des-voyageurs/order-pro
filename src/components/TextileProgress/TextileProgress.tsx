@@ -14,7 +14,7 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
   const [exists, setExists] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const docRef = doc(db, 'textile-progress', orderId);
+    const docRef = doc(db, 'textile-progress-v2', orderId);
 
     const unsubscribe = onSnapshot(docRef, (doc) => {
       setExists(doc.exists());
