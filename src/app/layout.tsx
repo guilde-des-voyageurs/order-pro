@@ -1,15 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, Alegreya } from 'next/font/google';
 import React from 'react';
-import {
-  ColorSchemeScript,
-  MantineProvider,
-  createTheme,
-} from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
-import { QueryClientProvider } from '@/state/QueryClientProvider';
-import { AuthProvider } from '@/state/AuthProvider';
-import { MainLayout } from '@/layout/MainLayout';
+import { ColorSchemeScript } from '@mantine/core';
+import { createTheme } from '@mantine/core';
+import { ClientLayout } from '@/components/ClientLayout';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/nprogress/styles.css';
@@ -50,16 +44,9 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body className={`${inter.variable} ${alegreya.variable}`}>
-        <MantineProvider theme={theme}>
-          <Notifications />
-          <AuthProvider>
-            <QueryClientProvider>
-              <MainLayout>
-                {children}
-              </MainLayout>
-            </QueryClientProvider>
-          </AuthProvider>
-        </MantineProvider>
+        <ClientLayout theme={theme}>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

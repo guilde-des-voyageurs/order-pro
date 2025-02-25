@@ -12,8 +12,8 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { Stack, Group, Text, Title, Paper, Image, Alert, List, Badge, Button } from '@mantine/core';
 import { IconAlertTriangle, IconMessage } from '@tabler/icons-react';
 import { useEffect, useRef } from 'react';
-import { db, auth } from '@/firebase/config';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
 import { generatePrintContent } from '@/utils/print-content';
 import { printInIframe } from '@/utils/print-helpers';
 import { getDefaultSku } from '@/utils/variant-helpers';
@@ -32,8 +32,6 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
 
   useEffect(() => {
     const updateProgress = async () => {
-      if (!auth.currentUser) return;
-
       // Calculer le nombre total de variantes
       const totalCount = order.lineItems?.reduce((total, item) => 
         total + (item.isCancelled ? 0 : item.quantity),
@@ -44,7 +42,6 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
       const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
       await setDoc(progressRef, {
         totalCount,
-        userId: auth.currentUser.uid,
         updatedAt: new Date().toISOString()
       }, { merge: true });  // merge: true pour ne pas écraser checkedCount
     };

@@ -2,14 +2,10 @@
 
 import styles from './MainLayout.module.scss';
 import Logo from '../assets/runesdechene.png';
-import { useAuth } from '@/state/AuthProvider';
-import { Button } from '@mantine/core';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { SyncButton } from '@/components/SyncButton/SyncButton';
-import { auth } from '@/firebase/config';
-import { signOut } from 'firebase/auth';
 
 interface MenuItem {
   href: string;
@@ -21,18 +17,8 @@ interface MainLayoutProps {
 }
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
-  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      await router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error instanceof Error ? error.message : 'Unknown error');
-    }
-  };
 
   const menuItems: MenuItem[] = [
     {
@@ -44,10 +30,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       label: 'Textile',
     }
   ];
-
-  if (!user) {
-    return children;
-  }
 
   return (
     <div className={styles.view}>
@@ -70,13 +52,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             </li>
           ))}
         </ul>
-        <Button 
-          onClick={handleSignOut}
-          className={styles.menu_signout}
-          variant="subtle"
-        >
-          Déconnexion
-        </Button>
       </div>
       <div className={styles.content}>
         {children}

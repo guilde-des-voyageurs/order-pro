@@ -2,7 +2,7 @@
 
 import { Checkbox, Group } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { db, auth } from '@/firebase/config';
+import { db } from '@/firebase/config';
 import { doc, onSnapshot, setDoc, getDoc, increment } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
@@ -13,7 +13,7 @@ interface VariantCheckboxProps {
   size: string;
   quantity: number;
   orderId: string;
-  productIndex: number; // Utilisé uniquement pour générer l'ID
+  productIndex: number;
   variantId: string;
   className?: string;
 }
@@ -24,7 +24,6 @@ interface VariantDocument {
   color: string;
   size: string;
   originalId: string;
-  userId: string;
   updatedAt: string;
   orderId: string;
 }
@@ -35,7 +34,7 @@ export const VariantCheckbox = ({
   size, 
   quantity,
   orderId,
-  productIndex, // Non utilisé dans le document Firebase
+  productIndex,
   variantId,
   className 
 }: VariantCheckboxProps) => {
@@ -43,7 +42,7 @@ export const VariantCheckbox = ({
   const hasMounted = useHasMounted();
 
   useEffect(() => {
-    if (!auth.currentUser || !hasMounted) return;
+    if (!hasMounted) return;
 
     // Écouter les changements de la variante
     const variantRef = doc(db, 'variants-ordered-v2', variantId);
@@ -57,8 +56,6 @@ export const VariantCheckbox = ({
   }, [variantId, hasMounted]);
 
   const handleCheckboxChange = async (event: any) => {
-    if (!auth.currentUser) return;
-
     const newChecked = event.target.checked;
     setChecked(newChecked);
 
@@ -69,7 +66,6 @@ export const VariantCheckbox = ({
       color: color || 'no-color',
       size: size || 'no-size',
       originalId: orderId,
-      userId: auth.currentUser.uid,
       updatedAt: new Date().toISOString(),
       orderId: encodedOrderId
     };
@@ -82,7 +78,6 @@ export const VariantCheckbox = ({
     const orderRef = doc(db, 'textile-progress-v2', encodedOrderId);
     await setDoc(orderRef, {
       checkedCount: increment(newChecked ? 1 : -1),
-      userId: auth.currentUser.uid,
       updatedAt: new Date().toISOString()
     }, { merge: true });
   };
@@ -104,7 +99,6 @@ export const VariantCheckbox = ({
       <Checkbox
         checked={checked}
         onChange={handleCheckboxChange}
-        disabled={!auth.currentUser}
         className={className}
         styles={{
           root: {

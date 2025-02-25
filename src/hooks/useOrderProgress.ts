@@ -1,51 +1,28 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '@/firebase/config';
+import { db } from '@/firebase/config';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
-export const useOrderProgress = (orderId: string | undefined) => {
-  const [progress, setProgress] = useState({ checkedCount: 0, totalCount: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const useOrderProgress = (orderId: string) => {
+  const [checkedCount, setCheckedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setError('Utilisateur non connecté');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!orderId) {
-      setError('ID de commande manquant');
-      setIsLoading(false);
-      return;
-    }
-
     const encodedOrderId = encodeFirestoreId(orderId);
-    const orderRef = doc(db, 'orders-progress', encodedOrderId);
-    
-    const unsubscribe = onSnapshot(orderRef, 
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setProgress({
-            checkedCount: data.checkedCount || 0,
-            totalCount: data.totalCount || 0,
-          });
-        } else {
-          setProgress({ checkedCount: 0, totalCount: 0 });
-        }
-        setIsLoading(false);
-        setError(null);
-      },
-      (error) => {
-        setError('Erreur lors de la récupération des données');
-        setIsLoading(false);
+    const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
+
+    const unsubscribe = onSnapshot(progressRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setCheckedCount(data.checkedCount || 0);
+        setTotalCount(data.totalCount || 0);
       }
-    );
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, [orderId]);
 
-  return { progress, isLoading, error };
+  return { checkedCount, totalCount, loading };
 };

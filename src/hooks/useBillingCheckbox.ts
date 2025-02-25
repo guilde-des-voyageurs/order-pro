@@ -1,77 +1,38 @@
-import { useState, useEffect } from 'react';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
-import { auth } from '@/firebase/config';
-
-interface BillingCheckboxState {
-  isChecked: boolean;
-  lastUpdated: Date;
-  originalId: string;
-  userId: string;
-}
-
-const encodeOrderId = (orderId: string) => {
-  return Buffer.from(orderId).toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
-};
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 export const useBillingCheckbox = (orderId: string) => {
-  const [isChecked, setIsChecked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const encodedId = encodeOrderId(orderId);
+  const [checked, setChecked] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      setError('Utilisateur non connecté');
-      setIsLoading(false);
-      return;
-    }
+    const encodedOrderId = encodeFirestoreId(orderId);
+    const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
 
-    const docRef = doc(db, 'billingCheckboxes', encodedId);
-    
-    const unsubscribe = onSnapshot(docRef, 
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as BillingCheckboxState;
-          setIsChecked(data.isChecked);
-        } else {
-          setDoc(docRef, {
-            isChecked: false,
-            lastUpdated: new Date(),
-            originalId: orderId,
-            userId: auth.currentUser!.uid
-          });
-        }
-        setError(null);
-        setIsLoading(false);
-      },
-      (error) => {
-        setError(error instanceof Error ? error.message : 'Une erreur est survenue');
-        setIsLoading(false);
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+      if (doc.exists()) {
+        setChecked(doc.data().invoiced || false);
+      } else {
+        setChecked(false);
       }
-    );
+      setLoading(false);
+    });
 
     return () => unsubscribe();
-  }, [orderId, encodedId]);
+  }, [orderId]);
 
-  const toggleCheckbox = async () => {
-    try {
-      if (!auth.currentUser) {
-        setError('Utilisateur non connecté');
-        return;
-      }
+  const handleChange = async (checked: boolean) => {
+    const encodedOrderId = encodeFirestoreId(orderId);
+    const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
 
-      const docRef = doc(db, 'billingCheckboxes', encodedId);
-      await setDoc(docRef, {
-        isChecked: !isChecked,
-        lastUpdated: new Date(),
-        originalId: orderId,
-        userId: auth.currentUser.uid
-      });
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Une erreur est survenue');
-    }
+    await setDoc(docRef, {
+      orderId: orderId,
+      invoiced: checked,
+      updatedAt: new Date().toISOString()
+    });
   };
 
-  return { isChecked, isLoading, error, toggleCheckbox };
+  return { checked, loading, handleChange };
 };
