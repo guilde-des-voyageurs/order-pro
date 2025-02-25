@@ -11,4 +11,11 @@
   font-size: 1.25rem;
   margin-bottom: 1rem;
   color: var(--mantine-color-gray-7);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.totalRow {
+  background-color: var(--mantine-color-blue-0);
 }

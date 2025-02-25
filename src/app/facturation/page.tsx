@@ -127,7 +127,7 @@ export default function FacturationPage() {
                 <Table.Tbody>
                   {week.orders.map((order) => (
                     <Table.Tr key={order.id}>
-                      <Table.Td>#{order.name}</Table.Td>
+                      <Table.Td>{order.name}</Table.Td>
                       <Table.Td>{getProductCount(order)}</Table.Td>
                       <Table.Td>
                         <Group gap="md">
@@ -141,6 +141,16 @@ export default function FacturationPage() {
                       </Table.Td>
                     </Table.Tr>
                   ))}
+                  <Table.Tr className={styles.totalRow}>
+                    <Table.Td colSpan={2} style={{ textAlign: 'right' }}>
+                      <Text fw={500}>Total de la semaine :</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text fw={500} size="lg" c="blue">
+                        {formatPrice(week.orders.reduce((total, order) => total + getTotalCost(order), 0))}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
                 </Table.Tbody>
               </Table>
             </Paper>
