@@ -8,25 +8,17 @@ interface BillingCheckboxProps {
 }
 
 export const BillingCheckbox: React.FC<BillingCheckboxProps> = ({ orderId, className }) => {
-  const { isChecked, isLoading, error, toggleCheckbox } = useBillingCheckbox(orderId);
+  const { checked, loading, handleChange } = useBillingCheckbox(orderId);
 
-  if (isLoading) {
+  if (loading) {
     return <div className={className}>Loading...</div>;
-  }
-
-  if (error) {
-    return (
-      <Tooltip label={error} color="red">
-        <div className={className}>⚠️</div>
-      </Tooltip>
-    );
   }
 
   return (
     <input
       type="checkbox"
-      checked={isChecked}
-      onChange={toggleCheckbox}
+      checked={checked}
+      onChange={(e) => handleChange(e.target.checked)}
       className={className}
       aria-label="Billing status checkbox"
     />

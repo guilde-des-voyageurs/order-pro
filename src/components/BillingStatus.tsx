@@ -1,5 +1,6 @@
 import React from 'react';
 import { useBillingCheckbox } from '@/hooks/useBillingCheckbox';
+import { Badge } from '@mantine/core';
 
 interface BillingStatusProps {
   orderId: string;
@@ -7,19 +8,15 @@ interface BillingStatusProps {
 }
 
 export const BillingStatus: React.FC<BillingStatusProps> = ({ orderId, className }) => {
-  const { isChecked, isLoading, error } = useBillingCheckbox(orderId);
+  const { checked, loading } = useBillingCheckbox(orderId);
 
-  if (isLoading) {
-    return <div className={className}>Loading...</div>;
-  }
-
-  if (error) {
-    return <div className={className}>⚠️</div>;
+  if (loading) {
+    return <Badge color="gray">Chargement...</Badge>;
   }
 
   return (
-    <div className={className}>
-      {isChecked ? '✓' : ''}
-    </div>
+    <Badge color={checked ? "green" : "red"}>
+      {checked ? "Facturé" : "Non facturé"}
+    </Badge>
   );
 };
