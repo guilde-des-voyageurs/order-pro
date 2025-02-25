@@ -18,8 +18,10 @@
     flex-direction: column;
 
     &_logo {
-      height: 52px;
+      height: 62px;
+      object-fit: contain;
       margin-bottom: 32px;
+      opacity: 0.9;
     }
 
     &_sync {

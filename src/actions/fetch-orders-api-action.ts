@@ -107,23 +107,31 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         ...order.shippingAddress,
         country: order.shippingAddress.countryCode
       } : undefined,
-      lineItems: order.lineItems.nodes.map(item => ({
-        id: item.id,
-        title: item.title,
-        quantity: item.quantity,
-        refundableQuantity: item.refundableQuantity,
-        price: item.originalUnitPriceSet.shopMoney.amount,
-        sku: item.sku || getDefaultSku(item.title),
-        variantTitle: item.variant?.title || null,
-        vendor: item.product?.vendor || null,
-        productId: item.product?.id || '',
-        requiresShipping: item.requiresShipping,
-        taxable: item.taxable,
-        image: item.image || null,
-        unitCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) : null,
-        totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
-        isCancelled: item.quantity > item.refundableQuantity
-      }))
+      lineItems: order.lineItems.nodes
+        .filter(item => {
+          // Exclure les pourboires qui sont des articles sans livraison et sans SKU
+          const isTip = !item.requiresShipping && !item.sku && 
+            (item.title.toLowerCase().includes('tip') || 
+             item.title.toLowerCase().includes('pourboire'));
+          return !isTip;
+        })
+        .map(item => ({
+          id: item.id,
+          title: item.title,
+          quantity: item.quantity,
+          refundableQuantity: item.refundableQuantity,
+          price: item.originalUnitPriceSet.shopMoney.amount,
+          sku: item.sku || getDefaultSku(item.title),
+          variantTitle: item.variant?.title || null,
+          vendor: item.product?.vendor || null,
+          productId: item.product?.id || '',
+          requiresShipping: item.requiresShipping,
+          taxable: item.taxable,
+          image: item.image || null,
+          unitCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) : null,
+          totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
+          isCancelled: item.quantity > item.refundableQuantity
+        }))
     }));
 
     return orders;

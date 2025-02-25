@@ -1,7 +1,6 @@
 'use client';
 
 import styles from './MainLayout.module.scss';
-import Logo from '../assets/runesdechene.png';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -10,6 +9,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import { Button } from '@mantine/core';
 import { IconLogout } from '@tabler/icons-react';
+import Image from 'next/image';
 
 interface MenuItem {
   href: string;
@@ -51,7 +51,14 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
-        <img className={styles.menu_logo} src={Logo.src} alt="Runes de Chêne" />
+        <Image
+          className={styles.menu_logo}
+          src="/runesdechene.png"
+          alt="Runes de Chêne"
+          width={200}
+          height={62}
+          priority
+        />
         <div className={styles.menu_sync}>
           <SyncButton />
         </div>
