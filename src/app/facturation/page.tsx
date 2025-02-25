@@ -1,14 +1,127 @@
 'use client';
 
-import { Title } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { Title, Paper, Table, Stack } from '@mantine/core';
 import styles from './facturation.module.scss';
+import { db } from '@/firebase/config';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { BillingCheckbox } from '@/components/BillingCheckbox';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  lineItems: Array<{
+    quantity: number;
+  }>;
+}
+
+interface WeeklyOrders {
+  weekStart: Date;
+  weekEnd: Date;
+  orders: Order[];
+}
 
 export default function FacturationPage() {
+  const [weeklyOrders, setWeeklyOrders] = useState<WeeklyOrders[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const ordersRef = collection(db, 'orders-v2');
+        const q = query(ordersRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const orders = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Order[];
+
+        // Grouper les commandes par semaine
+        const groupedOrders = orders.reduce((acc: WeeklyOrders[], order) => {
+          const orderDate = new Date(order.createdAt);
+          const weekStart = startOfWeek(orderDate, { weekStartsOn: 1 }); // Semaine commence le lundi
+          const weekEnd = endOfWeek(orderDate, { weekStartsOn: 1 });
+
+          const existingWeek = acc.find(
+            week => week.weekStart.getTime() === weekStart.getTime()
+          );
+
+          if (existingWeek) {
+            existingWeek.orders.push(order);
+          } else {
+            acc.push({
+              weekStart,
+              weekEnd,
+              orders: [order]
+            });
+          }
+
+          return acc;
+        }, []);
+
+        setWeeklyOrders(groupedOrders);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des commandes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  const getProductCount = (order: Order) => {
+    return order.lineItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const formatWeekRange = (start: Date, end: Date) => {
+    return `${format(start, 'dd MMMM', { locale: fr })} - ${format(end, 'dd MMMM yyyy', { locale: fr })}`;
+  };
+
   return (
     <div className={styles.container}>
       <Title order={2} className={styles.title}>
         Facturation
       </Title>
+
+      <Stack gap="xl">
+        {weeklyOrders.map((week) => (
+          <div key={week.weekStart.toISOString()}>
+            <Title order={3} className={styles.weekTitle}>
+              {formatWeekRange(week.weekStart, week.weekEnd)}
+            </Title>
+            
+            <Paper withBorder>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Commande</Table.Th>
+                    <Table.Th>Nombre de produits</Table.Th>
+                    <Table.Th>Facturation</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {week.orders.map((order) => (
+                    <Table.Tr key={order.id}>
+                      <Table.Td>#{order.orderNumber}</Table.Td>
+                      <Table.Td>{getProductCount(order)}</Table.Td>
+                      <Table.Td>
+                        <BillingCheckbox 
+                          orderId={`gid://shopify/Order/${order.id}`}
+                        />
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Paper>
+          </div>
+        ))}
+      </Stack>
     </div>
   );
 }
