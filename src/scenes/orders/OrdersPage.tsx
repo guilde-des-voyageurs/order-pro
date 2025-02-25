@@ -53,7 +53,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         <InvoiceCheckbox 
           orderId={order.id} 
           totalAmount={order.lineItems?.reduce((total, item) => 
-            total + (item.isCancelled ? 0 : (item.unitCost * item.quantity)),
+            total + (item.isCancelled ? 0 : ((item.unitCost ?? 0) * item.quantity)),
             0
           ) ?? 0}
           currency={order.totalPriceCurrency}
