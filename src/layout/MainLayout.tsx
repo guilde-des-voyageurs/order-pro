@@ -6,6 +6,10 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { SyncButton } from '@/components/SyncButton/SyncButton';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/firebase/config';
+import { Button } from '@mantine/core';
+import { IconLogout } from '@tabler/icons-react';
 
 interface MenuItem {
   href: string;
@@ -19,6 +23,15 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
 
   const menuItems: MenuItem[] = [
     {
@@ -52,10 +65,18 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             </li>
           ))}
         </ul>
+        <div className={styles.menu_footer}>
+          <Button 
+            variant="subtle" 
+            color="gray" 
+            leftSection={<IconLogout size={16} />}
+            onClick={handleLogout}
+          >
+            Déconnexion
+          </Button>
+        </div>
       </div>
-      <div className={styles.content}>
-        {children}
-      </div>
+      <div className={styles.content}>{children}</div>
     </div>
   );
 };
