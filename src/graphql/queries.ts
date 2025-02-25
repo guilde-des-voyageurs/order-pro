@@ -15,7 +15,7 @@ query {
     first: 100, 
     sortKey: CREATED_AT, 
     reverse: true,
-    query: "created_at:>='2025-02-24'"
+    query: "created_at:>='2025-01-16'"
   ) {
     nodes {
       id
