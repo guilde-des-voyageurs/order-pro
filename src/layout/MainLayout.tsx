@@ -41,6 +41,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     {
       href: '/textile',
       label: 'Textile',
+    },
+    {
+      href: '/facturation',
+      label: 'Facturation',
     }
   ];
 
