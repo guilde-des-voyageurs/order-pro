@@ -18,10 +18,19 @@
 .orderNumber {
   color: var(--mantine-color-blue-6);
   transition: color 0.2s ease;
+  font-size: 13px;
+  cursor: pointer;
 
   &:hover {
     color: var(--mantine-color-blue-8);
   }
+}
+
+.orderNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .section {

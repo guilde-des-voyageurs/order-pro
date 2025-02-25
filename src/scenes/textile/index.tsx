@@ -199,7 +199,7 @@ export default function TextilePage() {
               </Table.Td>
               <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
               <Table.Td>
-                <Group gap="xs">
+                <div className={styles.orderNumbers}>
                   {group.variants.map(({ variant }) => (
                     <Text 
                       key={`${variant.orderId}-${variant.productIndex}`}
@@ -212,7 +212,7 @@ export default function TextilePage() {
                       #{variant.orderNumber}
                     </Text>
                   ))}
-                </Group>
+                </div>
               </Table.Td>
             </Table.Tr>
           ))}
