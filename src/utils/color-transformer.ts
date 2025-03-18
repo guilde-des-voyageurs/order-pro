@@ -60,9 +60,23 @@ const colorMappings: { [key: string]: ColorMapping } = {
  * @returns Le nom formaté avec le nom interne entre parenthèses
  */
 export function transformColor(color: string): string {
-  const mapping = colorMappings[color.toLowerCase()];
+  if (!color) return 'Sans couleur';
+  
+  // Normaliser la couleur en minuscules et sans accents
+  const normalizedColor = color.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  // Chercher la correspondance dans le mapping
+  const mapping = colorMappings[normalizedColor] || 
+                 Object.entries(colorMappings)
+                   .find(([key]) => key.normalize('NFD')
+                     .replace(/[\u0300-\u036f]/g, '') === normalizedColor)?.[1];
+
   if (mapping) {
     return `${mapping.displayName} (${mapping.internalName})`;
   }
-  return color;
+
+  // Si aucune correspondance n'est trouvée, retourner la couleur avec une majuscule
+  return color.charAt(0).toUpperCase() + color.slice(1).toLowerCase();
 }

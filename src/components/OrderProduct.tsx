@@ -33,16 +33,15 @@ export const OrderProduct = ({ product }: OrderProductProps) => {
           {product.title}
         </Title>
         <Text mt={5}>
-          {product.selectedOptions.map((option) => (
-            <span key={option.name}>
-              <b>{option.name}</b> : {
-                option.name.toLowerCase().includes('couleur') 
-                  ? transformColor(option.value)
-                  : option.value
-              }
-              <br />
-            </span>
-          ))}
+          {product.selectedOptions.map((option) => {
+            const isColor = option.name.toLowerCase().includes('couleur');
+            return (
+              <span key={option.name}>
+                <b>{option.name}</b> : {isColor ? transformColor(option.value) : option.value}
+                <br />
+              </span>
+            );
+          })}
           <span className={styles.print_hidden}>
             <b>SKU</b> : {product.sku}
             <br />

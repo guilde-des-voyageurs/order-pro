@@ -17,6 +17,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { generatePrintContent } from '@/utils/print-content';
 import { printInIframe } from '@/utils/print-helpers';
 import { getDefaultSku } from '@/utils/variant-helpers';
+import { transformColor } from '@/utils/color-transformer';
 
 interface OrderDrawerContentProps {
   order: ShopifyOrder;
@@ -101,7 +102,16 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                       <Text size="sm" fw={500}>{item.title}</Text>
                       <Text size="sm" c="dimmed">Coût unitaire: {formatAmount(item.unitCost ?? 0)} {order.totalPriceCurrency}</Text>
                       {item.variantTitle && (
-                        <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                        <Text size="sm" c="dimmed">
+                          {item.variantTitle.split(' / ').map((variant, index) => {
+                            // Si c'est la première partie (la couleur)
+                            if (index === 0) {
+                              return transformColor(variant);
+                            }
+                            // Pour les autres parties (taille, etc.)
+                            return variant;
+                          }).join(' / ')}
+                        </Text>
                       )}
                       {item.sku && (
                         <Text size="xs" c="dimmed">SKU: {item.sku}</Text>
