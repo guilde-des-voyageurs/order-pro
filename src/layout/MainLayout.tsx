@@ -10,6 +10,9 @@ import { auth } from '@/firebase/config';
 import { Button } from '@mantine/core';
 import { IconLogout } from '@tabler/icons-react';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { db } from '@/firebase/db';
 
 interface MenuItem {
   href: string;
@@ -23,6 +26,22 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  useEffect(() => {
+    const ordersRef = collection(db, 'orders-v2');
+    const q = query(ordersRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const count = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled';
+      }).length;
+      setPendingOrdersCount(count);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -36,7 +55,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const menuItems: MenuItem[] = [
     {
       href: '/orders',
-      label: 'Commandes',
+      label: `Commandes (${pendingOrdersCount})`,
     },
     {
       href: '/textile',
