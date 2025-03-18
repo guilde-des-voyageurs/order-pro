@@ -28,6 +28,10 @@ const colorMappings: { [key: string]: ColorMapping } = {
     displayName: 'Crème',
     internalName: 'Cream'
   },
+  'nocturne': {
+    displayName: 'Nocturne',
+    internalName: 'Dusk'
+  },
   'kaki': {
     displayName: 'Kaki',
     internalName: 'Khaki'
