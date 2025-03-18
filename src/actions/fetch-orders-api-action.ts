@@ -126,6 +126,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
           return null;
         }
 
+        // Retourner l'objet ShopifyOrder complet
         return {
           id: order.id,
           name: order.name,
@@ -158,7 +159,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
             totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
             isCancelled: item.quantity > item.refundableQuantity
           }))
-        };
+        } as ShopifyOrder; // Assertion de type explicite
       })
       .filter((order): order is ShopifyOrder => order !== null); // Type guard pour TypeScript
 
