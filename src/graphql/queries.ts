@@ -12,7 +12,7 @@ export const TEST_QUERY = Buffer.from(`
 export const ORDERS_QUERY = Buffer.from(`
 query {
   orders(
-    first: 100, 
+    first: 200, 
     sortKey: CREATED_AT, 
     reverse: true,
     query: "created_at:>='2025-01-16' NOT name:'#1366' NOT name:'#1336'"
@@ -30,18 +30,6 @@ query {
           amount
           currencyCode
         }
-      }
-      customer {
-        firstName
-        lastName
-        email
-      }
-      shippingAddress {
-        address1
-        address2
-        city
-        zip
-        countryCode
       }
       lineItems(first: 50) {
         nodes {

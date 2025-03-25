@@ -49,7 +49,6 @@ export const ordersService = {
 - Annulée le: ${order.cancelledAt}
 - Statut: ${order.displayFulfillmentStatus}
 - Prix total: ${order.totalPrice} ${order.totalPriceCurrency}
-- Client: ${order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : 'Pas de client'}
 - Nb articles: ${order.lineItems?.length || 0}
       `);
 
@@ -68,18 +67,6 @@ export const ordersService = {
         totalPrice: order.totalPrice?.toString(),
         totalPriceCurrency: order.totalPriceCurrency,
         note: order.note || null,
-        customer: order.customer ? {
-          firstName: order.customer.firstName || null,
-          lastName: order.customer.lastName || null,
-          email: order.customer.email || null,
-        } : null,
-        shippingAddress: order.shippingAddress ? {
-          address1: order.shippingAddress.address1 || null,
-          address2: order.shippingAddress.address2 || null,
-          city: order.shippingAddress.city || null,
-          zip: order.shippingAddress.zip || null,
-          country: order.shippingAddress.country || null,
-        } : null,
         lineItems: (order.lineItems || []).map((item) => ({
           id: item.id,
           title: item.title || null,

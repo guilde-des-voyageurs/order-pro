@@ -33,18 +33,6 @@ interface ShopifyResponse {
           currencyCode: string;
         }
       };
-      customer?: {
-        firstName: string;
-        lastName: string;
-        email: string;
-      };
-      shippingAddress?: {
-        address1: string;
-        address2?: string;
-        city: string;
-        zip: string;
-        countryCode: string;
-      };
       lineItems: {
         nodes: Array<{
           id: string;
@@ -98,11 +86,12 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
 
     // Si le test passe, on fait la vraie requête
     const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY.toString());
-    
+
     if (!result?.data?.orders?.nodes) {
       return [];
     }
 
+    
     // Transformer les données pour correspondre à notre type
     const orders = result.data.orders.nodes
       .map(order => {
@@ -113,12 +102,8 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
             const isTip = !item.requiresShipping && !item.sku && 
               (item.title.toLowerCase().includes('tip') || 
                item.title.toLowerCase().includes('pourboire'));
-
-            // Vérifier si l'article provient de l'emplacement accepté
-            const isFromAcceptedLocation = item.variant?.inventoryItem?.inventoryLevels?.edges
-              .some(edge => edge.node.location.id === ACCEPTED_LOCATION_ID);
-
-            return !isTip && isFromAcceptedLocation;
+      
+            return !isTip;
           });
 
         // Si aucun article n'est de l'emplacement accepté, retourner null
@@ -137,11 +122,6 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
           note: order.note || undefined,
           totalPrice: order.totalPriceSet.shopMoney.amount,
           totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
-          customer: order.customer,
-          shippingAddress: order.shippingAddress ? {
-            ...order.shippingAddress,
-            country: order.shippingAddress.countryCode
-          } : undefined,
           lineItems: filteredLineItems.map(item => ({
             id: item.id,
             title: item.title,

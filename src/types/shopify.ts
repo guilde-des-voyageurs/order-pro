@@ -8,18 +8,6 @@ export interface ShopifyOrder {
   totalPrice: string;
   totalPriceCurrency: string;
   note?: string | null;  // Notes de la commande
-  customer?: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  shippingAddress?: {
-    address1: string;
-    address2?: string | null;
-    city: string;
-    zip: string;
-    country: string;
-  };
   lineItems?: Array<{
     id: string;
     title: string;
