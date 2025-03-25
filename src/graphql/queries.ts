@@ -15,7 +15,7 @@ query {
     first: 200, 
     sortKey: CREATED_AT, 
     reverse: true,
-    query: "created_at:>='2025-01-16' NOT name:'#1366' NOT name:'#1336'"
+    query: "created_at:>='2025-01-16' NOT name:'#1366' NOT name:'#1336' NOT name:'#1412'"
   ) {
     nodes {
       id
