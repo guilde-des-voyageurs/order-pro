@@ -17,11 +17,27 @@
     display: flex;
     flex-direction: column;
 
+    &_header {
+      display: flex;
+      flex-direction: column;
+      align-items: left;
+      gap: 4px;
+    }
+
     &_logo {
       height: 62px;
       object-fit: contain;
       margin-bottom: 32px;
       opacity: 0.9;
+    }
+
+    .version {
+      position: absolute;
+      right: 15px;
+      top: 40px;
+      font-size: 13px;
+      color: #646d6c;
+      margin-top: -8px;
     }
 
     &_sync {
