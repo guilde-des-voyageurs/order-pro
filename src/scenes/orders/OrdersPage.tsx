@@ -7,6 +7,7 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
+import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './OrdersPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
@@ -43,6 +44,9 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
       </Table.Td>
       <Table.Td>
         <TextileProgress orderId={encodeFirestoreId(order.id)} />
+      </Table.Td>
+      <Table.Td>
+        <FinancialStatus status={order.displayFinancialStatus} />
       </Table.Td>
       <Table.Td onClick={(e) => e.stopPropagation()}>
         <InvoiceCheckbox 
@@ -87,6 +91,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
                 <Table.Th>Date</Table.Th>
                 <Table.Th>En attente depuis</Table.Th>
                 <Table.Th>Avancement</Table.Th>
+                <Table.Th>Statut Financier</Table.Th>
                 <Table.Th>Facturé</Table.Th>
               </Table.Tr>
             </Table.Thead>

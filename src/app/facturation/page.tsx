@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Title, Paper, Table, Stack, Group, Text, UnstyledButton } from '@mantine/core';
 import styles from './facturation.module.scss';
 import { db } from '@/firebase/config';
-import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -18,6 +18,7 @@ interface Order {
   id: string;
   name: string;  // Le numéro de commande
   createdAt: string;
+  displayFinancialStatus?: string;
   lineItems: Array<{
     quantity: number;
     unitCost?: number | null;
@@ -63,13 +64,18 @@ export default function FacturationPage() {
       setLoading(true);
       try {
         const ordersRef = collection(db, 'orders-v2');
-        const q = query(ordersRef, orderBy('createdAt', 'desc'));
+        const q = query(
+          ordersRef, 
+          orderBy('createdAt', 'desc')
+        );
         const querySnapshot = await getDocs(q);
         
-        const orders = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Order[];
+        const orders = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Order))
+          .filter(order => order.displayFinancialStatus?.toLowerCase() !== 'refunded');
 
         // Grouper les commandes par semaine
         const groupedOrders = orders.reduce((acc: WeeklyOrders[], order) => {

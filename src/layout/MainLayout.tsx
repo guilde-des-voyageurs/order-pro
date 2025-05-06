@@ -35,7 +35,8 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const count = snapshot.docs.filter(doc => {
         const data = doc.data();
-        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled';
+        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled' 
+          && data.displayFinancialStatus?.toLowerCase() !== 'refunded';
       }).length;
       setPendingOrdersCount(count);
     });

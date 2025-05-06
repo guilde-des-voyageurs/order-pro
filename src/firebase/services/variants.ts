@@ -31,7 +31,8 @@ export const variantsService = {
     const ordersRef = collection(db, ORDERS_COLLECTION);
     const ordersQuery = query(
       ordersRef,
-      where('displayFulfillmentStatus', '==', 'UNFULFILLED')
+      where('displayFulfillmentStatus', '==', 'UNFULFILLED'),
+      where('displayFinancialStatus', '!=', 'REFUNDED')
     );
     const snapshot = await getDocs(ordersQuery);
     

@@ -39,6 +39,11 @@ export function useOrdersPagePresenter() {
 
   const { pendingOrders, shippedOrders } = useMemo(() => {
     return orders.reduce((acc, order) => {
+      // Ne pas inclure les commandes remboursées
+      if (order.displayFinancialStatus?.toLowerCase() === 'refunded') {
+        return acc;
+      }
+
       const status = order.displayFulfillmentStatus?.toLowerCase();
       if (status === 'fulfilled') {
         acc.shippedOrders.push(order);
