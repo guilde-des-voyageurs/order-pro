@@ -68,7 +68,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       <Text fw={500}>{item.title}</Text>
                       <Group gap="xs">
                         {item.sku && (
-                          <Text size="sm" c="dimmed">modèle: {item.sku}</Text>
+                          <Text size="sm" c="dimmed">{item.sku}</Text>
                         )}
                         {item.variantTitle && (
                           <Text size="sm" c="dimmed">
@@ -80,11 +80,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               const foundColor = Object.entries(colorMappings).find(([key]) => 
                                 key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
                               );
-
-                              if (foundColor) {
-                                return foundColor[1].internalName;
-                              }
-                              return variant;
+                              return foundColor ? foundColor[1].internalName : variant;
                             }).join(' / ')}
                           </Text>
                         )}
