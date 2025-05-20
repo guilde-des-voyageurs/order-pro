@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge } from '@mantine/core';
+import styles from './TextileProgress.module.scss';
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -35,22 +36,22 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
   }, [orderId]);
 
   if (progress === null || exists === null) {
-    return <Badge color="gray">-</Badge>;
+    return <Badge className={styles.progress} variant="outline">-</Badge>;
   }
 
   if (!exists) {
-    return <Badge color="violet">NEW</Badge>;
+    return <Badge className={`${styles.progress} ${styles.new}`} variant="outline">NEW</Badge>;
   }
 
-  const getColor = () => {
-    if (progress.totalCount === 0) return 'gray';
-    if (progress.checkedCount === 0) return '#d9734f';
-    if (progress.checkedCount === progress.totalCount) return '#53c593';
-    return 'yellow';
+  const getProgressClass = () => {
+    if (!exists) return 'new';
+    if (progress.checkedCount === 0) return 'incomplete';
+    if (progress.checkedCount === progress.totalCount) return 'complete';
+    return 'incomplete';
   };
 
   return (
-    <Badge color={getColor()}>
+    <Badge className={`${styles.progress} ${styles[getProgressClass()]}`} variant="outline">
       {progress.checkedCount} / {progress.totalCount}
     </Badge>
   );
