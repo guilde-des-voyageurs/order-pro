@@ -63,8 +63,8 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           className={styles.productImage}
                           src={item.image.url}
                           alt={item.image.altText || item.title}
-                          w={60}
-                          h={60}
+                          w={100}
+                          h={100}
                           fit="contain"
                         />
                       )}
