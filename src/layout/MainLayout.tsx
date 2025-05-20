@@ -56,20 +56,20 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
   const menuItems: MenuItem[] = [
     {
-      href: '/orders',
+      href: '/detailed-orders',
       label: `Commandes (${pendingOrdersCount})`,
     },
     {
-      href: '/detailed-orders',
-      label: 'Commandes détaillées',
-    },
-    {
       href: '/textile',
-      label: 'Textile',
+      label: 'Suivi textile',
     },
     {
       href: '/facturation',
       label: 'Facturation',
+    },
+    {
+      href: '/orders',
+      label: `Archives`,
     }
   ];
 

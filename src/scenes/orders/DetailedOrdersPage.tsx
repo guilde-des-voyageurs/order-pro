@@ -190,8 +190,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
 
 export function DetailedOrdersPage() {
   const { 
-    pendingOrders, 
-    shippedOrders, 
+    pendingOrders,
     selectedOrder,
     isDrawerOpen,
     onSelectOrder,

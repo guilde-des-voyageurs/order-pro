@@ -1,5 +1,5 @@
-import { OrdersPage } from '@/scenes/orders/OrdersPage';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <OrdersPage />;
+  redirect('/detailed-orders');
 }
