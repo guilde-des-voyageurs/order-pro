@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -14,7 +14,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId } from '@/utils/variant-helpers';
-import { IconMessage, IconAlertTriangle } from '@tabler/icons-react';
+import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -156,21 +156,47 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   );
 }
 
-function OrdersSection({ title, orders, selectedOrder, onSelect, type }: { 
+function OrdersSection({ 
+  title, 
+  orders, 
+  selectedOrder, 
+  onSelect, 
+  type,
+  isReversed,
+  toggleOrder 
+}: { 
   title: string;
   orders: ShopifyOrder[];
   selectedOrder: ShopifyOrder | undefined;
   onSelect: (id: string) => void;
   type: string;
+  isReversed: boolean;
+  toggleOrder: () => void;
 }) {
   return (
     <div className={styles.section}>
       <Stack gap="md">
         <Group justify="space-between" align="center">
           <Title order={2}>{title}</Title>
-          <Text size="sm" c="dimmed">
-            {orders.length} commande{orders.length > 1 ? 's' : ''}
-          </Text>
+          <Group gap="xs">
+            <Text size="sm" c="dimmed">
+              {orders.length} commande{orders.length > 1 ? 's' : ''}
+            </Text>
+            <ActionIcon 
+              variant="subtle" 
+              color="gray"
+              onClick={toggleOrder}
+              title={isReversed ? "Plus récentes d'abord" : "Plus anciennes d'abord"}
+            >
+              <IconArrowsSort
+                style={{ 
+                  transform: isReversed ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease'
+                }} 
+                size="1.2rem"
+              />
+            </ActionIcon>
+          </Group>
         </Group>
 
         <div className={styles.ordersGrid}>
@@ -196,7 +222,9 @@ export function DetailedOrdersPage() {
     onSelectOrder,
     onCloseDrawer,
     isLoading,
-    orderStats 
+    orderStats,
+    isReversed,
+    toggleOrder 
   } = useDetailedOrdersPagePresenter();
 
   if (isLoading) {
@@ -242,10 +270,10 @@ export function DetailedOrdersPage() {
         variant="light"
       >
         <Group gap="sm">
-          <Badge size="lg" variant="light" color="gray">retirer les étiquettes du produit</Badge>
+          <Badge size="lg" variant="light" color="gray">retirer les étiquettes Stanley</Badge>
           <Badge size="lg" variant="light" color="gray">glisser le mot de remerciement</Badge>
           <Badge size="lg" variant="light" color="gray">le sticker</Badge>
-          <Badge size="lg" variant="light" color="gray">le micro-flyer Wanderers</Badge>
+          <Badge size="lg" variant="light" color="gray">le Flyer !</Badge>
         </Group>
       </Alert>
 
@@ -255,6 +283,8 @@ export function DetailedOrdersPage() {
         selectedOrder={selectedOrder}
         onSelect={onSelectOrder}
         type="pending"
+        isReversed={isReversed}
+        toggleOrder={toggleOrder}
       />
 
       <OrderDrawer

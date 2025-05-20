@@ -8,6 +8,7 @@ import type { ShopifyOrder } from '@/types/shopify';
 const ORDERS_COLLECTION = 'orders-v2';
 
 export function useDetailedOrdersPagePresenter() {
+  const [isReversed, setIsReversed] = useState(false);
   const [orders, setOrders] = useState<ShopifyOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
@@ -83,9 +84,17 @@ export function useDetailedOrdersPagePresenter() {
     return stats;
   }, [pendingOrders]);
 
+  const sortedPendingOrders = useMemo(() => {
+    return isReversed ? [...pendingOrders].reverse() : pendingOrders;
+  }, [pendingOrders, isReversed]);
+
+  const toggleOrder = () => setIsReversed(prev => !prev);
+
   return {
-    pendingOrders,
+    pendingOrders: sortedPendingOrders,
     orderStats,
+    isReversed,
+    toggleOrder,
     selectedOrder,
     isDrawerOpen,
     onSelectOrder,
