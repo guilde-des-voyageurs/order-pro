@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -14,6 +14,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId } from '@/utils/variant-helpers';
+import { IconMessage } from '@tabler/icons-react';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
@@ -115,6 +116,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
             </div>
           </div>
         </Stack>
+        {order.note && (
+          <Alert icon={<IconMessage size="1rem" />} color="blue" variant="light">
+            {order.note}
+          </Alert>
+        )}
       </Paper>
   );
 }
