@@ -66,10 +66,24 @@
   }
 
   .productContent {
-    display: grid;
-    grid-template-columns: 60px 1fr auto;
+    display: flex;
     gap: 1rem;
     align-items: center;
+
+    .productImageContainer {
+      flex: 0 0 60px;
+      width: 60px;
+      height: 60px;
+    }
+
+    .productInfo {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .productActions {
+      flex: 0 0 auto;
+    }
   }
 }
 

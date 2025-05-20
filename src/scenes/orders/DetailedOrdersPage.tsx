@@ -57,17 +57,19 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   p="md"
                 >
                   <div className={styles.productContent}>
-                    {item.image && (
-                      <Image
-                        className={styles.productImage}
-                        src={item.image.url}
-                        alt={item.image.altText || item.title}
-                        w={60}
-                        h={60}
-                        fit="contain"
-                      />
-                    )}
-                    <div>
+                    <div className={styles.productImageContainer}>
+                      {item.image && (
+                        <Image
+                          className={styles.productImage}
+                          src={item.image.url}
+                          alt={item.image.altText || item.title}
+                          w={60}
+                          h={60}
+                          fit="contain"
+                        />
+                      )}
+                    </div>
+                    <div className={styles.productInfo}>
                       <Text fw={500}>{item.title}</Text>
                       <Group gap="xs">
                         {item.sku && (
@@ -89,26 +91,31 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         )}
                       </Group>
                     </div>
-                    <Group gap="xs">
+                    <Group gap="xs" className={styles.productActions}>
                       <Badge color={item.isCancelled ? 'red' : 'blue'}>
                         {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
                       </Badge>
-                      <VariantCheckbox
-                        orderId={encodeFirestoreId(order.id)}
-                        sku={item.sku || ''}
-                        color={item.variantTitle?.split(' / ')[0] || ''}
-                        size={item.variantTitle?.split(' / ')[1] || ''}
-                        quantity={item.quantity}
-                        productIndex={index}
-                        variantId={generateVariantId(
-                          encodeFirestoreId(order.id),
-                          item.sku || '',
-                          item.variantTitle?.split(' / ')[0] || '',
-                          item.variantTitle?.split(' / ')[1] || '',
-                          index,
-                          index
-                        )}
-                      />
+                      <Group gap="xs">
+                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                          <VariantCheckbox
+                            key={`${item.id}-${quantityIndex}`}
+                            orderId={encodeFirestoreId(order.id)}
+                            sku={item.sku || ''}
+                            color={item.variantTitle?.split(' / ')[0] || ''}
+                            size={item.variantTitle?.split(' / ')[1] || ''}
+                            quantity={1}
+                            productIndex={index}
+                            variantId={generateVariantId(
+                              encodeFirestoreId(order.id),
+                              item.sku || '',
+                              item.variantTitle?.split(' / ')[0] || '',
+                              item.variantTitle?.split(' / ')[1] || '',
+                              quantityIndex,
+                              index
+                            )}
+                          />
+                        ))}
+                      </Group>
                     </Group>
                   </div>
                 </Paper>
