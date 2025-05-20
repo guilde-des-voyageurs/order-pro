@@ -35,23 +35,16 @@ export function useDetailedOrdersPagePresenter() {
     return () => unsubscribe();
   }, []);
 
-  const { pendingOrders, shippedOrders } = useMemo(() => {
-    return orders.reduce((acc, order) => {
+  const pendingOrders = useMemo(() => {
+    return orders.filter(order => {
       // Ne pas inclure les commandes remboursées
       if (order.displayFinancialStatus?.toLowerCase() === 'refunded') {
-        return acc;
+        return false;
       }
 
+      // Ne pas inclure les commandes expédiées
       const status = order.displayFulfillmentStatus?.toLowerCase();
-      if (status === 'fulfilled') {
-        acc.shippedOrders.push(order);
-      } else {
-        acc.pendingOrders.push(order);
-      }
-      return acc;
-    }, {
-      pendingOrders: [] as ShopifyOrder[],
-      shippedOrders: [] as ShopifyOrder[],
+      return status !== 'fulfilled';
     });
   }, [orders]);
 
@@ -68,7 +61,7 @@ export function useDetailedOrdersPagePresenter() {
 
   return {
     pendingOrders,
-    shippedOrders,
+
     selectedOrder,
     isDrawerOpen,
     onSelectOrder,

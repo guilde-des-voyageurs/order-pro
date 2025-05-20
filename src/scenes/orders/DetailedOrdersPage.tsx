@@ -158,14 +158,6 @@ export function DetailedOrdersPage() {
         type="pending"
       />
 
-      <OrdersSection
-        title="Commandes expédiées"
-        orders={shippedOrders}
-        selectedOrder={selectedOrder}
-        onSelect={onSelectOrder}
-        type="shipped"
-      />
-
       <OrderDrawer
         order={selectedOrder}
         opened={isDrawerOpen}
