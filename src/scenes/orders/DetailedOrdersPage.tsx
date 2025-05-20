@@ -10,6 +10,8 @@ import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './DetailedOrdersPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { transformColor } from '@/utils/color-transformer';
+import { colorMappings } from '@/utils/color-transformer';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
@@ -64,9 +66,29 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                     )}
                     <div>
                       <Text fw={500}>{item.title}</Text>
-                      {item.variantTitle && (
-                        <Text size="sm" c="dimmed">{item.variantTitle}</Text>
-                      )}
+                      <Group gap="xs">
+                        {item.sku && (
+                          <Text size="sm" c="dimmed">modèle: {item.sku}</Text>
+                        )}
+                        {item.variantTitle && (
+                          <Text size="sm" c="dimmed">
+                            {item.variantTitle.split(' / ').map((variant) => {
+                              const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
+                              const normalizedColor = cleanedVariant.toLowerCase()
+                                .normalize('NFD')
+                                .replace(/[\u0300-\u036f]/g, '');
+                              const foundColor = Object.entries(colorMappings).find(([key]) => 
+                                key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
+                              );
+
+                              if (foundColor) {
+                                return foundColor[1].internalName;
+                              }
+                              return variant;
+                            }).join(' / ')}
+                          </Text>
+                        )}
+                      </Group>
                     </div>
                     <Badge color={item.isCancelled ? 'red' : 'blue'}>
                       {item.isCancelled ? 'Annulé' : `${item.quantity}x`}

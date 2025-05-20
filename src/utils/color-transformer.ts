@@ -3,7 +3,7 @@ interface ColorMapping {
   internalName: string;
 }
 
-const colorMappings: { [key: string]: ColorMapping } = {
+export const colorMappings: { [key: string]: ColorMapping } = {
   'bleu azur': {
     displayName: 'Bleu Azur',
     internalName: 'Stargazer'
@@ -11,6 +11,10 @@ const colorMappings: { [key: string]: ColorMapping } = {
   'bleu marine': {
     displayName: 'Bleu Marine',
     internalName: 'French Navy'
+  },
+  'blanc antique': {
+    displayName: 'Blanc antique',
+    internalName: 'Vintage white'
   },
   'ecru': {
     displayName: 'Ecru',
@@ -55,6 +59,10 @@ const colorMappings: { [key: string]: ColorMapping } = {
   'bleu indien': {
     displayName: 'Bleu Indien',
     internalName: 'India Ink Grey'
+  },
+  'noir': {
+    displayName: 'Noir',
+    internalName: 'Black'
   }
 };
 
