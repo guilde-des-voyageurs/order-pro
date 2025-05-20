@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -15,6 +15,7 @@ import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { IconMessage, IconAlertTriangle } from '@tabler/icons-react';
+import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
@@ -24,6 +25,7 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   return (
     <Paper className={styles.orderRow} withBorder>
       <Stack gap="md">
@@ -59,14 +61,36 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   <div className={styles.productContent}>
                     <div className={styles.productImageContainer}>
                       {item.image && (
-                        <Image
-                          className={styles.productImage}
-                          src={item.image.url}
-                          alt={item.image.altText || item.title}
-                          w={100}
-                          h={100}
-                          fit="contain"
-                        />
+                        <>
+                          <Image
+                            className={styles.productImage}
+                            src={item.image.url}
+                            alt={item.image.altText || item.title}
+                            w={100}
+                            h={100}
+                            fit="contain"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => item.image && setSelectedImage({ 
+                              url: item.image.url, 
+                              alt: item.image.altText || item.title 
+                            })}
+                          />
+                          <Modal 
+                            opened={selectedImage?.url === item.image.url} 
+                            onClose={() => setSelectedImage(null)}
+                            size="auto"
+                            padding="xs"
+                            centered
+                          >
+                            <Image
+                              src={item.image.url}
+                              alt={item.image.altText || item.title}
+                              fit="contain"
+                              maw="90vw"
+                              mah="90vh"
+                            />
+                          </Modal>
+                        </>
                       )}
                     </div>
                     <div className={styles.productInfo}>
