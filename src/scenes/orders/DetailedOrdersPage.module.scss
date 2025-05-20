@@ -91,6 +91,12 @@
 
     .productActions {
       flex: 0 0 auto;
+
+      :global(.mantine-Badge-root) {
+        border: none;
+        background: transparent !important;
+        color: #5e5856 !important;
+      }
     }
   }
 }
