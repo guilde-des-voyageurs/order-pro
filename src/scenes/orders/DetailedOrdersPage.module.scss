@@ -6,12 +6,50 @@
   margin-top: 2rem;
 }
 
-.tableRow {
-  &.selected {
-    background-color: var(--mantine-color-blue-0);
+.orderRow {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  padding: 1rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.orderInfo {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+
+  > * {
+    min-width: 200px;
   }
 }
 
 .dateCell {
   white-space: nowrap;
+}
+
+.orderItems {
+  padding: 1rem;
+  background-color: var(--mantine-color-gray-0);
+  overflow-x: auto;
+}
+
+.productList {
+  display: flex;
+  gap: 1rem;
+  min-width: min-content;
+}
+
+.productItem {
+  min-width: 300px;
+  &.cancelled {
+    opacity: 0.5;
+  }
+}
+
+.productImage {
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-gray-3);
 }

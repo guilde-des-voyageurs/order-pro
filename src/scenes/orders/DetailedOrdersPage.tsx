@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -20,38 +20,81 @@ interface OrderRowProps {
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   return (
-    <Table.Tr 
-      key={order.id} 
-      className={clsx(styles.tableRow, { [styles.selected]: isSelected })}
-      onClick={() => onSelect(order.id)}
-      style={{ cursor: 'pointer' }}
-    >
-      <Table.Td>{order.name}</Table.Td>
-      <Table.Td className={styles.dateCell}>
-        {new Date(order.createdAt).toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })}
-      </Table.Td>
-      <Table.Td>
-        <DaysElapsed 
-          createdAt={order.createdAt} 
-          isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
-        />
-      </Table.Td>
-      <Table.Td>
-        <TextileProgress orderId={encodeFirestoreId(order.id)} />
-      </Table.Td>
-      <Table.Td>
-        <FinancialStatus status={order.displayFinancialStatus} />
-      </Table.Td>
-      <Table.Td onClick={(e) => e.stopPropagation()}>
-        <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} />
-      </Table.Td>
-    </Table.Tr>
+    <Paper className={styles.orderRow} withBorder>
+      <Stack gap="md">
+        <div className={styles.orderInfo}>
+          <Group gap="xs">
+            <Text fw={500}>{order.name}</Text>
+            <FinancialStatus status={order.displayFinancialStatus} />
+          </Group>
+
+          <div className={styles.dateCell}>
+            {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </div>
+
+          <div>
+            <Text size="sm" c="dimmed">En attente depuis</Text>
+            <DaysElapsed 
+              createdAt={order.createdAt} 
+              isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
+            />
+          </div>
+
+          <div>
+            <Text size="sm" c="dimmed">Avancement</Text>
+            <TextileProgress orderId={encodeFirestoreId(order.id)} />
+          </div>
+
+          <div>
+            <Text size="sm" c="dimmed">Facturé</Text>
+            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} />
+          </div>
+        </div>
+
+        <div className={styles.orderItems}>
+          <div className={styles.productList}>
+            {order.lineItems?.map((item) => (
+                <Paper 
+                  key={item.id} 
+                  className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
+                  withBorder
+                  p="md"
+                >
+                  <Group align="flex-start" gap="md">
+                    {item.image && (
+                      <Image
+                        className={styles.productImage}
+                        src={item.image.url}
+                        alt={item.image.altText || item.title}
+                        w={60}
+                        h={60}
+                        fit="contain"
+                      />
+                    )}
+                    <Stack gap="xs" style={{ flex: 1 }}>
+                      <Group justify="space-between" align="center">
+                        <Text fw={500}>{item.title}</Text>
+                        <Badge color={item.isCancelled ? 'red' : 'blue'}>
+                          {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
+                        </Badge>
+                      </Group>
+                      {item.variantTitle && (
+                        <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                      )}
+                    </Stack>
+                  </Group>
+                </Paper>
+              ))}
+            </div>
+          </div>
+        </Stack>
+      </Paper>
   );
 }
 
@@ -72,30 +115,16 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
           </Text>
         </Group>
 
-        <Paper shadow="xs" p="md">
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Numéro</Table.Th>
-                <Table.Th>Date</Table.Th>
-                <Table.Th>En attente depuis</Table.Th>
-                <Table.Th>Avancement</Table.Th>
-                <Table.Th>Statut</Table.Th>
-                <Table.Th>Facturé</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {orders.map((order) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  isSelected={selectedOrder?.id === order.id}
-                  onSelect={onSelect}
-                />
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Paper>
+        <Stack gap="md">
+          {orders.map((order) => (
+            <OrderRow
+              key={order.id}
+              order={order}
+              isSelected={selectedOrder?.id === order.id}
+              onSelect={onSelect}
+            />
+          ))}
+        </Stack>
       </Stack>
     </div>
   );
