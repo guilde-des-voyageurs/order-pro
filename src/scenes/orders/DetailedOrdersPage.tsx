@@ -1,17 +1,19 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './DetailedOrdersPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
+import { generateVariantId } from '@/utils/variant-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
@@ -46,7 +48,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
 
         <div className={styles.orderItems}>
           <div className={styles.productList}>
-            {order.lineItems?.map((item) => (
+            {order.lineItems?.map((item, index) => (
                 <Paper 
                   key={item.id} 
                   className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
@@ -86,9 +88,27 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         )}
                       </Group>
                     </div>
-                    <Badge color={item.isCancelled ? 'red' : 'blue'}>
-                      {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
-                    </Badge>
+                    <Group gap="xs">
+                      <Badge color={item.isCancelled ? 'red' : 'blue'}>
+                        {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
+                      </Badge>
+                      <VariantCheckbox
+                        orderId={encodeFirestoreId(order.id)}
+                        sku={item.sku || ''}
+                        color={item.variantTitle?.split(' / ')[0] || ''}
+                        size={item.variantTitle?.split(' / ')[1] || ''}
+                        quantity={item.quantity}
+                        productIndex={index}
+                        variantId={generateVariantId(
+                          encodeFirestoreId(order.id),
+                          item.sku || '',
+                          item.variantTitle?.split(' / ')[0] || '',
+                          item.variantTitle?.split(' / ')[1] || '',
+                          index,
+                          index
+                        )}
+                      />
+                    </Group>
                   </div>
                 </Paper>
               ))}
