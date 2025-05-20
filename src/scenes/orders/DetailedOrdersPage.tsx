@@ -239,7 +239,8 @@ export function DetailedOrdersPage() {
           <Badge 
             size="xl" 
             variant="filled" 
-            color="red"
+            color="red.3"
+            c="red.9"
             leftSection={orderStats.old}
           >
             {orderStats.old > 1 ? 'commandes' : 'commande'} {'>'}14j
@@ -247,7 +248,8 @@ export function DetailedOrdersPage() {
           <Badge 
             size="xl" 
             variant="filled" 
-            color="yellow"
+            color="yellow.2"
+            c="yellow.9"
             leftSection={orderStats.medium}
           >
             {orderStats.medium > 1 ? 'commandes' : 'commande'} 7-14j
@@ -255,7 +257,8 @@ export function DetailedOrdersPage() {
           <Badge 
             size="xl" 
             variant="filled" 
-            color="green"
+            color="green.2"
+            c="green.9"
             leftSection={orderStats.recent}
           >
             {orderStats.recent > 1 ? 'commandes' : 'commande'} {'<'}7j
