@@ -11,9 +11,10 @@ interface InvoiceCheckboxProps {
   orderId: string;
   totalAmount?: number;
   currency?: string;
+  readOnly?: boolean;
 }
 
-export function InvoiceCheckbox({ orderId, totalAmount, currency }: InvoiceCheckboxProps) {
+export function InvoiceCheckbox({ orderId, totalAmount, currency, readOnly = false }: InvoiceCheckboxProps) {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -52,8 +53,9 @@ export function InvoiceCheckbox({ orderId, totalAmount, currency }: InvoiceCheck
     <Group gap="xs" align="center">
       <Checkbox
         checked={checked}
-        onChange={(event) => handleChange(event.currentTarget.checked)}
+        onChange={readOnly ? undefined : (event) => handleChange(event.currentTarget.checked)}
         label={totalAmount === undefined ? "Facturé" : undefined}
+        disabled={readOnly}
       />
       {totalAmount !== undefined && (
         <Text size="sm" fw={500}>{formatAmount(totalAmount)} {currency}</Text>

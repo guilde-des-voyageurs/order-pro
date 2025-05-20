@@ -17,7 +17,19 @@
 .ordersGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
+  
+  @media (max-width: 1800px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .orderRow {
@@ -59,7 +71,6 @@
 
 .orderItems {
   padding: 1rem;
-  background-color: var(--mantine-color-gray-0);
   overflow-x: auto;
 }
 
@@ -69,6 +80,9 @@
 }
 
 .productItem {
+  border: none;
+  background: #f1f1f1;
+  border-radius: 20px;
   &.cancelled {
     opacity: 0.5;
   }

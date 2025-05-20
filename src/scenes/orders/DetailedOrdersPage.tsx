@@ -43,7 +43,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} />
+            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
           </div>
         </div>
 
