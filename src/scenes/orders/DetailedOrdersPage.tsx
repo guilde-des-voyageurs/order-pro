@@ -14,7 +14,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId } from '@/utils/variant-helpers';
-import { IconMessage } from '@tabler/icons-react';
+import { IconMessage, IconAlertTriangle } from '@tabler/icons-react';
 import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
@@ -182,6 +182,20 @@ export function DetailedOrdersPage() {
   return (
     <div className={styles.main_content}>
       <Title order={1}>Commandes détaillées</Title>
+
+      <Alert 
+        icon={<IconAlertTriangle size={16} />}
+        title="Penser à :"
+        color="gray"
+        variant="light"
+      >
+        <Group gap="sm">
+          <Badge size="lg" variant="light" color="gray">retirer les étiquettes du produit</Badge>
+          <Badge size="lg" variant="light" color="gray">glisser le mot de remerciement</Badge>
+          <Badge size="lg" variant="light" color="gray">le sticker</Badge>
+          <Badge size="lg" variant="light" color="gray">le micro-flyer Wanderers</Badge>
+        </Group>
+      </Alert>
 
       <OrdersSection
         title="Commandes en cours"
