@@ -23,36 +23,21 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
     <Paper className={styles.orderRow} withBorder>
       <Stack gap="md">
         <div className={styles.orderInfo}>
-          <Group gap="xs">
-            <Text fw={500}>{order.name}</Text>
-            <FinancialStatus status={order.displayFinancialStatus} />
-          </Group>
-
-          <div className={styles.dateCell}>
-            {new Date(order.createdAt).toLocaleDateString('fr-FR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+          <div className={styles.orderHeader}>
+            <div className={styles.orderTitle}>
+              <Text fw={500}>{order.name}</Text>
+              <FinancialStatus status={order.displayFinancialStatus} />
+            </div>
+            <div className={styles.orderWaiting}>
+              <DaysElapsed 
+                createdAt={order.createdAt} 
+                isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
+              />
+              <TextileProgress orderId={encodeFirestoreId(order.id)} />
+            </div>
           </div>
 
-          <div>
-            <Text size="sm" c="dimmed">En attente depuis</Text>
-            <DaysElapsed 
-              createdAt={order.createdAt} 
-              isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
-            />
-          </div>
-
-          <div>
-            <Text size="sm" c="dimmed">Avancement</Text>
-            <TextileProgress orderId={encodeFirestoreId(order.id)} />
-          </div>
-
-          <div>
-            <Text size="sm" c="dimmed">Facturé</Text>
+          <div className={styles.orderDetails}>
             <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} />
           </div>
         </div>
