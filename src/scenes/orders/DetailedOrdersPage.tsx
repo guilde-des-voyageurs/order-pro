@@ -66,7 +66,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   withBorder
                   p="md"
                 >
-                  <Group align="flex-start" gap="md">
+                  <div className={styles.productContent}>
                     {item.image && (
                       <Image
                         className={styles.productImage}
@@ -77,18 +77,16 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         fit="contain"
                       />
                     )}
-                    <Stack gap="xs" style={{ flex: 1 }}>
-                      <Group justify="space-between" align="center">
-                        <Text fw={500}>{item.title}</Text>
-                        <Badge color={item.isCancelled ? 'red' : 'blue'}>
-                          {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
-                        </Badge>
-                      </Group>
+                    <div>
+                      <Text fw={500}>{item.title}</Text>
                       {item.variantTitle && (
                         <Text size="sm" c="dimmed">{item.variantTitle}</Text>
                       )}
-                    </Stack>
-                  </Group>
+                    </div>
+                    <Badge color={item.isCancelled ? 'red' : 'blue'}>
+                      {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
+                    </Badge>
+                  </div>
                 </Paper>
               ))}
             </div>
@@ -115,7 +113,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
           </Text>
         </Group>
 
-        <Stack gap="md">
+        <div className={styles.ordersGrid}>
           {orders.map((order) => (
             <OrderRow
               key={order.id}
@@ -124,7 +122,7 @@ function OrdersSection({ title, orders, selectedOrder, onSelect, type }: {
               onSelect={onSelect}
             />
           ))}
-        </Stack>
+        </div>
       </Stack>
     </div>
   );
