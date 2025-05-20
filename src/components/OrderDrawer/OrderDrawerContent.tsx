@@ -177,10 +177,10 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
         variant="light"
       >
         <List size="sm" spacing="xs">
-          <List.Item>retirer les étiquettes du produit</List.Item>
-          <List.Item>glisser le mot de remerciement</List.Item>
+          <List.Item>retirer etiquette Stanley/Stella</List.Item>
+          <List.Item>Le mot de remerciement !</List.Item>
           <List.Item>le sticker</List.Item>
-          <List.Item>le micro-flyer Wanderers</List.Item>
+          <List.Item>Le Flyer !</List.Item>
         </List>
       </Alert>
       <Group justify="center" mt="xl">

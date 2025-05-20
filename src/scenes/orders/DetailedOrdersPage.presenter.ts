@@ -59,9 +59,33 @@ export function useDetailedOrdersPagePresenter() {
     setSelectedOrder(undefined);
   };
 
+  const orderStats = useMemo(() => {
+    const now = new Date();
+    const stats = {
+      old: 0, // >14 jours
+      medium: 0, // 7-14 jours
+      recent: 0 // <7 jours
+    };
+
+    pendingOrders.forEach(order => {
+      const orderDate = new Date(order.createdAt);
+      const daysDiff = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff > 14) {
+        stats.old++;
+      } else if (daysDiff > 7) {
+        stats.medium++;
+      } else {
+        stats.recent++;
+      }
+    });
+
+    return stats;
+  }, [pendingOrders]);
+
   return {
     pendingOrders,
-
+    orderStats,
     selectedOrder,
     isDrawerOpen,
     onSelectOrder,

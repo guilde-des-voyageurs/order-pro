@@ -195,7 +195,8 @@ export function DetailedOrdersPage() {
     isDrawerOpen,
     onSelectOrder,
     onCloseDrawer,
-    isLoading 
+    isLoading,
+    orderStats 
   } = useDetailedOrdersPagePresenter();
 
   if (isLoading) {
@@ -204,7 +205,35 @@ export function DetailedOrdersPage() {
 
   return (
     <div className={styles.main_content}>
-      <Title order={1}>Commandes détaillées</Title>
+      <Group justify="space-between" align="center" mb="md">
+        <Title order={1}>Commandes détaillées</Title>
+        <Group>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="red"
+            leftSection={orderStats.old}
+          >
+            {orderStats.old > 1 ? 'commandes' : 'commande'} {'>'}14j
+          </Badge>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="yellow"
+            leftSection={orderStats.medium}
+          >
+            {orderStats.medium > 1 ? 'commandes' : 'commande'} 7-14j
+          </Badge>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="green"
+            leftSection={orderStats.recent}
+          >
+            {orderStats.recent > 1 ? 'commandes' : 'commande'} {'<'}7j
+          </Badge>
+        </Group>
+      </Group>
 
       <Alert 
         icon={<IconAlertTriangle size={16} />}
