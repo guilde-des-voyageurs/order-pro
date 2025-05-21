@@ -46,7 +46,18 @@ interface ShopifyResponse {
           };
           sku: string | null;
           variant: {
+            id: string;
             title: string | null;
+            metafields: {
+              edges: Array<{
+                node: {
+                  namespace: string;
+                  key: string;
+                  value: string;
+                  type: string;
+                };
+              }>;
+            } | null;
             inventoryItem: {
               unitCost: {
                 amount: string;
@@ -81,11 +92,31 @@ interface ShopifyResponse {
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
   try {
+    console.log('🔍 Début de fetchOrdersApiAction');
+    
     // Test d'abord la connexion
-    await shopifyClient.request(TEST_QUERY.toString());
+    await shopifyClient.request(TEST_QUERY);
+    console.log('✅ Test de connexion réussi');
+
+    // Afficher la requête qui va être envoyée
+    console.log('📝 Requête GraphQL:', ORDERS_QUERY);
 
     // Si le test passe, on fait la vraie requête
-    const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY.toString());
+    const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
+
+    // Debug: afficher la réponse brute de Shopify
+    console.log('\n🔍 RÉPONSE BRUTE DE SHOPIFY:', JSON.stringify(result.data, null, 2));
+
+    if (result?.data?.orders?.nodes?.[0]) {
+      const firstOrder = result.data.orders.nodes[0];
+      console.log('\n🔍 PREMIÈRE COMMANDE:', firstOrder.name);
+      
+      firstOrder.lineItems.nodes.forEach(item => {
+        console.log('\n📦 ARTICLE:', item.title);
+        console.log('Variant:', item.variant?.title);
+        console.log('Metafields bruts:', JSON.stringify(item.variant?.metafields, null, 2));
+      });
+    }
 
     if (!result?.data?.orders?.nodes) {
       return [];
@@ -98,6 +129,12 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         // Filtrer les articles pour ne garder que ceux de l'emplacement accepté
         const filteredLineItems = order.lineItems.nodes
           .filter(item => {
+            // Debug: log des metafields pour chaque variant
+            if (item.variant?.metafields) {
+              console.log('📑 Metafields pour variant ' + item.variant.title + ':', 
+                JSON.stringify(item.variant.metafields, null, 2));
+            }
+
             // Exclure les pourboires qui sont des articles sans livraison et sans SKU
             const isTip = !item.requiresShipping && !item.sku && 
               (item.title.toLowerCase().includes('tip') || 
@@ -115,11 +152,13 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         return {
           id: order.id,
           name: order.name,
+          orderNumber: order.name.replace('#', ''),
           createdAt: order.createdAt,
           cancelledAt: order.cancelledAt,
           displayFulfillmentStatus: order.displayFulfillmentStatus,
           displayFinancialStatus: order.displayFinancialStatus,
           note: order.note || undefined,
+          synced_at: new Date().toISOString(),
           totalPrice: order.totalPriceSet.shopMoney.amount,
           totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
           lineItems: filteredLineItems.map(item => ({
@@ -137,7 +176,13 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
             image: item.image || null,
             unitCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) : null,
             totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
-            isCancelled: item.quantity > item.refundableQuantity
+            isCancelled: item.quantity > item.refundableQuantity,
+            metafields: item.variant?.metafields?.edges.map(edge => ({
+              namespace: edge.node.namespace,
+              key: edge.node.key,
+              value: edge.node.value,
+              type: edge.node.type
+            })) || []
           }))
         } as ShopifyOrder; // Assertion de type explicite
       })

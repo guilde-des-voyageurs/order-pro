@@ -27,5 +27,15 @@ export interface ShopifyOrder {
     unitCost?: number | null;
     totalCost?: number | null;
     isCancelled?: boolean | null;
+    metafields?: {
+      edges: Array<{
+        node: {
+          namespace: string;
+          key: string;
+          value: string;
+          type: string;
+        };
+      }>;
+    } | null;
   }>;
 }

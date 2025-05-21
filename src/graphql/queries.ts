@@ -1,4 +1,4 @@
-export const TEST_QUERY = Buffer.from(`
+export const TEST_QUERY = `
   query {
     shop {
       name
@@ -7,9 +7,9 @@ export const TEST_QUERY = Buffer.from(`
       }
     }
   }
-`);
+`;
 
-export const ORDERS_QUERY = Buffer.from(`
+export const ORDERS_QUERY = `
 query {
   orders(
     first: 200, 
@@ -44,7 +44,19 @@ query {
           }
           sku
           variant {
+            id
             title
+            metafields(first: 10) {
+              edges {
+                node {
+                  id
+                  namespace
+                  key
+                  value
+                  type
+                }
+              }
+            }
             inventoryItem {
               unitCost {
                 amount
@@ -65,4 +77,5 @@ query {
       }
     }
   }
-}`);
+}
+`;
