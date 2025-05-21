@@ -92,31 +92,11 @@ interface ShopifyResponse {
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
   try {
-    console.log('🔍 Début de fetchOrdersApiAction');
-    
-    // Test d'abord la connexion
+    // Test la connexion avant de faire la requête
     await shopifyClient.request(TEST_QUERY);
-    console.log('✅ Test de connexion réussi');
-
-    // Afficher la requête qui va être envoyée
-    console.log('📝 Requête GraphQL:', ORDERS_QUERY);
-
-    // Si le test passe, on fait la vraie requête
+    
+    // Faire la requête principale
     const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
-
-    // Debug: afficher la réponse brute de Shopify
-    console.log('\n🔍 RÉPONSE BRUTE DE SHOPIFY:', JSON.stringify(result.data, null, 2));
-
-    if (result?.data?.orders?.nodes?.[0]) {
-      const firstOrder = result.data.orders.nodes[0];
-      console.log('\n🔍 PREMIÈRE COMMANDE:', firstOrder.name);
-      
-      firstOrder.lineItems.nodes.forEach(item => {
-        console.log('\n📦 ARTICLE:', item.title);
-        console.log('Variant:', item.variant?.title);
-        console.log('Metafields bruts:', JSON.stringify(item.variant?.metafields, null, 2));
-      });
-    }
 
     if (!result?.data?.orders?.nodes) {
       return [];
@@ -129,11 +109,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         // Filtrer les articles pour ne garder que ceux de l'emplacement accepté
         const filteredLineItems = order.lineItems.nodes
           .filter(item => {
-            // Debug: log des metafields pour chaque variant
-            if (item.variant?.metafields) {
-              console.log('📑 Metafields pour variant ' + item.variant.title + ':', 
-                JSON.stringify(item.variant.metafields, null, 2));
-            }
+            // Vérifier si le variant existe
 
             // Exclure les pourboires qui sont des articles sans livraison et sans SKU
             const isTip = !item.requiresShipping && !item.sku && 

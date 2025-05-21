@@ -113,6 +113,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             }).join(' / ')}
                           </Text>
                         )}
+                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value && (
+                          <Text size="sm" c="blue">
+                            Impression : {item.variant.metafields.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Text>
+                        )}
                       </Group>
                     </div>
                     <Group gap="xs" className={styles.productActions}>
