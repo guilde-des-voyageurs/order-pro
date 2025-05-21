@@ -82,7 +82,12 @@ export const ordersService = {
           image: item.image || null,
           unitCost: item.unitCost || 0,
           totalCost: item.totalCost || 0,
-          isCancelled: !!item.isCancelled
+          isCancelled: !!item.isCancelled,
+          variant: {
+            id: item.variant?.id || '',
+            title: item.variant?.title || '',
+            metafields: item.variant?.metafields || []
+          }
         })),
         synced_at: new Date().toISOString()
       };

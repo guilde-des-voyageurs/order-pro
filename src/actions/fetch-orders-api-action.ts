@@ -177,12 +177,16 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
             unitCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) : null,
             totalCost: item.variant?.inventoryItem?.unitCost?.amount ? parseFloat(item.variant.inventoryItem.unitCost.amount) * item.quantity : null,
             isCancelled: item.quantity > item.refundableQuantity,
-            metafields: item.variant?.metafields?.edges.map(edge => ({
-              namespace: edge.node.namespace,
-              key: edge.node.key,
-              value: edge.node.value,
-              type: edge.node.type
-            })) || []
+            variant: {
+              id: item.variant?.id || '',
+              title: item.variant?.title || '',
+              metafields: item.variant?.metafields?.edges.map(edge => ({
+                namespace: edge.node.namespace,
+                key: edge.node.key,
+                value: edge.node.value,
+                type: edge.node.type
+              })) || []
+            }
           }))
         } as ShopifyOrder; // Assertion de type explicite
       })
