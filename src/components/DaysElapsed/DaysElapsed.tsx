@@ -17,8 +17,8 @@ export function DaysElapsed({ createdAt, isFulfilled }: DaysElapsedProps) {
   }
 
   const getColor = (days: number) => {
-    if (days <= 14) return 'green';
-    if (days <= 20) return 'yellow';
+    if (days <= 7) return 'green';
+    if (days <= 14) return 'yellow';
     return 'red';
   };
 

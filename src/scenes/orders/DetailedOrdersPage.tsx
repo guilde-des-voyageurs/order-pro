@@ -183,6 +183,9 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               fontWeight: 400,
                               color: 'var(--mantine-color-dark-6)',
                               cursor: 'pointer',
+                              maxWidth: '20vw',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                               '&:hover': {
                                 opacity: 0.8
                               }
@@ -198,11 +201,6 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             clipboard.copy(path);
                           }}
                         >
-                          ./MOTIFS/{item.title
-                            .replace(/\s*\|\s*/g, '')
-                            .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                            .trim()
-                            .toUpperCase()}/
                           <Text span fw={700} inherit>
                             {item.title
                               .replace(/\s*\|\s*/g, '')
