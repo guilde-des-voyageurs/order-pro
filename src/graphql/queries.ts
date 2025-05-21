@@ -46,7 +46,7 @@ query {
           variant {
             id
             title
-            metafields(first: 10) {
+            metafields(first: 20) {
               edges {
                 node {
                   id

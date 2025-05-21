@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon, Box } from '@mantine/core';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -113,10 +113,12 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             }).join(' / ')}
                           </Text>
                         )}
-                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value && (
-                          <Text size="sm" c="blue">
-                            Impression : {item.variant.metafields.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                          </Text>
+                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                          <Stack gap="xs">
+                            <Text size="sm">
+                              Fichier d'impression : {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                            </Text>
+                          </Stack>
                         )}
                       </Group>
                     </div>
@@ -124,29 +126,49 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       <Badge color={item.isCancelled ? 'red' : 'blue'}>
                         {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
                       </Badge>
-                      <Group gap="xs">
-                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                          <VariantCheckbox
-                            key={`${item.id}-${quantityIndex}`}
-                            orderId={encodeFirestoreId(order.id)}
-                            sku={item.sku || ''}
-                            color={item.variantTitle?.split(' / ')[0] || ''}
-                            size={item.variantTitle?.split(' / ')[1] || ''}
-                            quantity={1}
-                            productIndex={index}
-                            variantId={generateVariantId(
-                              encodeFirestoreId(order.id),
-                              item.sku || '',
-                              item.variantTitle?.split(' / ')[0] || '',
-                              item.variantTitle?.split(' / ')[1] || '',
-                              quantityIndex,
-                              index
-                            )}
-                          />
-                        ))}
-                      </Group>
+                      {item.isCancelled && (
+                        <Badge color="red">
+                          Annulé
+                        </Badge>
+                      )}
+                    </Group>
+                    <Group gap="xs">
+                      {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                        <VariantCheckbox
+                          key={`${item.id}-${quantityIndex}`}
+                          orderId={encodeFirestoreId(order.id)}
+                          sku={item.sku || ''}
+                          color={item.variantTitle?.split(' / ')[0] || ''}
+                          size={item.variantTitle?.split(' / ')[1] || ''}
+                          quantity={1}
+                          productIndex={index}
+                          variantId={generateVariantId(
+                            encodeFirestoreId(order.id),
+                            item.sku || '',
+                            item.variantTitle?.split(' / ')[0] || '',
+                            item.variantTitle?.split(' / ')[1] || '',
+                            quantityIndex,
+                            index
+                          )}
+                        />
+                      ))}
                     </Group>
                   </div>
+                  {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                    <Box mt="md" px="md">
+                      <Text size="sm" c="blue">
+                        Chemin : ./MOTIFS/{item.title
+                          .replace(/\s*\|\s*/g, '')
+                          .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                          .trim()
+                          .toUpperCase()}/{item.title
+                          .replace(/\s*\|\s*/g, '')
+                          .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                          .trim()
+                          .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}.png
+                      </Text>
+                    </Box>
+                  )}
                 </Paper>
               ))}
             </div>
