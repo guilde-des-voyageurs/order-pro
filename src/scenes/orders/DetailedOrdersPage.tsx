@@ -167,7 +167,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   </div>
                   {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
                     <Box mt="md" px="md">
-                      <Tooltip label="Cliquer pour copier" position="right">
+                      <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
                         <Badge
                           variant="light" 
                           color="gray" 
