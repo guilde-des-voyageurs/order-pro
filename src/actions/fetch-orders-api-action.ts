@@ -13,7 +13,7 @@ const ACCEPTED_LOCATION_ID = '88278073611';
 
 const shopifyClient = createAdminApiClient({
   storeDomain: process.env.SHOPIFY_URL,
-  apiVersion: '2024-01',
+  apiVersion: '2024-10',
   accessToken: process.env.SHOPIFY_TOKEN,
 });
 
@@ -97,6 +97,24 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
     
     // Faire la requête principale
     const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
+
+    // Log de la réponse brute
+    console.log('\n📦 Réponse brute de Shopify :', {
+      totalOrders: result?.data?.orders?.nodes?.length,
+      orderNumbers: result?.data?.orders?.nodes?.map(o => o.name).join(', ')
+    });
+
+    console.log('\n📊 Statuts des 30 dernières commandes :');
+    const lastOrders = (result?.data?.orders?.nodes || []).slice(0, 30);
+    lastOrders.forEach(order => {
+      console.log(`\n🔖 Commande ${order.name}:`, {
+        displayFulfillmentStatus: order.displayFulfillmentStatus,
+        displayFinancialStatus: order.displayFinancialStatus,
+        createdAt: new Date(order.createdAt).toLocaleDateString('fr-FR'),
+        cancelledAt: order.cancelledAt ? new Date(order.cancelledAt).toLocaleDateString('fr-FR') : null
+      });
+    });
+    console.log('\n');
 
     if (!result?.data?.orders?.nodes) {
       return [];

@@ -12,10 +12,10 @@ export const TEST_QUERY = `
 export const ORDERS_QUERY = `
 query {
   orders(
-    first: 200, 
+    first: 30, 
     sortKey: CREATED_AT, 
     reverse: true,
-    query: "created_at:>='2025-05-07' NOT name:'#1366' NOT name:'#1336' NOT name:'#1412'"
+    query: "created_at:>='2025-04-29' NOT name:'#1366' NOT name:'#1336' NOT name:'#1412'"
   ) {
     nodes {
       id
