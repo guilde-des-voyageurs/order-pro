@@ -1,6 +1,7 @@
 'use client';
 
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon, Box } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon, Box, Tooltip } from '@mantine/core';
+import { useClipboard } from '@mantine/hooks';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -25,6 +26,7 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+  const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   return (
     <Paper className={styles.orderRow} withBorder>
@@ -114,11 +116,20 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           </Text>
                         )}
                         {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                          <Stack gap="xs">
-                            <Text size="sm">
-                              Fichier d'impression : {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                            </Text>
-                          </Stack>
+                          <Badge
+                            variant="light"
+                            color="gray"
+                            radius="xl"
+                            size="lg"
+                            styles={{
+                              root: {
+                                fontWeight: 400,
+                                color: 'var(--mantine-color-dark-6)'
+                              }
+                            }}
+                          >
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Badge>
                         )}
                       </Group>
                     </div>
@@ -156,17 +167,57 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   </div>
                   {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
                     <Box mt="md" px="md">
-                      <Text size="sm" c="blue">
-                        Chemin : ./MOTIFS/{item.title
-                          .replace(/\s*\|\s*/g, '')
-                          .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                          .trim()
-                          .toUpperCase()}/{item.title
-                          .replace(/\s*\|\s*/g, '')
-                          .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                          .trim()
-                          .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}.png
-                      </Text>
+                      <Tooltip label="Cliquer pour copier" position="right">
+                        <Badge
+                          variant="light" 
+                          color="gray" 
+                          radius="xl" 
+                          size="lg"
+                          fullWidth
+                          styles={{ 
+                            root: { 
+                              whiteSpace: 'normal',
+                              height: 'auto',
+                              textAlign: 'left',
+                              lineHeight: 1.5,
+                              fontWeight: 400,
+                              color: 'var(--mantine-color-dark-6)',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                opacity: 0.8
+                              }
+                            } 
+                          }}
+                          onClick={() => {
+                            const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${item.title
+                              .replace(/\s*\|\s*/g, '')
+                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .trim()
+                              .toUpperCase()}`;
+
+                            clipboard.copy(path);
+                          }}
+                        >
+                          ./MOTIFS/{item.title
+                            .replace(/\s*\|\s*/g, '')
+                            .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                            .trim()
+                            .toUpperCase()}/
+                          <Text span fw={700} inherit>
+                            {item.title
+                              .replace(/\s*\|\s*/g, '')
+                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .trim()
+                              .toUpperCase()}
+                          </Text>_
+                          <Text span fw={700} inherit>
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Text>_
+                          <Text span fw={700} inherit>
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}
+                          </Text>.png
+                        </Badge>
+                      </Tooltip>
                     </Box>
                   )}
                 </Paper>
