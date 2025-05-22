@@ -36,10 +36,10 @@ export const useBatchPresenter = (): BatchPresenterResult => {
   }
 
   return {
-    orders,
-    selectedOrder,
     isLoading,
     error,
+    orders,
+    selectedOrder,
     handleOrderSelect,
   }
 }

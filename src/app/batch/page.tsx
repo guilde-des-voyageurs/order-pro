@@ -1,7 +1,5 @@
-'use client';
-
-import { BatchPage } from '@/scenes/batch/BatchPage'
+import { BatchPageWrapper } from './BatchPageWrapper';
 
 export default function Page() {
-  return <BatchPage />
+  return <BatchPageWrapper />;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Loader, Paper, Stack } from '@mantine/core';
+import { Title, Text, Stack, Group, Loader, Image, Modal, Paper } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { useBatchPresenter } from './BatchPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -9,9 +9,11 @@ import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { OrderVariantList } from '@/components/OrderVariantList';
 import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
+import { formatDate } from '@/utils/date-helpers';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -31,80 +33,111 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         <div className={styles.orderInfo}>
           <div className={styles.orderHeader}>
             <div className={styles.orderTitle}>
-              <Text fw={500}>{order.name}</Text>
-              <FinancialStatus status={order.displayFinancialStatus} />
+              <Text fw={500}>#{order.name}</Text>
+              <Text c="dimmed" size="sm">{formatDate(order.createdAt)}</Text>
             </div>
             <div className={styles.orderWaiting}>
-              <DaysElapsed 
-                createdAt={order.createdAt} 
-                isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
-              />
               <TextileProgress orderId={encodeFirestoreId(order.id)} />
             </div>
           </div>
 
-          <div className={styles.orderDetails}>
-            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
+          <div className={styles.productList}>
+            <OrderVariantList 
+              orderId={encodeFirestoreId(order.id)} 
+              variants={order.lineItems?.map(item => ({
+                sku: item.sku || '',
+                color: item.variantTitle?.split(' / ')[0] || '',
+                size: item.variantTitle?.split(' / ')[1] || '',
+                quantity: item.quantity
+              })) || []} 
+            />
+            {order.lineItems?.map((item) => (
+              <Paper key={item.id} className={styles.productItem} p="md">
+                <div className={styles.productContent}>
+                  <div className={styles.productImageContainer}>
+                    {item.image && (
+                      <Image
+                        className={styles.productImage}
+                        src={item.image.url}
+                        alt={item.image.altText || item.title}
+                        w={100}
+                        h={100}
+                        fit="contain"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => item.image && setSelectedImage({ 
+                          url: item.image.url, 
+                          alt: item.image.altText || item.title 
+                        })}
+                      />
+                    )}
+                  </div>
+                  <div className={styles.productInfo}>
+                    <Text fw={500}>{item.title}</Text>
+                    <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                    <Group gap="xs">
+                      <Text size="sm">SKU: {item.sku}</Text>
+                      <Text size="sm">Qté: {item.quantity}</Text>
+                    </Group>
+                  </div>
+                  <div>
+                    <Group gap="xs">
+                      {Array.from({ length: item.quantity || 0 }).map((_, quantityIndex) => (
+                        <VariantCheckbox 
+                          key={`${order.id}-${item.sku}-${quantityIndex}`}
+                          orderId={encodeFirestoreId(order.id)} 
+                          variantId={generateVariantId(
+                            encodeFirestoreId(order.id),
+                            item.sku || '',
+                            item.variantTitle?.split(' / ')[0] || '',
+                            item.variantTitle?.split(' / ')[1] || '',
+                            quantityIndex,
+                            0
+                          )}
+                          sku={item.sku || ''}
+                          color={item.variantTitle?.split(' / ')[0] || ''}
+                          size={item.variantTitle?.split(' / ')[1] || ''}
+                          quantity={1}
+                          productIndex={quantityIndex}
+                        />
+                      ))}
+                    </Group>
+                  </div>
+                </div>
+              </Paper>
+            ))}
           </div>
         </div>
-
-        <div className={styles.lineItems}>
-          {order.lineItems?.map((item) => (
-            <div key={item.id} className={styles.lineItem}>
-              <div className={styles.lineItemHeader}>
-                <Text size="sm" fw={500}>{item.title}</Text>
-                <Text size="sm" c="dimmed">{item.variantTitle}</Text>
-              </div>
-              
-              <div className={styles.lineItemDetails}>
-                <div className={styles.variantInfo}>
-                  <Text size="sm">SKU: {item.sku}</Text>
-                  <Text size="sm">Qté: {item.quantity}</Text>
-                </div>
-                
-                <div className={styles.variantProgress}>
-                  {Array.from({ length: item.quantity || 0 }).map((_, quantityIndex) => (
-                    <VariantCheckbox 
-                      key={`${order.id}-${item.sku}-${quantityIndex}`}
-                      orderId={encodeFirestoreId(order.id)} 
-                      variantId={generateVariantId(
-                        encodeFirestoreId(order.id),
-                        item.sku || '',
-                        item.variantTitle?.split(' / ')[0] || '',
-                        item.variantTitle?.split(' / ')[1] || '',
-                        quantityIndex,
-                        0
-                      )}
-                      sku={item.sku || ''}
-                      color={item.variantTitle?.split(' / ')[0] || ''}
-                      size={item.variantTitle?.split(' / ')[1] || ''}
-                      quantity={1}
-                      productIndex={quantityIndex}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </Stack>
+      {selectedImage && (
+        <Modal 
+          opened={!!selectedImage} 
+          onClose={() => setSelectedImage(null)}
+          size="auto"
+          padding="xs"
+          centered
+        >
+          <Image
+            src={selectedImage.url}
+            alt={selectedImage.alt}
+            fit="contain"
+            maw="90vw"
+            mah="90vh"
+          />
+        </Modal>
+      )}
     </Paper>
   );
 }
 
 export function BatchPage() {
-  const { 
-    isLoading, 
-    error, 
-    orders, 
-    selectedOrder,
-    handleOrderSelect 
-  } = useBatchPresenter();
-
+  const { orders, selectedOrder, isLoading, error, handleOrderSelect } = useBatchPresenter();
   if (isLoading) {
     return (
       <div className={styles.main_content}>
-        <Loader />
+        <Title order={2}>Stock</Title>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+          <Loader />
+        </div>
       </div>
     );
   }
@@ -112,7 +145,10 @@ export function BatchPage() {
   if (error) {
     return (
       <div className={styles.main_content}>
-        <Text c="red">Une erreur est survenue lors du chargement des commandes.</Text>
+        <Title order={2}>Stock</Title>
+        <div style={{ marginTop: '2rem' }}>
+          <Text c="red">Une erreur est survenue lors du chargement des commandes.</Text>
+        </div>
       </div>
     );
   }

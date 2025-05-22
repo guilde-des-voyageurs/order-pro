@@ -9,15 +9,7 @@
 .ordersGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(3, 1fr);
-  
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: 1fr;
 }
 
 .orderRow {
@@ -47,43 +39,48 @@
   }
 
   .orderDetails {
+    margin-top: 0.5rem;
     display: flex;
-    gap: 1rem;
-    align-items: center;
+    justify-content: stretch;
+
+    > * {
+      flex: 1;
+    }
   }
 }
 
-.lineItems {
+.orderItems {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.productList {
   display: grid;
   gap: 0.5rem;
 }
 
-.lineItem {
-  padding: 0.5rem;
-  border: 1px solid var(--mantine-color-gray-3);
-  border-radius: var(--mantine-radius-sm);
-
-  .lineItemHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+.productItem {
+  border: none;
+  background: #f1f1f1;
+  border-radius: 20px;
+  &.cancelled {
+    opacity: 0.5;
   }
 
-  .lineItemDetails {
+  .productContent {
     display: flex;
-    justify-content: space-between;
+    gap: 1rem;
     align-items: center;
 
-    .variantInfo {
-      display: flex;
-      gap: 1rem;
+    .productImageContainer {
+      flex: 0 0 100px;
+      width: 100px;
+      height: 100px;
     }
 
-    .variantProgress {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
+    .productInfo {
+      flex: 1;
+      min-width: 0;
     }
   }
 }
