@@ -67,6 +67,7 @@ export const ordersService = {
         totalPrice: order.totalPrice?.toString(),
         totalPriceCurrency: order.totalPriceCurrency,
         note: order.note || null,
+        tags: order.tags || [],
         lineItems: (order.lineItems || []).map((item) => ({
           id: item.id,
           title: item.title || null,

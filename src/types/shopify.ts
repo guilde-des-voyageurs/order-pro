@@ -8,6 +8,7 @@ export interface ShopifyOrder {
   totalPrice: string;
   totalPriceCurrency: string;
   note?: string | null;  // Notes de la commande
+  tags: string[];  // Tags de la commande
   lineItems?: Array<{
     id: string;
     title: string;

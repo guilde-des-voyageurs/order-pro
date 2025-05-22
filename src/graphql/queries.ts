@@ -12,10 +12,9 @@ export const TEST_QUERY = `
 export const ORDERS_QUERY = `
 query {
   orders(
-    first: 30, 
+    first: 1, 
     sortKey: CREATED_AT, 
-    reverse: true,
-    query: "created_at:>='2025-04-29' NOT name:'#1366' NOT name:'#1336' NOT name:'#1412'"
+    reverse: true
   ) {
     nodes {
       id
@@ -25,6 +24,7 @@ query {
       displayFulfillmentStatus
       displayFinancialStatus
       note
+      tags
       totalPriceSet {
         shopMoney {
           amount

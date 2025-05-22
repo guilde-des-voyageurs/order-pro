@@ -27,6 +27,7 @@ interface ShopifyResponse {
       displayFulfillmentStatus: string;
       displayFinancialStatus: string;
       note: string | null;
+      tags: string[];
       totalPriceSet: {
         shopMoney: {
           amount: string;
@@ -99,22 +100,10 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
     const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
 
     // Log de la réponse brute
-    console.log('\n📦 Réponse brute de Shopify :', {
-      totalOrders: result?.data?.orders?.nodes?.length,
-      orderNumbers: result?.data?.orders?.nodes?.map(o => o.name).join(', ')
-    });
-
-    console.log('\n📊 Statuts des 30 dernières commandes :');
-    const lastOrders = (result?.data?.orders?.nodes || []).slice(0, 30);
-    lastOrders.forEach(order => {
-      console.log(`\n🔖 Commande ${order.name}:`, {
-        displayFulfillmentStatus: order.displayFulfillmentStatus,
-        displayFinancialStatus: order.displayFinancialStatus,
-        createdAt: new Date(order.createdAt).toLocaleDateString('fr-FR'),
-        cancelledAt: order.cancelledAt ? new Date(order.cancelledAt).toLocaleDateString('fr-FR') : null
-      });
-    });
-    console.log('\n');
+    console.log('\n📦 Données brutes de Shopify :', JSON.stringify({
+      order: result?.data?.orders?.nodes[0],
+      tags: result?.data?.orders?.nodes[0]?.tags
+    }, null, 2));
 
     if (!result?.data?.orders?.nodes) {
       return [];
@@ -124,6 +113,11 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
     // Transformer les données pour correspondre à notre type
     const orders = result.data.orders.nodes
       .map(order => {
+        console.log(`\n📌 Données brutes de la commande ${order.name}:`, {
+          tags: order.tags,
+          rawOrder: order
+        });
+
         // Filtrer les articles pour ne garder que ceux de l'emplacement accepté
         const filteredLineItems = order.lineItems.nodes
           .filter(item => {
@@ -143,7 +137,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
         }
 
         // Retourner l'objet ShopifyOrder complet
-        return {
+        const transformedOrder = {
           id: order.id,
           name: order.name,
           orderNumber: order.name.replace('#', ''),
@@ -152,6 +146,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
           displayFulfillmentStatus: order.displayFulfillmentStatus,
           displayFinancialStatus: order.displayFinancialStatus,
           note: order.note || undefined,
+          tags: order.tags || [],
           synced_at: new Date().toISOString(),
           totalPrice: order.totalPriceSet.shopMoney.amount,
           totalPriceCurrency: order.totalPriceSet.shopMoney.currencyCode,
@@ -182,9 +177,16 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
               })) || []
             }
           }))
-        } as ShopifyOrder; // Assertion de type explicite
+        } as ShopifyOrder;
+
+        console.log(`\n💾 Commande transformée ${order.name}:`, JSON.stringify({
+          tags: transformedOrder.tags,
+          order: transformedOrder
+        }, null, 2));
+
+        return transformedOrder;
       })
-      .filter((order): order is ShopifyOrder => order !== null); // Type guard pour TypeScript
+      .filter((order): order is ShopifyOrder => order !== null);
 
     return orders;
   } catch (error) {
