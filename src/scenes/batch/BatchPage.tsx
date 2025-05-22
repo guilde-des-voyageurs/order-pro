@@ -1,26 +1,29 @@
 'use client';
 
-import { Title, Text, Loader, Paper, Stack, Container, Image, Modal, Group } from '@mantine/core'
-import { useClipboard } from '@mantine/hooks'
-import { BatchPageProps } from './BatchPage.types'
-import { useBatchPresenter } from './BatchPage.presenter'
-import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer'
-import { TextileProgress } from '@/components/TextileProgress/TextileProgress'
-import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed'
-import { FinancialStatus } from '@/components/FinancialStatus'
-import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox'
-import { encodeFirestoreId } from '@/utils/firebase-helpers'
-import styles from './BatchPage.module.scss'
-import { useState } from 'react'
-import type { ShopifyOrder } from '@/types/shopify'
+import { Title, Text, Loader, Paper, Stack } from '@mantine/core';
+import { useClipboard } from '@mantine/hooks';
+import { useBatchPresenter } from './BatchPage.presenter';
+import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
+import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
+import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
+import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { FinancialStatus } from '@/components/FinancialStatus';
+import styles from './BatchPage.module.scss';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { generateVariantId } from '@/utils/variant-helpers';
+import { useState } from 'react';
+import type { ShopifyOrder } from '@/types/shopify';
 
 interface OrderRowProps {
-  order: ShopifyOrder
+  order: ShopifyOrder;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
 }
 
-function OrderRow({ order }: OrderRowProps) {
-  const clipboard = useClipboard()
-  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null)
+function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+  const clipboard = useClipboard();
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   return (
     <Paper className={styles.orderRow} withBorder>
@@ -45,101 +48,95 @@ function OrderRow({ order }: OrderRowProps) {
           </div>
         </div>
 
-        <div className={styles.orderItems}>
-          <div className={styles.productList}>
-            {order.lineItems?.map((item) => (
-              <Paper 
-                key={item.id} 
-                className={styles.productItem}
-                withBorder
-                p="md"
-              >
-                <div className={styles.productContent}>
-                  <div className={styles.productImageContainer}>
-                    {item.image && (
-                      <>
-                        <Image
-                          className={styles.productImage}
-                          src={item.image.url}
-                          alt={item.image.altText || item.title}
-                          w={100}
-                          h={100}
-                          fit="contain"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => item.image && setSelectedImage({ 
-                            url: item.image.url, 
-                            alt: item.image.altText || item.title 
-                          })}
-                        />
-                        <Modal 
-                          opened={selectedImage?.url === item.image.url} 
-                          onClose={() => setSelectedImage(null)}
-                          size="auto"
-                          padding="xs"
-                          centered
-                        >
-                          <Image
-                            src={item.image.url}
-                            alt={item.image.altText || item.title}
-                            fit="contain"
-                            maw="90vw"
-                            mah="90vh"
-                          />
-                        </Modal>
-                      </>
-                    )}
-                  </div>
-                  <div className={styles.productInfo}>
-                    <Text fw={500}>{item.title}</Text>
-                    <Group gap="xs">
-                      {item.sku && (
-                        <Text size="sm" c="dimmed">
-                          SKU: {item.sku}
-                        </Text>
-                      )}
-                      <Text size="sm" c="dimmed">
-                        Quantité: {item.quantity}
-                      </Text>
-                    </Group>
-                  </div>
+        <div className={styles.lineItems}>
+          {order.lineItems?.map((item) => (
+            <div key={item.id} className={styles.lineItem}>
+              <div className={styles.lineItemHeader}>
+                <Text size="sm" fw={500}>{item.title}</Text>
+                <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+              </div>
+              
+              <div className={styles.lineItemDetails}>
+                <div className={styles.variantInfo}>
+                  <Text size="sm">SKU: {item.sku}</Text>
+                  <Text size="sm">Qté: {item.quantity}</Text>
                 </div>
-              </Paper>
-            ))}
-          </div>
+                
+                <div className={styles.variantProgress}>
+                  {Array.from({ length: item.quantity || 0 }).map((_, quantityIndex) => (
+                    <VariantCheckbox 
+                      key={`${order.id}-${item.sku}-${quantityIndex}`}
+                      orderId={encodeFirestoreId(order.id)} 
+                      variantId={generateVariantId(
+                        encodeFirestoreId(order.id),
+                        item.sku || '',
+                        item.variantTitle?.split(' / ')[0] || '',
+                        item.variantTitle?.split(' / ')[1] || '',
+                        quantityIndex,
+                        0
+                      )}
+                      sku={item.sku || ''}
+                      color={item.variantTitle?.split(' / ')[0] || ''}
+                      size={item.variantTitle?.split(' / ')[1] || ''}
+                      quantity={1}
+                      productIndex={quantityIndex}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Stack>
     </Paper>
-  )
+  );
 }
 
-export default function BatchPage({}: BatchPageProps) {
-  const { batchOrders, isLoading } = useBatchPresenter()
-  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>()
+export function BatchPage() {
+  const { 
+    isLoading, 
+    error, 
+    orders, 
+    selectedOrder,
+    handleOrderSelect 
+  } = useBatchPresenter();
 
   if (isLoading) {
     return (
-      <Container>
+      <div className={styles.main_content}>
         <Loader />
-      </Container>
-    )
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.main_content}>
+        <Text c="red">Une erreur est survenue lors du chargement des commandes.</Text>
+      </div>
+    );
   }
 
   return (
-    <Container size="xl">
-      <Stack>
-        <Title order={2}>Commandes de stock ({batchOrders.length})</Title>
-        {batchOrders.map((order) => (
-          <OrderRow 
-            key={order.id} 
-            order={order} 
+    <div className={styles.main_content}>
+      <Title>Commandes par lots</Title>
+      
+      <div className={styles.ordersGrid}>
+        {orders.map((order) => (
+          <OrderRow
+            key={order.id}
+            order={order}
+            isSelected={selectedOrder?.id === order.id}
+            onSelect={handleOrderSelect}
           />
         ))}
-      </Stack>
-      <OrderDrawer
-        opened={!!selectedOrder}
+      </div>
+
+      <OrderDrawer 
         order={selectedOrder}
-        onClose={() => setSelectedOrder(undefined)}
+        onClose={() => handleOrderSelect('')}
+        opened={!!selectedOrder}
       />
-    </Container>
-  )
+    </div>
+  );
 }

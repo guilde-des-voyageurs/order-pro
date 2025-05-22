@@ -1,82 +1,89 @@
+.main_content {
+  padding: 2rem;
+
+  > * + * {
+    margin-top: 2rem;
+  }
+}
+
+.ordersGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .orderRow {
   padding: 1rem;
-  margin-bottom: 1rem;
-  transition: all 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
 }
 
 .orderInfo {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.orderHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  flex: 1;
-}
-
-.orderTitle {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.orderWaiting {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.orderDetails {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.orderItems {
-  width: 100%;
-}
-
-.productList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
-}
+  
+  .orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-.productItem {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+    .orderTitle {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
 
-  &.cancelled {
-    opacity: 0.5;
+    .orderWaiting {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+  }
+
+  .orderDetails {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
   }
 }
 
-.productContent {
-  display: flex;
-  gap: 1rem;
-}
-
-.productImageContainer {
-  flex-shrink: 0;
-}
-
-.productImage {
-  border-radius: 4px;
-}
-
-.productInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.lineItems {
+  display: grid;
   gap: 0.5rem;
+}
+
+.lineItem {
+  padding: 0.5rem;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: var(--mantine-radius-sm);
+
+  .lineItemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .lineItemDetails {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .variantInfo {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .variantProgress {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+  }
 }
