@@ -64,6 +64,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       label: 'Suivi textile',
     },
     {
+      href: '/batch',
+      label: 'Stock',
+    },
+    {
       href: '/facturation',
       label: 'Facturation',
     },
