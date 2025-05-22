@@ -1,16 +1,19 @@
 'use client';
 
-import { Badge } from '@mantine/core';
+import { Badge, ActionIcon, Tooltip, Group } from '@mantine/core';
+import { IconRefresh } from '@tabler/icons-react';
 import styles from './TextileProgress.module.scss';
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 
 interface TextileProgressProps {
   orderId: string;
+  onRefresh?: () => void;
 }
 
-export function TextileProgress({ orderId }: TextileProgressProps) {
+export function TextileProgress({ orderId, onRefresh }: TextileProgressProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [progress, setProgress] = useState<{ checkedCount: number; totalCount: number } | null>(null);
   const [exists, setExists] = useState<boolean | null>(null);
 
@@ -39,6 +42,43 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
     return <Badge className={styles.progress} variant="outline">-</Badge>;
   }
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+
+    try {
+      const docRef = doc(db, 'textile-progress-v2', orderId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        // Récupérer le nombre total de textiles depuis la commande
+        const orderRef = doc(db, 'orders-v2', orderId);
+        const orderSnap = await getDoc(orderRef);
+        
+        if (orderSnap.exists()) {
+          const orderData = orderSnap.data();
+          const lineItems = orderData.lineItems || [];
+          const totalCount = lineItems.reduce((acc: number, item: any) => {
+            // Ne pas compter les items annulés
+            if (item.isCancelled) return acc;
+            return acc + (item.quantity || 0);
+          }, 0);
+          
+          // Mettre à jour le total dans textile-progress-v2
+          await updateDoc(docRef, {
+            totalCount
+          });
+
+          onRefresh?.();
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing textile count:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (!exists) {
     return <Badge className={`${styles.progress} ${styles.new}`} variant="outline">NEW</Badge>;
   }
@@ -51,8 +91,22 @@ export function TextileProgress({ orderId }: TextileProgressProps) {
   };
 
   return (
-    <Badge className={`${styles.progress} ${styles[getProgressClass()]}`} variant="outline">
-      {progress.checkedCount} / {progress.totalCount}
-    </Badge>
+    <Group gap="xs">
+      <Badge 
+        className={`${styles.progress} ${styles[getProgressClass()]}`} 
+        variant="outline"
+        style={{ cursor: 'pointer' }}
+        onClick={handleRefresh}
+      >
+        {progress.checkedCount}/{progress.totalCount}
+      </Badge>
+      {isRefreshing && (
+        <Tooltip label="Recalcul en cours...">
+          <ActionIcon size="sm" variant="subtle" loading>
+            <IconRefresh size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+    </Group>
   );
 }

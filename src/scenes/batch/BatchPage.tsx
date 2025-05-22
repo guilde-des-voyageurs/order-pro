@@ -55,7 +55,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.productList}>
-            {order.lineItems?.map((item) => (
+            {order.lineItems?.filter(item => !item.isCancelled).map((item) => (
               <Paper key={item.id} className={styles.productItem} p="md">
                 <div className={styles.productContent}>
                   <div className={styles.productImageContainer}>
