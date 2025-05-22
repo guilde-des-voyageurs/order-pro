@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Stack, Group, Loader, Image, Modal, Paper } from '@mantine/core';
+import { Title, Text, Stack, Group, Loader, Image, Modal, Paper, Badge } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { useBatchPresenter } from './BatchPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -14,6 +14,7 @@ import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { formatDate } from '@/utils/date-helpers';
+import { transformColor } from '@/utils/color-transformer';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -33,24 +34,27 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
         <div className={styles.orderInfo}>
           <div className={styles.orderHeader}>
             <div className={styles.orderTitle}>
-              <Text fw={500}>#{order.name}</Text>
-              <Text c="dimmed" size="sm">{formatDate(order.createdAt)}</Text>
+              <div>
+                <Text fw={500}>{order.name}</Text>
+                <Text c="dimmed" size="sm">{formatDate(order.createdAt)}</Text>
+                {order.note && (
+                  <Text c="dimmed" size="sm" mt="xs">
+                    Note: {order.note}
+                  </Text>
+                )}
+              </div>
             </div>
             <div className={styles.orderWaiting}>
+              <Group gap="xs">
+                {order.tags?.map(tag => (
+                  <Badge key={tag} size="sm" variant="light">{tag}</Badge>
+                ))}
+              </Group>
               <TextileProgress orderId={encodeFirestoreId(order.id)} />
             </div>
           </div>
 
           <div className={styles.productList}>
-            <OrderVariantList 
-              orderId={encodeFirestoreId(order.id)} 
-              variants={order.lineItems?.map(item => ({
-                sku: item.sku || '',
-                color: item.variantTitle?.split(' / ')[0] || '',
-                size: item.variantTitle?.split(' / ')[1] || '',
-                quantity: item.quantity
-              })) || []} 
-            />
             {order.lineItems?.map((item) => (
               <Paper key={item.id} className={styles.productItem} p="md">
                 <div className={styles.productContent}>
@@ -73,7 +77,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   </div>
                   <div className={styles.productInfo}>
                     <Text fw={500}>{item.title}</Text>
-                    <Text size="sm" c="dimmed">{item.variantTitle}</Text>
+                    <Text size="sm" c="dimmed">{transformColor(item.variantTitle?.split(' / ')[0] || '')} / {item.variantTitle?.split(' / ')[1] || ''}</Text>
                     <Group gap="xs">
                       <Text size="sm">SKU: {item.sku}</Text>
                       <Text size="sm">Qté: {item.quantity}</Text>

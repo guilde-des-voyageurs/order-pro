@@ -28,7 +28,13 @@
     .orderTitle {
       display: flex;
       gap: 1rem;
-      align-items: center;
+      align-items: flex-start;
+
+      > div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
     }
 
     .orderWaiting {
@@ -45,6 +51,43 @@
 
     > * {
       flex: 1;
+    }
+  }
+
+  .productList {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .productItem {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .productContent {
+      display: flex;
+      gap: 1rem;
+      height: 100%;
+    }
+
+    .productImageContainer {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      width: 100px;
+    }
+
+    .productInfo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 0;
     }
   }
 }
