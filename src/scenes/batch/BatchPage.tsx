@@ -38,9 +38,21 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 <Text fw={500}>{order.name}</Text>
                 <Text c="dimmed" size="sm">{formatDate(order.createdAt)}</Text>
                 {order.note && (
-                  <Text c="dimmed" size="sm" mt="xs">
-                    Note: {order.note}
-                  </Text>
+                  <Badge
+                    variant="light"
+                    color="blue"
+                    size="lg"
+                    radius="sm"
+                    mb="xs"
+                    styles={{
+                      root: {
+                        textTransform: 'none',
+                        fontWeight: 400
+                      }
+                    }}
+                  >
+                    {order.note}
+                  </Badge>
                 )}
               </div>
             </div>

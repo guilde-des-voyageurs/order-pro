@@ -72,6 +72,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       label: 'Facturation',
     },
     {
+      href: '/stock-invoices',
+      label: 'Facturation Stock',
+    },
+    {
       href: '/orders',
       label: `Archives`,
     }
