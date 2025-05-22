@@ -1,4 +1,4 @@
-import { Box, Container, Title, Paper, Text, Group, Badge, Stack, Grid } from '@mantine/core';
+import { Box, Container, Title, Paper, Text, Group, Badge, Stack, Grid, Tooltip } from '@mantine/core';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -8,6 +8,8 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import styles from './StockInvoicesPage.module.scss';
+import { calculateVariantPrice, formatPrice } from '@/utils/pricing';
+import { transformColor, colorMappings } from '@/utils/color-transformer';
 
 interface Order {
   id: string;
@@ -97,12 +99,57 @@ export function StockInvoicesPage() {
                 <Stack mt="md" gap="xs">
                   {order.lineItems
                     ?.filter(item => !item.isCancelled)
-                    .map((item, index) => (
+                    .map((item, index) => {
+                      const [rawColor, size] = item.variantTitle?.split(' / ') || ['', ''];
+                      // Clean color by removing parentheses content
+                      const color = rawColor.replace(/\s*\([^)]*\)/g, '').trim();
+                      return (
                       <Grid key={item.id} align="center">
                         <Grid.Col span={9}>
-                          <Text size="sm">
-                            × {item.quantity} - {item.title} - {item.variantTitle} ({item.sku})
-                          </Text>
+                          <Group gap="xs" wrap="nowrap">
+                            <Stack gap={2}>
+                              <Text size="sm" fw={500}>
+                                × {item.quantity} - {item.title}
+                              </Text>
+                              <Group gap="xs">
+                                <Badge variant="light" color="blue" size="sm">{item.sku}</Badge>
+                                <Badge variant="light" color="grape" size="sm">
+                                  {(() => {
+                                    // Remove anything between parentheses and clean up
+                                    const cleanColor = color.replace(/\s*\([^)]*\)/g, '').trim();
+                                    const normalizedColor = cleanColor.toLowerCase()
+                                      .normalize('NFD')
+                                      .replace(/[\u0300-\u036f]/g, '');
+                                    const mapping = colorMappings[normalizedColor];
+                                    return mapping ? mapping.internalName : color;
+                                  })()} / {size}
+                                </Badge>
+                                <Badge variant="light" color="teal" size="sm">
+                                  {item.title.includes('VR1') ? 'VR1' :
+                                   item.title.includes('VR2') ? 'VR2' :
+                                   item.title.includes('CUI') ? 'CUI' :
+                                   item.title.includes('OPA') ? 'OPA' : 'N/A'}
+                                </Badge>
+                              </Group>
+                            </Stack>
+                            {(() => {
+                              const price = calculateVariantPrice({
+                                sku: item.sku || '',
+                                color: color,
+                                printFile: item.title.includes('VR1') ? 'VR1' :
+                                          item.title.includes('VR2') ? 'VR2' :
+                                          item.title.includes('CUI') ? 'CUI' :
+                                          item.title.includes('OPA') ? 'OPA' : undefined
+                              });
+                              return price !== null ? (
+                                <Tooltip label="Prix selon les règles définies">
+                                  <Badge variant="light" color="blue">
+                                    {formatPrice(price)}
+                                  </Badge>
+                                </Tooltip>
+                              ) : null;
+                            })()}
+                          </Group>
                         </Grid.Col>
                         <Grid.Col span={3}>
                           <Group gap="xs">
@@ -111,15 +158,15 @@ export function StockInvoicesPage() {
                                 key={`${order.id}-${item.sku}-${quantityIndex}`}
                                 orderId={encodeFirestoreId(order.id)}
                                 sku={item.sku || ''}
-                                color={item.variantTitle?.split(' / ')[0] || ''}
-                                size={item.variantTitle?.split(' / ')[1] || ''}
+                                color={color}
+                                size={size}
                                 quantity={1}
                                 productIndex={quantityIndex}
                                 variantId={generateVariantId(
                                   encodeFirestoreId(order.id),
                                   item.sku || '',
-                                  item.variantTitle?.split(' / ')[0] || '',
-                                  item.variantTitle?.split(' / ')[1] || '',
+                                  color,
+                                  size,
                                   quantityIndex,
                                   0
                                 )}
@@ -128,7 +175,8 @@ export function StockInvoicesPage() {
                           </Group>
                         </Grid.Col>
                       </Grid>
-                  ))}
+                    );
+                  })}
                 </Stack>
               </Box>
               <BillingCheckbox orderId={encodeFirestoreId(order.id)} />
