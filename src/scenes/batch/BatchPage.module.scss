@@ -112,8 +112,16 @@
 
   .productContent {
     display: flex;
-    gap: 1rem;
+    gap: var(--mantine-spacing-md);
+    position: relative;
     align-items: center;
+
+    .productQuantity {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-weight: 500;
+    }
 
     .productImageContainer {
       flex: 0 0 100px;

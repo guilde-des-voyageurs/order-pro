@@ -1,6 +1,6 @@
 'use client';
 
-import { Title, Text, Stack, Group, Loader, Image, Modal, Paper, Badge } from '@mantine/core';
+import { Title, Text, Paper, Badge, Image, Group, Stack, Box, Tooltip, Modal, Loader } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { useBatchPresenter } from './BatchPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -14,7 +14,7 @@ import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { formatDate } from '@/utils/date-helpers';
-import { transformColor } from '@/utils/color-transformer';
+import { transformColor, colorMappings } from '@/utils/color-transformer';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -58,6 +58,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
             {order.lineItems?.filter(item => !item.isCancelled).map((item) => (
               <Paper key={item.id} className={styles.productItem} p="md">
                 <div className={styles.productContent}>
+                  <Text className={styles.productQuantity} size="lg">× {item.quantity}</Text>
                   <div className={styles.productImageContainer}>
                     {item.image && (
                       <Image
@@ -77,10 +78,85 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   </div>
                   <div className={styles.productInfo}>
                     <Text fw={500}>{item.title}</Text>
-                    <Text size="sm" c="dimmed">{transformColor(item.variantTitle?.split(' / ')[0] || '')} / {item.variantTitle?.split(' / ')[1] || ''}</Text>
+                    <Text size="sm" c="dimmed">
+                      {item.sku} - {item.variantTitle?.split(' / ').map((variant, index) => {
+                        if (index === 0) {
+                          const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
+                          const normalizedColor = cleanedVariant.toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '');
+                          const foundColor = Object.entries(colorMappings).find(([key]) => 
+                            key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
+                          );
+                          return foundColor ? foundColor[1].internalName : variant;
+                        }
+                        return variant;
+                      }).join(' / ')}
+                    </Text>
                     <Group gap="xs">
-                      <Text size="sm">SKU: {item.sku}</Text>
-                      <Text size="sm">Qté: {item.quantity}</Text>
+                      {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                        <>
+                          <Stack gap="xs">
+                            <Badge
+                              variant="light"
+                              color="gray"
+                              radius="xl"
+                              size="lg"
+                              styles={{
+                                root: {
+                                  fontWeight: 400,
+                                  color: 'var(--mantine-color-dark-6)'
+                                }
+                              }}
+                            >
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                            </Badge>
+                            <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
+                              <Badge
+                                variant="light" 
+                                color="gray" 
+                                radius="xl" 
+                                size="lg"
+                                fullWidth
+                                styles={{ 
+                                  root: { 
+                                    whiteSpace: 'normal',
+                                    height: 'auto',
+                                    textAlign: 'left',
+                                    lineHeight: 1.5,
+                                    fontWeight: 400,
+                                    color: 'var(--mantine-color-dark-6)',
+                                    cursor: 'pointer',
+                                    maxWidth: '20vw',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    '&:hover': {
+                                      opacity: 0.8
+                                    }
+                                  } 
+                                }}
+                                onClick={() => {
+                                  const folderName = item.title
+                                    .replace(/\s*\|\s*/g, '')
+                                    .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                    .trim()
+                                    .toUpperCase();
+                                  const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${folderName}`;
+                                  clipboard.copy(path);
+                                }}
+                              >
+                                {`./MOTIFS/${item.title
+                                  .replace(/\s*\|\s*/g, '')
+                                  .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                  .trim()
+                                  .toUpperCase()}\\${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value || ''}_${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}.png`}
+                              </Badge>
+                            </Tooltip>
+                          </Stack>
+                        </>
+                      )}
+
+
                     </Group>
                   </div>
                   <div>
