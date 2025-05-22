@@ -8,7 +8,7 @@ import { SyncButton } from '@/components/SyncButton/SyncButton';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import { Button } from '@mantine/core';
-import { IconLogout } from '@tabler/icons-react';
+import { IconLogout, IconCurrencyEuro } from '@tabler/icons-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -61,11 +61,15 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     },
     {
       href: '/textile',
-      label: 'Suivi textile',
+      label: 'Textile',
     },
     {
       href: '/batch',
       label: 'Stock',
+    },
+    {
+      href: '/price-rules',
+      label: 'Règles de prix',
     },
     {
       href: '/facturation',
