@@ -7,7 +7,7 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './StockInvoicesPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
@@ -131,26 +131,15 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         </Badge>
                       </Group>
                       <div className={styles.variantCheckboxes}>
-                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                          <VariantCheckbox
-                            key={`${item.id}-${quantityIndex}`}
-                            orderId={encodeFirestoreId(order.id)}
-                            sku={item.sku || ''}
-                            color={item.variantTitle?.split(' / ')[0] || ''}
-                            size={item.variantTitle?.split(' / ')[1] || ''}
-                            quantity={1}
-                            productIndex={index}
-                            disabled={item.isCancelled ?? false}
-                            variantId={generateVariantId(
-                              encodeFirestoreId(order.id),
-                              item.sku || '',
-                              item.variantTitle?.split(' / ')[0] || '',
-                              item.variantTitle?.split(' / ')[1] || '',
-                              quantityIndex,
-                              index
-                            )}
-                          />
-                        ))}
+                        <VariantCheckboxGroup
+                          orderId={encodeFirestoreId(order.id)}
+                          sku={item.sku || ''}
+                          color={item.variantTitle?.split(' / ')[0] || ''}
+                          size={item.variantTitle?.split(' / ')[1] || ''}
+                          quantity={item.quantity}
+                          productIndex={index}
+                          disabled={item.isCancelled ?? false}
+                        />
                       </div>
                       <Group gap="xs" mt="xs">
                         <Text size="sm" c="dimmed">
