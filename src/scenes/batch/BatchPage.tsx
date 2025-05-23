@@ -47,7 +47,10 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
+            <InvoiceCheckbox 
+              orderId={encodeFirestoreId(order.id)} 
+              readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
+            />
           </div>
         </div>
 
@@ -137,11 +140,6 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       <Badge color={item.isCancelled ? 'red' : 'blue'}>
                         {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
                       </Badge>
-                      {item.isCancelled && (
-                        <Badge color="red">
-                          Annulé
-                        </Badge>
-                      )}
                     </Group>
                     <Group gap="xs">
                       {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
@@ -153,6 +151,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           size={item.variantTitle?.split(' / ')[1] || ''}
                           quantity={1}
                           productIndex={index}
+                          disabled={item.isCancelled ?? false}
                           variantId={generateVariantId(
                             encodeFirestoreId(order.id),
                             item.sku || '',
