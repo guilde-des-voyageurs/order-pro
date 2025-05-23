@@ -215,7 +215,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           }}
                         >
                           <Text span fw={700} inherit>
-                            RECTO : ./MOTIFS/{item.title
+                            RECTO : {item.title
                               .replace(/\s*\|\s*/g, '')
                               .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
                               .trim()
@@ -261,7 +261,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           }}
                         >
                           <Text span fw={700} inherit>
-                            VERSO : ./MOTIFS/{item.title
+                            VERSO : {item.title
                               .replace(/\s*\|\s*/g, '')
                               .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
                               .trim()

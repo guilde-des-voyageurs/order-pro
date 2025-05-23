@@ -115,22 +115,40 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             }).join(' / ')}
                           </Text>
                         )}
-                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                          <Badge
-                            variant="light"
-                            color="gray"
-                            radius="xl"
-                            size="lg"
-                            styles={{
-                              root: {
-                                fontWeight: 400,
-                                color: 'var(--mantine-color-dark-6)'
-                              }
-                            }}
-                          >
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                          </Badge>
-                        )}
+                        <Group gap="xs">
+                          {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                            <Badge
+                              variant="light"
+                              color="gray"
+                              radius="xl"
+                              size="lg"
+                              styles={{
+                                root: {
+                                  fontWeight: 400,
+                                  color: 'var(--mantine-color-dark-6)'
+                                }
+                              }}
+                            >
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                            </Badge>
+                          )}
+                          {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
+                            <Badge
+                              variant="light"
+                              color="gray"
+                              radius="xl"
+                              size="lg"
+                              styles={{
+                                root: {
+                                  fontWeight: 400,
+                                  color: 'var(--mantine-color-dark-6)'
+                                }
+                              }}
+                            >
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
+                            </Badge>
+                          )}
+                        </Group>
                       </Group>
                     </div>
                     <Group gap="xs" className={styles.productActions}>
@@ -158,57 +176,103 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       ))}
                     </Group>
                   </div>
-                  {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                  {(item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') || 
+                    item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')) && (
                     <Box mt="md" px="md">
-                      <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
-                        <Badge
-                          variant="light" 
-                          color="gray" 
-                          radius="xl" 
-                          size="lg"
-                          fullWidth
-                          styles={{ 
-                            root: { 
-                              whiteSpace: 'normal',
-                              height: 'auto',
-                              textAlign: 'left',
-                              lineHeight: 1.5,
-                              fontWeight: 400,
-                              color: 'var(--mantine-color-dark-6)',
-                              cursor: 'pointer',
-                              maxWidth: '20vw',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              '&:hover': {
-                                opacity: 0.8
-                              }
-                            } 
-                          }}
-                          onClick={() => {
-                            const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                              .trim()
-                              .toUpperCase()}`;
+                      <Group gap="xs">
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                                <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
+                                  <Badge
+                                    variant="light" 
+                                    color="gray" 
+                                    radius="xl" 
+                                    size="lg"
+                                    fullWidth
+                                    styles={{ 
+                                      root: { 
+                                        whiteSpace: 'normal',
+                                        height: 'auto',
+                                        textAlign: 'left',
+                                        lineHeight: 1.5,
+                                        fontWeight: 400,
+                                        color: 'var(--mantine-color-dark-6)',
+                                        cursor: 'pointer',
+                                        maxWidth: '20vw',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        '&:hover': {
+                                          opacity: 0.8
+                                        }
+                                      } 
+                                    }}
+                                    onClick={() => {
+                                      const cleanTitle = item.title
+                                        .replace(/\s*\|\s*/g, '')
+                                        .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                        .trim()
+                                        .toUpperCase();
+                                      const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
 
-                            clipboard.copy(path);
-                          }}
-                        >
-                          <Text span fw={700} inherit>
-                            {item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                              .trim()
-                              .toUpperCase()}
-                          </Text>_
-                          <Text span fw={700} inherit>
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                          </Text>_
-                          <Text span fw={700} inherit>
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}
-                          </Text>.png
-                        </Badge>
-                      </Tooltip>
+                                      clipboard.copy(path);
+                                    }}
+                                  >
+                                    <Text span fw={700} inherit>
+                                      RECTO : {item.title
+                                        .replace(/\s*\|\s*/g, '')
+                                        .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                        .trim()
+                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                                    </Text>
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
+                                <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
+                                  <Badge
+                                    variant="light" 
+                                    color="gray" 
+                                    radius="xl" 
+                                    size="lg"
+                                    fullWidth
+                                    styles={{ 
+                                      root: { 
+                                        whiteSpace: 'normal',
+                                        height: 'auto',
+                                        textAlign: 'left',
+                                        lineHeight: 1.5,
+                                        fontWeight: 400,
+                                        color: 'var(--mantine-color-dark-6)',
+                                        cursor: 'pointer',
+                                        maxWidth: '20vw',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        '&:hover': {
+                                          opacity: 0.8
+                                        }
+                                      } 
+                                    }}
+                                    onClick={() => {
+                                      const cleanTitle = item.title
+                                        .replace(/\s*\|\s*/g, '')
+                                        .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                        .trim()
+                                        .toUpperCase();
+                                      const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
+
+                                      clipboard.copy(path);
+                                    }}
+                                  >
+                                    <Text span fw={700} inherit>
+                                      VERSO : {item.title
+                                        .replace(/\s*\|\s*/g, '')
+                                        .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                                        .trim()
+                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
+                                    </Text>
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                      </Group>
                     </Box>
                   )}
                 </Paper>

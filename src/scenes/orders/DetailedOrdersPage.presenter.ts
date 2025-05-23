@@ -45,7 +45,16 @@ export function useDetailedOrdersPagePresenter() {
 
       // Ne pas inclure les commandes expédiées
       const status = order.displayFulfillmentStatus?.toLowerCase();
-      return status !== 'fulfilled';
+      if (status === 'fulfilled') {
+        return false;
+      }
+
+      // Ne pas inclure les commandes avec une balise contenant 'batch'
+      if (order.tags?.some(tag => tag.toLowerCase().includes('batch'))) {
+        return false;
+      }
+
+      return true;
     });
   }, [orders]);
 

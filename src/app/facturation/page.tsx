@@ -19,6 +19,7 @@ interface Order {
   name: string;  // Le numéro de commande
   createdAt: string;
   displayFinancialStatus?: string;
+  tags?: string[];
   lineItems: Array<{
     quantity: number;
     unitCost?: number | null;
@@ -75,7 +76,20 @@ export default function FacturationPage() {
             id: doc.id,
             ...doc.data()
           } as Order))
-          .filter(order => order.displayFinancialStatus?.toLowerCase() !== 'refunded');
+          .filter(order => {
+            // Exclure les commandes remboursées ou annulées
+            const status = order.displayFinancialStatus?.toLowerCase();
+            if (status === 'refunded' || status === 'canceled') {
+              return false;
+            }
+
+            // Exclure les commandes avec une balise contenant 'batch'
+            if (order.tags?.some(tag => tag.toLowerCase().includes('batch'))) {
+              return false;
+            }
+
+            return true;
+          });
 
         // Grouper les commandes par semaine
         const groupedOrders = orders.reduce((acc: WeeklyOrders[], order) => {

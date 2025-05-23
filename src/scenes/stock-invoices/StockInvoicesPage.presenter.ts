@@ -47,6 +47,11 @@ export function useStockInvoicesPresenter() {
 
   const pendingOrders = useMemo(() => {
     return orders.filter(order => {
+      // Ne garder que les commandes qui ont un tag contenant 'batch'
+      if (!order.tags?.some(tag => tag.toLowerCase().includes('batch'))) {
+        return false;
+      }
+
       // Ne pas inclure les commandes remboursées
       if (order.displayFinancialStatus?.toLowerCase() === 'refunded') {
         return false;
