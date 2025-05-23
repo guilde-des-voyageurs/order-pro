@@ -1,67 +1,51 @@
 interface ColorMapping {
-  displayName: string;
   internalName: string;
 }
 
 export const colorMappings: { [key: string]: ColorMapping } = {
-  'bleu azur': {
-    displayName: 'Bleu Azur',
+  'Bleu Azur': {
     internalName: 'Stargazer'
   },
-  'bleu marine': {
-    displayName: 'Bleu Marine',
+  'Bleu Marine': {
     internalName: 'French Navy'
   },
-  'blanc antique': {
-    displayName: 'Blanc antique',
+  'Blanc ancien': {
     internalName: 'Vintage white'
   },
-  'ecru': {
-    displayName: 'Ecru',
+  'Ecru': {
     internalName: 'Raw'
   },
-  'bleu nuit': {
-    displayName: 'Bleu Nuit',
+  'Bleu Nuit': {
     internalName: 'Green Bay'
   },
-  'bordeaux': {
-    displayName: 'Bordeaux',
+  'Bordeaux': {
     internalName: 'Burgundy'
   },
-  'crème': {
-    displayName: 'Crème',
+  'Crème': {
     internalName: 'Cream'
   },
-  'nocturne': {
-    displayName: 'Nocturne',
+  'Nocturne': {
     internalName: 'Dusk'
   },
-  'kaki': {
-    displayName: 'Kaki',
+  'Kaki': {
     internalName: 'Khaki'
   },
-  'terra cotta': {
-    displayName: 'Terra Cotta',
+  'Terra Cotta': {
     internalName: 'Heritage Brown'
   },
-  'vert forêt': {
-    displayName: 'Vert Forêt',
+  'Vert Forêt': {
     internalName: 'Glazed Green'
   },
-  'vert antique': {
-    displayName: 'Vert Antique',
+  'Vert Antique': {
     internalName: 'Bottle Green'
   },
-  'prune': {
-    displayName: 'Prune',
+  'Prune': {
     internalName: 'Red Brown'
   },
-  'bleu indien': {
-    displayName: 'Bleu Indien',
+  'Bleu Indien': {
     internalName: 'India Ink Grey'
   },
-  'noir': {
-    displayName: 'Noir',
+  'Noir': {
     internalName: 'Black'
   }
 };
@@ -86,7 +70,7 @@ export function transformColor(color: string): string {
                      .replace(/[\u0300-\u036f]/g, '') === normalizedColor)?.[1];
 
   if (mapping) {
-    return `${mapping.displayName} (${mapping.internalName})`;
+    return normalizedColor;
   }
 
   // Si aucune correspondance n'est trouvée, retourner la couleur avec une majuscule

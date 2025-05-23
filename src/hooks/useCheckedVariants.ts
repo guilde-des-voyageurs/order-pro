@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { generateVariantId } from '@/utils/variant-helpers';
@@ -11,35 +11,69 @@ interface VariantKey {
   size: string;
   index: number;
   lineItemIndex?: number;
+  quantity: number;
 }
 
-export function useCheckedVariants({ orderId, sku, color, size, index, lineItemIndex }: VariantKey) {
+export function useCheckedVariants({ orderId, sku, color, size, index, lineItemIndex, quantity }: VariantKey) {
   const [checkedCount, setCheckedCount] = useState(0);
+  const checkedVariantsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    // Générer l'ID du variant dans le même format que les autres composants
-    const encodedOrderId = encodeFirestoreId(orderId);
-    const variantId = generateVariantId(encodedOrderId, sku, color, size, index, lineItemIndex);
+    console.log('useCheckedVariants effect running for:', { orderId, sku, color, size, index, lineItemIndex });
     
     // Vérifier que l'orderId est valide
     if (!orderId) {
+      console.log('No orderId, setting count to 0');
       setCheckedCount(0);
       return;
     }
 
-    // Écouter le document spécifique dans variants-ordered-v2
-    const variantRef = doc(db, 'variants-ordered-v2', variantId);
+    const encodedOrderId = encodeFirestoreId(orderId);
     
-    const unsubscribe = onSnapshot(variantRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setCheckedCount(snapshot.data()?.checked ? 1 : 0);
-      } else {
-        setCheckedCount(0);
-      }
+    // Générer les IDs pour tous les variants de cette combinaison
+    const variantIds = Array.from({ length: quantity }).map((_, quantityIndex) => {
+      return generateVariantId(
+        encodedOrderId,
+        sku,
+        color,
+        size,
+        quantityIndex,
+        index
+      );
     });
 
-    return () => unsubscribe();
+    console.log('Generated variant IDs:', variantIds);
+
+    const unsubscribes = variantIds.map(variantId => {
+      const variantRef = doc(db, 'variants-ordered-v2', variantId);
+      
+      return onSnapshot(variantRef, (snapshot) => {
+        console.log('Snapshot for variant:', variantId, snapshot.exists(), snapshot.data());
+        
+        if (snapshot.exists()) {
+          const isChecked = snapshot.data()?.checked || false;
+          console.log('Variant state:', { variantId, isChecked });
+          
+          if (isChecked) {
+            checkedVariantsRef.current.add(variantId);
+          } else {
+            checkedVariantsRef.current.delete(variantId);
+          }
+          
+          console.log('Updated checked variants:', { count: checkedVariantsRef.current.size, variants: Array.from(checkedVariantsRef.current) });
+          setCheckedCount(checkedVariantsRef.current.size);
+        }
+      });
+    });
+    
+    return () => {
+      console.log('Cleanup running for:', { orderId, sku, color, size, index, lineItemIndex });
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+      checkedVariantsRef.current.clear();
+      setCheckedCount(0);
+    };
   }, [orderId, sku, color, size, index, lineItemIndex]);
 
+  console.log('Current checked count:', checkedCount);
   return checkedCount;
 }

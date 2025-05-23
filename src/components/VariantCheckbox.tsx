@@ -7,6 +7,8 @@ import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { ordersService } from '@/firebase/services/orders';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
+import { generateVariantId } from '@/utils/variant-helpers';
+import { transformColor } from '@/utils/color-transformer';
 
 
 interface VariantCheckboxProps {
@@ -17,7 +19,7 @@ interface VariantCheckboxProps {
   orderId: string;
   productIndex: number;
   quantityIndex: number;
-  variantId: string;
+
   className?: string;
   disabled?: boolean;
 
@@ -40,30 +42,48 @@ export const VariantCheckbox = ({
   quantity,
   orderId,
   productIndex,
-  variantId,
+  quantityIndex,
   className,
   disabled,
 
 }: VariantCheckboxProps) => {
+  const variantId = generateVariantId(
+    orderId,
+    sku,
+    transformColor(color),
+    size,
+    quantityIndex,
+    productIndex
+  );
+
   const [checked, setChecked] = useState(false);
   const hasMounted = useHasMounted();
 
   useEffect(() => {
     if (!hasMounted) return;
 
+    console.log('VariantCheckbox mounted for:', { variantId, sku, color, size });
+
     // Écouter les changements de la variante
     const variantRef = doc(db, 'variants-ordered-v2', variantId);
     const unsubscribe = onSnapshot(variantRef, (doc) => {
+      console.log('VariantCheckbox snapshot:', { variantId, exists: doc.exists(), data: doc.data() });
       if (doc.exists()) {
-        setChecked(doc.data()?.checked || false);
+        const isChecked = doc.data()?.checked || false;
+        console.log('Setting checkbox state:', { variantId, isChecked });
+        setChecked(isChecked);
       }
     });
 
-    return () => unsubscribe();
-  }, [variantId, hasMounted]);
+    return () => {
+      console.log('VariantCheckbox unmounting:', { variantId });
+      unsubscribe();
+    };
+  }, [variantId, hasMounted, sku, color, size]);
 
   const handleCheckboxChange = async (event: any) => {
     const newChecked = event.target.checked;
+    console.log('Checkbox clicked:', { variantId, newChecked });
     
     const encodedOrderId = encodeFirestoreId(orderId);
     const document: VariantDocument = {
@@ -77,16 +97,18 @@ export const VariantCheckbox = ({
     };
 
     try {
-      // Utiliser l'ID unique qui inclut l'index
+      console.log('Updating variant in Firestore:', { variantId, document });
       const variantRef = doc(db, 'variants-ordered-v2', variantId);
       await setDoc(variantRef, document);
+      console.log('Variant updated successfully:', { variantId });
 
       // Une fois que le document est mis à jour, mettre à jour le compteur
       await ordersService.updateCheckedCount(orderId);
+      console.log('Order checked count updated:', { orderId });
       
       // Note: pas besoin de setChecked ici car le onSnapshot va le faire
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
+      console.error('Erreur lors de la mise à jour:', { variantId, error });
     }
   };
 

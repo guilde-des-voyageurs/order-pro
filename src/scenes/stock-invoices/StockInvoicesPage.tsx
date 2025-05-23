@@ -89,12 +89,13 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
                       size: item.variantTitle?.split(' / ')[1] || '',
                       index: itemIndex,
-                      lineItemIndex: undefined
+                      lineItemIndex: undefined,
+                      quantity: item.quantity
                     });
                     return acc + (price * checkedCount);
-                  }, 0) || 0;
-                  return total.toFixed(2) + '€';
-                })()} 
+                  }, 0);
+                  return total?.toFixed(2) + '€';
+                })()}
               </Text>
             </Group>
           </div>
@@ -153,29 +154,41 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         </Badge>
                       </Group>
 
-                      <div className={styles.variantCheckboxes}>
-                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                          <VariantCheckbox
-                            key={`${item.id}-${quantityIndex}`}
-                            orderId={encodeFirestoreId(order.id)}
-                            sku={item.sku || ''}
-                            color={item.variantTitle?.split(' / ')[0] || ''}
-                            size={item.variantTitle?.split(' / ')[1] || ''}
-                            quantity={1}
-                            productIndex={itemIndex}
-                            quantityIndex={quantityIndex}
-                            disabled={item.isCancelled ?? false}
-                            variantId={generateVariantId(
-                              encodeFirestoreId(order.id),
-                              item.sku || '',
-                              item.variantTitle?.split(' / ')[0] || '',
-                              item.variantTitle?.split(' / ')[1] || '',
-                              quantityIndex,
-                              itemIndex
-                            )}
-                          />
-                        ))}
-                      </div>
+                      {(() => {
+                        const checkedCount = useCheckedVariants({
+                          orderId: encodeFirestoreId(order.id),
+                          sku: item.sku || '',
+                          color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
+                          size: item.variantTitle?.split(' / ')[1] || '',
+                          index: itemIndex,
+                          lineItemIndex: undefined,
+                          quantity: item.quantity
+                        });
+
+                        return (
+                          <Group align="center">
+                            <div className={styles.variantCheckboxes}>
+                              {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                                <VariantCheckbox
+                                  key={`${item.id}-${quantityIndex}`}
+                                  orderId={encodeFirestoreId(order.id)}
+                                  sku={item.sku || ''}
+                                  color={item.variantTitle?.split(' / ')[0] || ''}
+                                  size={item.variantTitle?.split(' / ')[1] || ''}
+                                  quantity={1}
+                                  productIndex={itemIndex}
+                                  quantityIndex={quantityIndex}
+                                  disabled={item.isCancelled ?? false}
+
+                                />
+                              ))}
+                            </div>
+                            <Badge variant="outline">
+                              {checkedCount}/{item.quantity}
+                            </Badge>
+                          </Group>
+                        );
+                      })()}
                       <Group gap="xs" mt="xs">
                         <Text size="sm" c="dimmed">
                           {formatItemString(item)}
@@ -206,7 +219,8 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                                 },
                                 itemIndex
                               ),
-                              lineItemIndex: itemIndex
+                              lineItemIndex: itemIndex,
+                              quantity: item.quantity
                             });
                             if (!checkedCount) return null;
                             return (
