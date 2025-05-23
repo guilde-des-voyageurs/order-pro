@@ -84,13 +84,13 @@ function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity, pri
                 ]
               },
               quantity: 1
-            }), rules)).toFixed(2)}€
+            }), rules)).toFixed(2)}€ HT
           </Text>
           <Text size="sm" c="dimmed">
             x {checkedCount}
           </Text>
           <Text size="sm" fw={500}>
-            {(Number(calculateItemPrice(formatItemString({
+            = {(Number(calculateItemPrice(formatItemString({
               sku,
               variantTitle: `${color} / ${size}`,
               variant: {
@@ -100,7 +100,7 @@ function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity, pri
                 ]
               },
               quantity: 1
-            }), rules)) * checkedCount).toFixed(2)}€
+            }), rules)) * checkedCount).toFixed(2)}€ HT
           </Text>
         </Group>
       )}
@@ -176,7 +176,7 @@ function WeekTotal({ orders }: WeekTotalProps) {
 
   return (
     <Text fw={500} size="lg" c="blue">
-      {total.toFixed(2)}€
+      {total.toFixed(2)}€ HT
     </Text>
   );
 }
@@ -228,6 +228,11 @@ export default function FacturationPage() {
             // Exclure les commandes remboursées ou annulées
             const status = order.displayFinancialStatus?.toLowerCase();
             if (status === 'refunded' || status === 'canceled') {
+              return false;
+            }
+
+            // Exclure les commandes qui ont un tag contenant batch
+            if (order.tags?.some(tag => tag.toLowerCase().includes('batch'))) {
               return false;
             }
 
@@ -310,7 +315,7 @@ export default function FacturationPage() {
 
     return (
       <Text size="sm" fw={500}>
-        {total.toFixed(2)}€
+        {total.toFixed(2)}€ HT
       </Text>
     );
   }
@@ -389,8 +394,8 @@ export default function FacturationPage() {
                     <Table.Tr>
                       <Table.Th>Commande</Table.Th>
                       <Table.Th>Détails</Table.Th>
-                      <Table.Th>Manutention</Table.Th>
-                      <Table.Th>Facturation</Table.Th>
+                      <Table.Th>Manutention HT</Table.Th>
+                      <Table.Th>Facturation HT</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -455,7 +460,7 @@ export default function FacturationPage() {
                         </Table.Td>
                         <Table.Td>
                           <Text size="sm">
-                            {HANDLING_FEE.toFixed(2)}€
+                            {HANDLING_FEE.toFixed(2)}€ HT
                           </Text>
                         </Table.Td>
                         <Table.Td>
@@ -469,8 +474,8 @@ export default function FacturationPage() {
                       </Table.Tr>
                     ))}
                     <Table.Tr className={styles.totalRow}>
-                      <Table.Td colSpan={2} style={{ textAlign: 'right' }}>
-                        <Text fw={500}>Total de la semaine :</Text>
+                      <Table.Td colSpan={3} style={{ textAlign: 'right' }}>
+                        <Text fw={500}>Total de la semaine HT :</Text>
                       </Table.Td>
                       <Table.Td>
                         <WeekTotal orders={week.orders} />
