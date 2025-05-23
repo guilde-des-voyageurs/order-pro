@@ -81,7 +81,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 Total HT : {order.lineItems?.reduce((total, item) => {
                   if (item.isCancelled) return total;
                   const price = calculateItemPrice(formatItemString(item), rules);
-                  const checkedCount = useCheckedVariants({
+                  const { checkedCount } = useCheckedVariants({
                     sku: item.sku || '',
                     color: item.variantTitle?.split(' / ')[0] || '',
                     size: item.variantTitle?.split(' / ')[1] || ''
@@ -163,7 +163,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         <Group gap={4}>
                           {(() => {
                             const price = calculateItemPrice(formatItemString(item), rules);
-                            const checkedCount = useCheckedVariants({
+                            const { checkedCount } = useCheckedVariants({
                               sku: item.sku || '',
                               color: item.variantTitle?.split(' / ')[0] || '',
                               size: item.variantTitle?.split(' / ')[1] || ''

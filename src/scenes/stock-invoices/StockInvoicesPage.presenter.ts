@@ -18,22 +18,29 @@ export function useStockInvoicesPresenter() {
     const ordersRef = collection(db, ORDERS_COLLECTION);
     const q = query(
       ordersRef, 
-      where('tags', 'array-contains', 'batch'),
       orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      })) as ShopifyOrder[];
+      const ordersData = snapshot.docs
+        .map(doc => ({
+          ...doc.data(),
+          id: doc.id
+        })) as ShopifyOrder[];
       
-      setOrders(ordersData);
+      // Filtrer les commandes qui ont un tag contenant 'batch'
+      const batchOrders = ordersData.filter(order => 
+        order.tags?.some(tag => tag.toLowerCase().includes('batch'))
+      );
+      
+      setOrders(batchOrders);
       setIsLoading(false);
     }, (error) => {
       console.error('Error fetching batch orders:', error);
       setIsLoading(false);
     });
+
+
 
     return () => unsubscribe();
   }, []);

@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, query, where, setDoc } from 'firebase/firestore';
 import { db } from '../db';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -18,6 +18,26 @@ const sanitizeShopifyId = (shopifyId: string): string => {
 };
 
 export const ordersService = {
+  /**
+   * Met à jour le nombre de variants cochés pour une commande
+   * @param orderId - L'ID de la commande
+   */
+  async updateCheckedCount(orderId: string): Promise<void> {
+    // Récupérer tous les variants cochés pour cette commande
+    const variantsRef = collection(db, 'variants-ordered-v2');
+    const variantsSnap = await getDocs(query(
+      variantsRef,
+      where('orderId', '==', orderId),
+      where('checked', '==', true)
+    ));
+
+    // Mettre à jour le compteur dans textile-progress-v2
+    const progressRef = doc(db, 'textile-progress-v2', orderId);
+    await setDoc(progressRef, {
+      checkedCount: variantsSnap.size
+    }, { merge: true });
+  },
+
   /**
    * Synchronise les commandes Shopify avec Firebase
    * @param orders - Les commandes Shopify à synchroniser
@@ -102,7 +122,20 @@ export const ordersService = {
 
       console.log('📝 Données à sauvegarder:', JSON.stringify(rawOrderData, null, 2));
 
+      // Sauvegarder la commande
       batch.set(docRef, rawOrderData);
+
+      // Initialiser le document textile-progress-v2
+      const totalCount = rawOrderData.lineItems.reduce((acc, item) => {
+        if (item.isCancelled) return acc;
+        return acc + (item.quantity || 0);
+      }, 0);
+
+      const progressRef = doc(db, 'textile-progress-v2', sanitizedId);
+      batch.set(progressRef, {
+        totalCount,
+        checkedCount: 0
+      }, { merge: true });
     });
 
     try {

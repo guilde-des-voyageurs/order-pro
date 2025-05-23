@@ -3,7 +3,8 @@
 import { Checkbox } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
-import { doc, onSnapshot, setDoc, getDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { ordersService } from '@/firebase/services/orders';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
 
@@ -80,11 +81,7 @@ export const VariantCheckbox = ({
     await setDoc(variantRef, document);
 
     // Mettre à jour le compteur de la commande
-    const orderRef = doc(db, 'textile-progress-v2', encodedOrderId);
-    await setDoc(orderRef, {
-      checkedCount: increment(newChecked ? 1 : -1),
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await ordersService.updateCheckedCount(orderId);
   };
 
   // Rendu côté serveur

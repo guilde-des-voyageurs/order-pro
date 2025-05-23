@@ -51,11 +51,9 @@ export const VariantCheckboxGroup = ({
           />
         ))}
       </Group>
-      {checkedCount > 0 && (
-        <Text size="xs" c="dimmed" fw={500}>
-          ({checkedCount})
-        </Text>
-      )}
+      <Text size="xs" c="dimmed" fw={500}>
+        {checkedCount}/{quantity}
+      </Text>
     </Group>
   );
 };
