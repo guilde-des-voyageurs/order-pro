@@ -1,20 +1,21 @@
 'use client';
 
-import { Title, Text, Paper, Badge, Image, Group, Stack, Box, Tooltip, Modal, Loader } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon, Box, Tooltip } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { useBatchPresenter } from './BatchPage.presenter';
+import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
-import { OrderVariantList } from '@/components/OrderVariantList';
 import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { transformColor } from '@/utils/color-transformer';
+import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId } from '@/utils/variant-helpers';
-import { formatDate } from '@/utils/date-helpers';
-import { transformColor, colorMappings } from '@/utils/color-transformer';
+import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -27,244 +28,349 @@ interface OrderRowProps {
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
-
   return (
     <Paper className={styles.orderRow} withBorder>
       <Stack gap="md">
         <div className={styles.orderInfo}>
           <div className={styles.orderHeader}>
             <div className={styles.orderTitle}>
-              <div>
-                <Text fw={500}>{order.name}</Text>
-                <Text c="dimmed" size="sm">{formatDate(order.createdAt)}</Text>
-                {order.note && (
-                  <Badge
-                    variant="light"
-                    color="blue"
-                    size="lg"
-                    radius="sm"
-                    mb="xs"
-                    styles={{
-                      root: {
-                        textTransform: 'none',
-                        fontWeight: 400
-                      }
-                    }}
-                  >
-                    {order.note}
-                  </Badge>
-                )}
-              </div>
+              <Text fw={500}>{order.name}</Text>
+              <FinancialStatus status={order.displayFinancialStatus} />
             </div>
             <div className={styles.orderWaiting}>
-              <Group gap="xs">
-                {order.tags?.map(tag => (
-                  <Badge key={tag} size="sm" variant="light">{tag}</Badge>
-                ))}
-              </Group>
+              <DaysElapsed 
+                createdAt={order.createdAt} 
+                isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
+              />
               <TextileProgress orderId={encodeFirestoreId(order.id)} />
             </div>
           </div>
 
+          <div className={styles.orderDetails}>
+            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
+          </div>
+        </div>
+
+        <div className={styles.orderItems}>
           <div className={styles.productList}>
-            {order.lineItems?.filter(item => !item.isCancelled).map((item) => (
-              <Paper key={item.id} className={styles.productItem} p="md">
-                <div className={styles.productContent}>
-                  <Text className={styles.productQuantity} size="lg">× {item.quantity}</Text>
-                  <div className={styles.productImageContainer}>
-                    {item.image && (
-                      <Image
-                        className={styles.productImage}
-                        src={item.image.url}
-                        alt={item.image.altText || item.title}
-                        w={100}
-                        h={100}
-                        fit="contain"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => item.image && setSelectedImage({ 
-                          url: item.image.url, 
-                          alt: item.image.altText || item.title 
-                        })}
-                      />
-                    )}
-                  </div>
-                  <div className={styles.productInfo}>
-                    <Text fw={500}>{item.title}</Text>
-                    <Text size="sm" c="dimmed">
-                      {item.sku} - {item.variantTitle?.split(' / ').map((variant, index) => {
-                        if (index === 0) {
-                          const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
-                          const normalizedColor = cleanedVariant.toLowerCase()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '');
-                          const foundColor = Object.entries(colorMappings).find(([key]) => 
-                            key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
-                          );
-                          return foundColor ? foundColor[1].internalName : variant;
-                        }
-                        return variant;
-                      }).join(' / ')}
-                    </Text>
-                    <Group gap="xs">
-                      {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+            {order.lineItems?.map((item, index) => (
+                <Paper 
+                  key={item.id} 
+                  className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
+                  withBorder
+                  p="md"
+                >
+                  <div className={styles.productContent}>
+                    <div className={styles.productImageContainer}>
+                      {item.image && (
                         <>
-                          <Stack gap="xs">
-                            <Badge
-                              variant="light"
-                              color="gray"
-                              radius="xl"
-                              size="lg"
-                              styles={{
-                                root: {
-                                  fontWeight: 400,
-                                  color: 'var(--mantine-color-dark-6)'
-                                }
-                              }}
-                            >
-                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                            </Badge>
-                            <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
-                              <Badge
-                                variant="light" 
-                                color="gray" 
-                                radius="xl" 
-                                size="lg"
-                                fullWidth
-                                styles={{ 
-                                  root: { 
-                                    whiteSpace: 'normal',
-                                    height: 'auto',
-                                    textAlign: 'left',
-                                    lineHeight: 1.5,
-                                    fontWeight: 400,
-                                    color: 'var(--mantine-color-dark-6)',
-                                    cursor: 'pointer',
-                                    maxWidth: '20vw',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    '&:hover': {
-                                      opacity: 0.8
-                                    }
-                                  } 
-                                }}
-                                onClick={() => {
-                                  const folderName = item.title
-                                    .replace(/\s*\|\s*/g, '')
-                                    .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                                    .trim()
-                                    .toUpperCase();
-                                  const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${folderName}`;
-                                  clipboard.copy(path);
-                                }}
-                              >
-                                {`./MOTIFS/${item.title
-                                  .replace(/\s*\|\s*/g, '')
-                                  .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
-                                  .trim()
-                                  .toUpperCase()}\\${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value || ''}_${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}.png`}
-                              </Badge>
-                            </Tooltip>
-                          </Stack>
+                          <Image
+                            className={styles.productImage}
+                            src={item.image.url}
+                            alt={item.image.altText || item.title}
+                            w={100}
+                            h={100}
+                            fit="contain"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => item.image && setSelectedImage({ 
+                              url: item.image.url, 
+                              alt: item.image.altText || item.title 
+                            })}
+                          />
+                          <Modal 
+                            opened={selectedImage?.url === item.image.url} 
+                            onClose={() => setSelectedImage(null)}
+                            size="auto"
+                            padding="xs"
+                            centered
+                          >
+                            <Image
+                              src={item.image.url}
+                              alt={item.image.altText || item.title}
+                              fit="contain"
+                              maw="90vw"
+                              mah="90vh"
+                            />
+                          </Modal>
                         </>
                       )}
-
-
+                    </div>
+                    <div className={styles.productInfo}>
+                      <Text fw={500}>{item.title}</Text>
+                      <Group gap="xs">
+                        {item.sku && (
+                          <Text size="sm" c="dimmed">{item.sku}</Text>
+                        )}
+                        {item.variantTitle && (
+                          <Text size="sm" c="dimmed">
+                            {item.variantTitle.split(' / ').map((variant) => {
+                              const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
+                              const normalizedColor = cleanedVariant.toLowerCase()
+                                .normalize('NFD')
+                                .replace(/[\u0300-\u036f]/g, '');
+                              const foundColor = Object.entries(colorMappings).find(([key]) => 
+                                key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
+                              );
+                              return foundColor ? foundColor[1].internalName : variant;
+                            }).join(' / ')}
+                          </Text>
+                        )}
+                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                          <Badge
+                            variant="light"
+                            color="gray"
+                            radius="xl"
+                            size="lg"
+                            styles={{
+                              root: {
+                                fontWeight: 400,
+                                color: 'var(--mantine-color-dark-6)'
+                              }
+                            }}
+                          >
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Badge>
+                        )}
+                      </Group>
+                    </div>
+                    <Group gap="xs" className={styles.productActions}>
+                      <Badge color={item.isCancelled ? 'red' : 'blue'}>
+                        {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
+                      </Badge>
+                      {item.isCancelled && (
+                        <Badge color="red">
+                          Annulé
+                        </Badge>
+                      )}
                     </Group>
-                  </div>
-                  <div>
                     <Group gap="xs">
-                      {Array.from({ length: item.quantity || 0 }).map((_, quantityIndex) => (
-                        <VariantCheckbox 
-                          key={`${order.id}-${item.sku}-${quantityIndex}`}
-                          orderId={encodeFirestoreId(order.id)} 
+                      {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                        <VariantCheckbox
+                          key={`${item.id}-${quantityIndex}`}
+                          orderId={encodeFirestoreId(order.id)}
+                          sku={item.sku || ''}
+                          color={item.variantTitle?.split(' / ')[0] || ''}
+                          size={item.variantTitle?.split(' / ')[1] || ''}
+                          quantity={1}
+                          productIndex={index}
                           variantId={generateVariantId(
                             encodeFirestoreId(order.id),
                             item.sku || '',
                             item.variantTitle?.split(' / ')[0] || '',
                             item.variantTitle?.split(' / ')[1] || '',
                             quantityIndex,
-                            0
+                            index
                           )}
-                          sku={item.sku || ''}
-                          color={item.variantTitle?.split(' / ')[0] || ''}
-                          size={item.variantTitle?.split(' / ')[1] || ''}
-                          quantity={1}
-                          productIndex={quantityIndex}
                         />
                       ))}
                     </Group>
                   </div>
-                </div>
-              </Paper>
-            ))}
+                  {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                    <Box mt="md" px="md">
+                      <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
+                        <Badge
+                          variant="light" 
+                          color="gray" 
+                          radius="xl" 
+                          size="lg"
+                          fullWidth
+                          styles={{ 
+                            root: { 
+                              whiteSpace: 'normal',
+                              height: 'auto',
+                              textAlign: 'left',
+                              lineHeight: 1.5,
+                              fontWeight: 400,
+                              color: 'var(--mantine-color-dark-6)',
+                              cursor: 'pointer',
+                              maxWidth: '20vw',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              '&:hover': {
+                                opacity: 0.8
+                              }
+                            } 
+                          }}
+                          onClick={() => {
+                            const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${item.title
+                              .replace(/\s*\|\s*/g, '')
+                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .trim()
+                              .toUpperCase()}`;
+
+                            clipboard.copy(path);
+                          }}
+                        >
+                          <Text span fw={700} inherit>
+                            {item.title
+                              .replace(/\s*\|\s*/g, '')
+                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .trim()
+                              .toUpperCase()}
+                          </Text>_
+                          <Text span fw={700} inherit>
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Text>_
+                          <Text span fw={700} inherit>
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}
+                          </Text>.png
+                        </Badge>
+                      </Tooltip>
+                    </Box>
+                  )}
+                </Paper>
+              ))}
+            </div>
           </div>
-        </div>
-      </Stack>
-      {selectedImage && (
-        <Modal 
-          opened={!!selectedImage} 
-          onClose={() => setSelectedImage(null)}
-          size="auto"
-          padding="xs"
-          centered
-        >
-          <Image
-            src={selectedImage.url}
-            alt={selectedImage.alt}
-            fit="contain"
-            maw="90vw"
-            mah="90vh"
-          />
-        </Modal>
-      )}
-    </Paper>
+        </Stack>
+        {order.note && (
+          <Alert icon={<IconMessage size="1rem" />} color="blue" variant="light">
+            {order.note}
+          </Alert>
+        )}
+      </Paper>
   );
 }
 
 export function BatchPage() {
-  const { orders, selectedOrder, isLoading, error, handleOrderSelect } = useBatchPresenter();
-  if (isLoading) {
-    return (
-      <div className={styles.main_content}>
-        <Title order={2}>Stock</Title>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-          <Loader />
-        </div>
-      </div>
-    );
-  }
+  const { 
+    pendingOrders,
+    selectedOrder,
+    isDrawerOpen,
+    onSelectOrder,
+    onCloseDrawer,
+    isLoading,
+    orderStats,
+    isReversed,
+    toggleOrder 
+  } = useBatchPresenter();
 
-  if (error) {
-    return (
-      <div className={styles.main_content}>
-        <Title order={2}>Stock</Title>
-        <div style={{ marginTop: '2rem' }}>
-          <Text c="red">Une erreur est survenue lors du chargement des commandes.</Text>
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <Loader />;
   }
 
   return (
     <div className={styles.main_content}>
-      <Title>Commandes par lots</Title>
-      
-      <div className={styles.ordersGrid}>
-        {orders.map((order) => (
-          <OrderRow
-            key={order.id}
-            order={order}
-            isSelected={selectedOrder?.id === order.id}
-            onSelect={handleOrderSelect}
-          />
-        ))}
-      </div>
+      <Group justify="space-between" align="center" mb="md">
+        <Title order={1}>Commandes par lots</Title>
+        <Group>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="red.3"
+            c="red.9"
+            leftSection={orderStats.old}
+          >
+            {orderStats.old > 1 ? 'commandes' : 'commande'} {'>'}14j
+          </Badge>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="yellow.2"
+            c="yellow.9"
+            leftSection={orderStats.medium}
+          >
+            {orderStats.medium > 1 ? 'commandes' : 'commande'} 7-14j
+          </Badge>
+          <Badge 
+            size="xl" 
+            variant="filled" 
+            color="green.2"
+            c="green.9"
+            leftSection={orderStats.recent}
+          >
+            {orderStats.recent > 1 ? 'commandes' : 'commande'} {'<'}7j
+          </Badge>
+        </Group>
+      </Group>
 
-      <OrderDrawer 
-        order={selectedOrder}
-        onClose={() => handleOrderSelect('')}
-        opened={!!selectedOrder}
+      <Alert 
+        icon={<IconAlertTriangle size={16} />}
+        title="Penser à :"
+        color="gray"
+        variant="light"
+      >
+        <Group gap="sm">
+          <Badge size="lg" variant="light" color="gray">retirer les étiquettes Stanley</Badge>
+          <Badge size="lg" variant="light" color="gray">glisser le mot de remerciement</Badge>
+          <Badge size="lg" variant="light" color="gray">le sticker</Badge>
+          <Badge size="lg" variant="light" color="gray">le Flyer !</Badge>
+        </Group>
+      </Alert>
+
+      <OrdersSection
+        title="Commandes en cours"
+        orders={pendingOrders}
+        selectedOrder={selectedOrder}
+        onSelect={onSelectOrder}
+        type="pending"
+        isReversed={isReversed}
+        toggleOrder={toggleOrder}
       />
+
+      <OrderDrawer
+        order={selectedOrder}
+        opened={isDrawerOpen}
+        onClose={onCloseDrawer}
+      />
+    </div>
+  );
+}
+
+function OrdersSection({ 
+  title, 
+  orders, 
+  selectedOrder, 
+  onSelect, 
+  type,
+  isReversed,
+  toggleOrder 
+}: { 
+  title: string;
+  orders: ShopifyOrder[];
+  selectedOrder: ShopifyOrder | undefined;
+  onSelect: (id: string) => void;
+  type: string;
+  isReversed: boolean;
+  toggleOrder: () => void;
+}) {
+  return (
+    <div className={styles.section}>
+      <Stack gap="md">
+        <Group justify="space-between" align="center">
+          <Title order={2}>{title}</Title>
+          <Group gap="xs">
+            <Text size="sm" c="dimmed">
+              {orders.length} commande{orders.length > 1 ? 's' : ''}
+            </Text>
+            <ActionIcon 
+              variant="subtle" 
+              color="gray"
+              onClick={toggleOrder}
+              title={isReversed ? "Plus récentes d'abord" : "Plus anciennes d'abord"}
+            >
+              <IconArrowsSort
+                style={{ 
+                  transform: isReversed ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease'
+                }} 
+                size="1.2rem"
+              />
+            </ActionIcon>
+          </Group>
+        </Group>
+
+        <div className={styles.ordersGrid}>
+          {orders.map((order) => (
+            <OrderRow
+              key={order.id}
+              order={order}
+              isSelected={selectedOrder?.id === order.id}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      </Stack>
     </div>
   );
 }
