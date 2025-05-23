@@ -54,35 +54,50 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     }
   };
 
-  const menuItems: MenuItem[] = [
+  const menuCategories = [
     {
-      href: '/detailed-orders',
-      label: `Commandes (${pendingOrdersCount})`,
+      title: 'Commandes clients',
+      items: [
+        {
+          href: '/detailed-orders',
+          label: `Commandes (${pendingOrdersCount})`,
+        },
+        {
+          href: '/facturation',
+          label: 'Facturation',
+        },
+        {
+          href: '/orders',
+          label: `Vue résumée`,
+        },
+      ],
     },
     {
-      href: '/textile',
-      label: 'Textile',
+      title: 'Commandes stock',
+      items: [
+        {
+          href: '/batch',
+          label: 'Stock',
+        },
+        {
+          href: '/stock-invoices',
+          label: 'Facturation Stock',
+        },
+      ],
     },
     {
-      href: '/batch',
-      label: 'Stock',
+      title: 'Autres',
+      items: [
+        {
+          href: '/textile',
+          label: 'Textile',
+        },
+        {
+          href: '/price-rules',
+          label: 'Règles de prix',
+        },
+      ],
     },
-    {
-      href: '/price-rules',
-      label: 'Règles de prix',
-    },
-    {
-      href: '/facturation',
-      label: 'Facturation',
-    },
-    {
-      href: '/stock-invoices',
-      label: 'Facturation Stock',
-    },
-    {
-      href: '/orders',
-      label: `Archives`,
-    }
   ];
 
   return (
@@ -103,16 +118,23 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           <SyncButton />
         </div>
         <ul className={styles.menu_links}>
-          {menuItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={clsx({
-                  [styles.active]: pathname === item.href,
-                })}
-              >
-                {item.label}
-              </Link>
+          {menuCategories.map((category) => (
+            <li key={category.title} className={styles.menu_category}>
+              <div className={styles.menu_category_title}>{category.title}</div>
+              <ul>
+                {category.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={clsx({
+                        [styles.active]: pathname === item.href,
+                      })}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

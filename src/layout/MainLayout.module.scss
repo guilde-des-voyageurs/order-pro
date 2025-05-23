@@ -50,13 +50,32 @@
       padding: 0;
       flex-grow: 1;
 
-      li {
-        margin-bottom: 12px;
+      .menu_category {
+        margin-bottom: 24px;
+
+        &_title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--mantine-color-gray-6);
+          padding: 0 16px;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+        }
+
+        ul {
+          list-style-type: none;
+          margin: 0;
+          padding: 0;
+
+          li {
+            margin-bottom: 4px;
+          }
+        }
       }
 
       a {
         display: block;
-        padding: 10px 16px;
+        padding: 8px 16px;
         border-radius: 8px;
         color: var(--mantine-color-gray-7);
         text-decoration: none;
