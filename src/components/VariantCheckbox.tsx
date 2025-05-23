@@ -18,11 +18,11 @@ interface VariantCheckboxProps {
   quantity: number;
   orderId: string;
   productIndex: number;
-  quantityIndex: number;
+  quantityIndex?: number;
+  variantId: string;
 
   className?: string;
   disabled?: boolean;
-
 }
 
 interface VariantDocument {
@@ -45,16 +45,8 @@ export const VariantCheckbox = ({
   quantityIndex,
   className,
   disabled,
-
+  variantId
 }: VariantCheckboxProps) => {
-  const variantId = generateVariantId(
-    orderId,
-    sku,
-    transformColor(color),
-    size,
-    quantityIndex,
-    productIndex
-  );
 
   const [checked, setChecked] = useState(false);
   const hasMounted = useHasMounted();

@@ -162,18 +162,28 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       )}
                     </Group>
                     <Group gap="xs">
-                      {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                        <VariantCheckbox
-                          key={`${item.id}-${quantityIndex}`}
-                          orderId={encodeFirestoreId(order.id)}
-                          sku={item.sku || ''}
-                          color={item.variantTitle?.split(' / ')[0] || ''}
-                          size={item.variantTitle?.split(' / ')[1] || ''}
-                          quantity={1}
-                          productIndex={index}
-                          quantityIndex={quantityIndex}
-                        />
-                      ))}
+                      {Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+                        const variantId = generateVariantId(
+                          encodeFirestoreId(order.id),
+                          item.sku || '',
+                          item.variantTitle?.split(' / ')[0] || '',
+                          item.variantTitle?.split(' / ')[1] || '',
+                          index,
+                          quantityIndex
+                        );
+                        return (
+                          <VariantCheckbox
+                            key={variantId}
+                            orderId={encodeFirestoreId(order.id)}
+                            sku={item.sku || ''}
+                            color={item.variantTitle?.split(' / ')[0] || ''}
+                            size={item.variantTitle?.split(' / ')[1] || ''}
+                            quantity={1}
+                            productIndex={index}
+                            quantityIndex={quantityIndex}
+                            variantId={variantId}
+                          />
+                      )})}
                     </Group>
                   </div>
                   {(item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') || 

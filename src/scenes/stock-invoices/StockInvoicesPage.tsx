@@ -217,19 +217,30 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         return (
                           <Group align="center">
                             <div className={styles.variantCheckboxes}>
-                              {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                                <VariantCheckbox
-                                  key={`${item.id}-${quantityIndex}`}
-                                  orderId={encodeFirestoreId(order.id)}
-                                  sku={item.sku || ''}
-                                  color={item.variantTitle?.split(' / ')[0] || ''}
-                                  size={item.variantTitle?.split(' / ')[1] || ''}
-                                  quantity={1}
-                                  productIndex={itemIndex}
-                                  quantityIndex={quantityIndex}
-                                  disabled={true}
-                                />
-                              ))}
+                              {Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+                                const variantId = generateVariantId(
+                                  encodeFirestoreId(order.id),
+                                  item.sku || '',
+                                  item.variantTitle?.split(' / ')[0] || '',
+                                  item.variantTitle?.split(' / ')[1] || '',
+                                  itemIndex,
+                                  quantityIndex
+                                );
+                                return (
+                                  <VariantCheckbox
+                                    key={variantId}
+                                    orderId={encodeFirestoreId(order.id)}
+                                    sku={item.sku || ''}
+                                    color={item.variantTitle?.split(' / ')[0] || ''}
+                                    size={item.variantTitle?.split(' / ')[1] || ''}
+                                    quantity={1}
+                                    productIndex={itemIndex}
+                                    quantityIndex={quantityIndex}
+                                    disabled={true}
+                                    variantId={variantId}
+                                  />
+                                );
+                              })}
                             </div>
                             <Badge variant="outline">
                               {checkedCount}/{item.quantity}

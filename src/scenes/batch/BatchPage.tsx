@@ -161,19 +161,32 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         </Group>
                       </div>
                       <div className={styles.variantCheckboxes}>
-                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                          <VariantCheckbox
-                            key={`${item.id}-${quantityIndex}`}
-                            orderId={encodeFirestoreId(order.id)}
-                            sku={item.sku || ''}
-                            color={item.variantTitle?.split(' / ')[0] || ''}
-                            size={item.variantTitle?.split(' / ')[1] || ''}
-                            quantity={1}
-                            productIndex={index}
-                            quantityIndex={quantityIndex}
-                            disabled={item.isCancelled ?? false}
-                          />
-                        ))}
+                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+                          const color = item.variantTitle?.split(' / ')[0] || '';
+                          const size = item.variantTitle?.split(' / ')[1] || '';
+                          const variantId = generateVariantId(
+                            encodeFirestoreId(order.id),
+                            item.sku || '',
+                            color,
+                            size,
+                            index,
+                            quantityIndex
+                          );
+                          return (
+                            <VariantCheckbox
+                              key={variantId}
+                              orderId={encodeFirestoreId(order.id)}
+                              sku={item.sku || ''}
+                              color={color}
+                              size={size}
+                              quantity={1}
+                              productIndex={index}
+                              quantityIndex={quantityIndex}
+                              disabled={item.isCancelled ?? false}
+                              variantId={variantId}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

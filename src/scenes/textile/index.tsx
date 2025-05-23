@@ -70,16 +70,8 @@ export default function TextilePage() {
         // Extraire la couleur et la taille
         const [color, size] = variant.variantTitle?.split(' / ') || ['', ''];
         
-        // Générer l'ID encodé et le variantId
+        // Générer l'ID encodé pour la commande
         const encodedOrderId = encodeFirestoreId(variant.orderId);
-        const variantId = generateVariantId(
-          encodedOrderId,
-          variant.sku,
-          color,
-          size,
-          variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
-          variant.productIndex
-        );
         
         // Chercher un groupe existant avec le même SKU, couleur et taille
         const variants = groupedVariants.get(sku)!;
@@ -91,12 +83,22 @@ export default function TextilePage() {
         
         if (existingGroup) {
           // Ajouter la variante au groupe existant
-          existingGroup.variants.push({ 
-            variant, 
-            encodedOrderId, 
-            variantId,
-            index: variant.productIndex  // Utiliser l'index du produit dans la commande d'origine
-          });
+          // Créer une entrée par unité de la variante
+          for (let i = 0; i < variant.totalQuantity; i++) {
+            existingGroup.variants.push({ 
+              variant, 
+              encodedOrderId,
+              index: variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
+              variantId: generateVariantId(
+                encodedOrderId,
+                variant.sku,
+                color,
+                size,
+                variant.productIndex,
+                i // Utiliser i comme index de quantité
+              )
+            });
+          }
           existingGroup.totalQuantity += variant.totalQuantity;
         } else {
           // Créer un nouveau groupe
@@ -107,12 +109,19 @@ export default function TextilePage() {
             color,
             size,
             displayName,
-            variants: [{ 
-              variant, 
-              encodedOrderId, 
-              variantId,
-              index: variant.productIndex  // Utiliser l'index du produit dans la commande d'origine
-            }],
+            variants: Array.from({ length: variant.totalQuantity }, (_, i) => ({
+              variant,
+              encodedOrderId,
+              index: variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
+              variantId: generateVariantId(
+                encodedOrderId,
+                variant.sku,
+                color,
+                size,
+                variant.productIndex,
+                i // Utiliser i comme index de quantité
+              )
+            })),
             totalQuantity: variant.totalQuantity
           });
         }
@@ -170,31 +179,19 @@ export default function TextilePage() {
             >
               <Table.Td>
                 <Group gap="xs">
-                  {group.variants.map(({ variant, encodedOrderId, index }) => {
-                    // Créer un tableau de la taille de la quantité de la variante
-                    return Array.from({ length: variant.totalQuantity }, (_, quantityIndex) => {
-                      const variantId = generateVariantId(
-                        encodedOrderId,
-                        variant.sku,
-                        group.color,
-                        group.size,
-                        quantityIndex, // Utiliser l'index de quantité pour différencier les variantes
-                        variant.productIndex
-                      );
-                      return (
-                        <VariantCheckbox
-                          key={`${variantId}`}
-                          sku={variant.sku}
-                          color={group.color}
-                          size={group.size}
-                          quantity={1}
-                          orderId={encodedOrderId}
-                          productIndex={variant.productIndex}
-                          quantityIndex={quantityIndex}
-                        />
-                      );
-                    });
-                  })}
+                  {group.variants.map(({ variant, encodedOrderId, index, variantId }) => (
+                    <VariantCheckbox
+                      key={`${variantId}`}
+                      sku={variant.sku}
+                      color={group.color}
+                      size={group.size}
+                      quantity={1}
+                      orderId={encodedOrderId}
+                      productIndex={variant.productIndex}
+                      quantityIndex={index}
+                      variantId={variantId}
+                    />
+                  ))}
                 </Group>
               </Table.Td>
               <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
