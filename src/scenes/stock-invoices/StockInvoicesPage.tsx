@@ -7,8 +7,9 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
+
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import styles from './StockInvoicesPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
@@ -78,16 +79,22 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
               />
               <Text fw={500} size="lg">
-                Total HT : {order.lineItems?.reduce((total, item) => {
-                  if (item.isCancelled) return total;
-                  const price = calculateItemPrice(formatItemString(item), rules);
-                  const { checkedCount } = useCheckedVariants({
-                    sku: item.sku || '',
-                    color: item.variantTitle?.split(' / ')[0] || '',
-                    size: item.variantTitle?.split(' / ')[1] || ''
-                  });
-                  return total + (price * checkedCount);
-                }, 0).toFixed(2)}€
+                Total HT : {(() => {
+                  const total = order.lineItems?.reduce((acc, item, itemIndex) => {
+                    if (item.isCancelled) return acc;
+                    const price = calculateItemPrice(formatItemString(item), rules);
+                    const checkedCount = useCheckedVariants({
+                      orderId: encodeFirestoreId(order.id),
+                      sku: item.sku || '',
+                      color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
+                      size: item.variantTitle?.split(' / ')[1] || '',
+                      index: itemIndex,
+                      lineItemIndex: undefined
+                    });
+                    return acc + (price * checkedCount);
+                  }, 0) || 0;
+                  return total.toFixed(2) + '€';
+                })()} 
               </Text>
             </Group>
           </div>
@@ -95,7 +102,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
 
         <div className={styles.orderItems}>
           <div className={styles.productList}>
-            {order.lineItems?.map((item, index) => (
+            {order.lineItems?.map((item, itemIndex) => (
                 <Paper 
                   key={item.id} 
                   className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
@@ -145,16 +152,29 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
                         </Badge>
                       </Group>
+
                       <div className={styles.variantCheckboxes}>
-                        <VariantCheckboxGroup
-                          orderId={encodeFirestoreId(order.id)}
-                          sku={item.sku || ''}
-                          color={item.variantTitle?.split(' / ')[0] || ''}
-                          size={item.variantTitle?.split(' / ')[1] || ''}
-                          quantity={item.quantity}
-                          productIndex={index}
-                          disabled={item.isCancelled ?? false}
-                        />
+                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                          <VariantCheckbox
+                            key={`${item.id}-${quantityIndex}`}
+                            orderId={encodeFirestoreId(order.id)}
+                            sku={item.sku || ''}
+                            color={item.variantTitle?.split(' / ')[0] || ''}
+                            size={item.variantTitle?.split(' / ')[1] || ''}
+                            quantity={1}
+                            productIndex={itemIndex}
+                            quantityIndex={quantityIndex}
+                            disabled={item.isCancelled ?? false}
+                            variantId={generateVariantId(
+                              encodeFirestoreId(order.id),
+                              item.sku || '',
+                              item.variantTitle?.split(' / ')[0] || '',
+                              item.variantTitle?.split(' / ')[1] || '',
+                              quantityIndex,
+                              itemIndex
+                            )}
+                          />
+                        ))}
                       </div>
                       <Group gap="xs" mt="xs">
                         <Text size="sm" c="dimmed">
@@ -163,20 +183,40 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         <Group gap={4}>
                           {(() => {
                             const price = calculateItemPrice(formatItemString(item), rules);
-                            const { checkedCount } = useCheckedVariants({
+                            const checkedCount = useCheckedVariants({
+                              orderId: encodeFirestoreId(order.id),
                               sku: item.sku || '',
-                              color: item.variantTitle?.split(' / ')[0] || '',
-                              size: item.variantTitle?.split(' / ')[1] || ''
+                              color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
+                              size: item.variantTitle?.split(' / ')[1] || '',
+                              index: calculateGlobalVariantIndex(
+                                (order.lineItems || []).map(i => ({
+                                  sku: i.sku || '',
+                                  selectedOptions: [
+                                    { name: 'couleur', value: i.variantTitle?.split(' / ')[0] || '' },
+                                    { name: 'taille', value: i.variantTitle?.split(' / ')[1] || '' }
+                                  ],
+                                  quantity: i.quantity
+                                })),
+                                {
+                                  sku: item.sku || '',
+                                  selectedOptions: [
+                                    { name: 'couleur', value: item.variantTitle?.split(' / ')[0] || '' },
+                                    { name: 'taille', value: item.variantTitle?.split(' / ')[1] || '' }
+                                  ]
+                                },
+                                itemIndex
+                              ),
+                              lineItemIndex: itemIndex
                             });
+                            if (!checkedCount) return null;
                             return (
                               <>
                                 <Text size="sm" fw={500}>
                                   {price.toFixed(2)}€
                                 </Text>
                                 <Text size="sm" c="dimmed">
-                                  x{checkedCount}
+                                  x {checkedCount}
                                 </Text>
-                                <Text size="sm" c="dimmed">=</Text>
                                 <Text size="sm" fw={500}>
                                   {(price * checkedCount).toFixed(2)}€
                                 </Text>

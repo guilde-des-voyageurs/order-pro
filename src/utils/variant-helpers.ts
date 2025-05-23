@@ -86,8 +86,9 @@ export const generateVariantId = (
   const encodedOrderId = encodeFirestoreId(orderId);
   
   // Créer l'ID avec l'index de l'article
-  const uniqueIdentifier = lineItemIndex !== undefined ? `--item${lineItemIndex}` : '';
+  const quantityIndex = lineItemIndex !== undefined ? `--item${lineItemIndex}` : '';
+  const globalIndex = productIndex;
   
   // Toujours mettre la couleur avant la taille
-  return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}${uniqueIdentifier}`;
+  return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${globalIndex}${quantityIndex}`;
 };

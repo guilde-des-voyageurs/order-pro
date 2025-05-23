@@ -50,48 +50,26 @@ export const ordersService = {
    * @param orderId - L'ID de la commande
    */
   async updateCheckedCount(orderId: string): Promise<void> {
-    console.log('Début updateCheckedCount pour', orderId);
-    
-    // Encoder l'ID pour la requête des variants
     const encodedOrderId = encodeFirestoreId(orderId);
-    console.log('ID encodé:', encodedOrderId);
-
-    // Nettoyer les variants invalides
     await cleanupVariants(orderId, encodedOrderId);
 
-    // Récupérer TOUS les variants de cette commande
     const variantsRef = collection(db, 'variants-ordered-v2');
     const variantsSnap = await getDocs(query(
       variantsRef,
       where('orderId', '==', encodedOrderId)
     ));
     
-    // Ne compter que les variants uniques et cochés
     const uniqueVariants = new Set();
-    console.log('Analyse des variants...');
     variantsSnap.forEach(doc => {
       const data = doc.data();
-      console.log('Variant:', doc.id, '-> checked:', data.checked);
-
-      // Vérifier que le variant est bien coché
-      if (!data.checked) {
-        console.log('Variant ignoré car non coché:', doc.id);
-        return;
-      }
+      if (!data.checked) return;
 
       if (doc.id.includes('--')) {
         uniqueVariants.add(doc.id);
-        console.log('Variant coché et valide:', doc.id);
-      } else {
-        console.log('Variant ignoré (ancien format):', doc.id);
       }
     });
 
-    console.log('Nombre de variants uniques:', uniqueVariants.size);
-
-    // Mettre à jour le compteur dans textile-progress-v2
-    const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
-    console.log('Mise à jour du compteur:', encodedOrderId, uniqueVariants.size);
+    const progressRef = doc(db, 'textile-progress-v2', orderId);
     
     await setDoc(progressRef, {
       checkedCount: uniqueVariants.size

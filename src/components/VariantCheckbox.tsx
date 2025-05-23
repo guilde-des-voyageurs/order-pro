@@ -16,6 +16,7 @@ interface VariantCheckboxProps {
   quantity: number;
   orderId: string;
   productIndex: number;
+  quantityIndex: number;
   variantId: string;
   className?: string;
   disabled?: boolean;
