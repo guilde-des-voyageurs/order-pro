@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Title, Paper, Table, Stack, Group, Text, UnstyledButton, Badge } from '@mantine/core';
+import { HANDLING_FEE } from '@/config/billing';
 import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { transformColor } from '@/utils/color-transformer';
@@ -135,6 +136,51 @@ interface WeeklyOrders {
   orders: Order[];
 }
 
+interface WeekTotalProps {
+  orders: Order[];
+}
+
+function WeekTotal({ orders }: WeekTotalProps) {
+  const { rules } = usePriceRules();
+  let total = 0;
+
+  orders.forEach(order => {
+    // Calculer le total des variantes cochées
+    order.lineItems.forEach((item, itemIndex) => {
+      const [color, size] = (item.variantTitle || '').split(' / ');
+      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
+
+      const checkedCount = useCheckedVariants({
+        orderId: `gid://shopify/Order/${order.id}`,
+        sku: item.sku || '',
+        color: transformedColor,
+        size: size || '',
+        index: itemIndex,
+        lineItemIndex: undefined,
+        quantity: item.quantity
+      });
+
+      const price = Number(calculateItemPrice(formatItemString({
+        sku: item.sku || '',
+        variantTitle: item.variantTitle,
+        variant: item.variant,
+        quantity: 1
+      }), rules));
+
+      total += price * checkedCount;
+    });
+
+    // Ajouter la manutention
+    total += HANDLING_FEE;
+  });
+
+  return (
+    <Text fw={500} size="lg" c="blue">
+      {total.toFixed(2)}€
+    </Text>
+  );
+}
+
 export default function FacturationPage() {
   const [weeklyOrders, setWeeklyOrders] = useState<WeeklyOrders[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
@@ -226,18 +272,86 @@ export default function FacturationPage() {
     return order.lineItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  interface OrderTotalProps {
+    order: Order;
+  }
+
+  function OrderTotal({ order }: OrderTotalProps) {
+    const { rules } = usePriceRules();
+    let total = 0;
+
+    // Calculer le total des variantes cochées
+    order.lineItems.forEach((item, itemIndex) => {
+      const [color, size] = (item.variantTitle || '').split(' / ');
+      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
+
+      const checkedCount = useCheckedVariants({
+        orderId: `gid://shopify/Order/${order.id}`,
+        sku: item.sku || '',
+        color: transformedColor,
+        size: size || '',
+        index: itemIndex,
+        lineItemIndex: undefined,
+        quantity: item.quantity
+      });
+
+      const price = Number(calculateItemPrice(formatItemString({
+        sku: item.sku || '',
+        variantTitle: item.variantTitle,
+        variant: item.variant,
+        quantity: 1
+      }), rules));
+
+      total += price * checkedCount;
+    });
+
+    // Ajouter la manutention
+    total += HANDLING_FEE;
+
+    return (
+      <Text size="sm" fw={500}>
+        {total.toFixed(2)}€
+      </Text>
+    );
+  }
+
+  const getVariantTotal = (item: Order['lineItems'][0], rules: any, checkedCount: number) => {
+    const price = Number(calculateItemPrice(formatItemString({
+      sku: item.sku || '',
+      variantTitle: item.variantTitle,
+      variant: item.variant,
+      quantity: 1
+    }), rules));
+  
+    return price * checkedCount;
+  }
+
   const getTotalCost = (order: Order) => {
-    return order.lineItems.reduce((total, item) => {
-      // Si totalCost est disponible, l'utiliser
-      if (item.totalCost) {
-        return total + item.totalCost;
-      }
-      // Sinon calculer avec unitCost * quantity
-      else if (item.unitCost) {
-        return total + (item.quantity * item.unitCost);
-      }
-      return total;
-    }, 0);
+    const { rules } = usePriceRules();
+    let total = 0;
+
+    // Calculer le total des variantes cochées
+    order.lineItems.forEach((item, itemIndex) => {
+      const [color, size] = (item.variantTitle || '').split(' / ');
+      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
+
+      const checkedCount = useCheckedVariants({
+        orderId: `gid://shopify/Order/${order.id}`,
+        sku: item.sku || '',
+        color: transformedColor,
+        size: size || '',
+        index: itemIndex,
+        lineItemIndex: undefined,
+        quantity: item.quantity
+      });
+
+      total += getVariantTotal(item, rules, checkedCount);
+    });
+
+    // Ajouter la manutention
+    total += HANDLING_FEE;
+
+    return total;
   };
 
   const formatWeekRange = (start: Date, end: Date) => {
@@ -275,6 +389,7 @@ export default function FacturationPage() {
                     <Table.Tr>
                       <Table.Th>Commande</Table.Th>
                       <Table.Th>Détails</Table.Th>
+                      <Table.Th>Manutention</Table.Th>
                       <Table.Th>Facturation</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
@@ -339,13 +454,16 @@ export default function FacturationPage() {
                           </Stack>
                         </Table.Td>
                         <Table.Td>
+                          <Text size="sm">
+                            {HANDLING_FEE.toFixed(2)}€
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
                           <Group gap="md">
                             <BillingCheckbox 
                               orderId={`gid://shopify/Order/${order.id}`}
                             />
-                            <Text size="sm" c="dimmed">
-                              {formatPrice(getTotalCost(order))}
-                            </Text>
+                            <OrderTotal order={order} />
                           </Group>
                         </Table.Td>
                       </Table.Tr>
@@ -355,9 +473,7 @@ export default function FacturationPage() {
                         <Text fw={500}>Total de la semaine :</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text fw={500} size="lg" c="blue">
-                          {formatPrice(week.orders.reduce((total, order) => total + getTotalCost(order), 0))}
-                        </Text>
+                        <WeekTotal orders={week.orders} />
                       </Table.Td>
                     </Table.Tr>
                   </Table.Tbody>
