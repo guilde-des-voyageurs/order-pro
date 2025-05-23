@@ -9,7 +9,7 @@ interface BillingNoteInputProps {
 export function BillingNoteInput({ orderId }: BillingNoteInputProps) {
   const { note, deliveryCost, updateNote } = useBillingNotes(orderId);
   const debouncedUpdate = useDebounce(
-    (note: string, deliveryCost: string) => updateNote(note, deliveryCost),
+    (note: string, deliveryCost: number) => updateNote(note, deliveryCost),
     500
   );
 
@@ -18,12 +18,12 @@ export function BillingNoteInput({ orderId }: BillingNoteInputProps) {
       <TextInput
         placeholder="Numéro de facture..."
         value={note}
-        onChange={(event) => debouncedUpdate(event.currentTarget.value, deliveryCost)}
+        onChange={(event) => debouncedUpdate(event.currentTarget.value, Number(deliveryCost))}
       />
       <NumberInput
         placeholder="Frais de port..."
         value={deliveryCost}
-        onChange={(value) => debouncedUpdate(note, value || 0)}
+        onChange={(value) => debouncedUpdate(note, Number(value) || 0)}
       />
     </Stack>
   );
