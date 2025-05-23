@@ -87,5 +87,7 @@ export const generateVariantId = (
   
   // Créer l'ID avec l'index de l'article
   const uniqueIdentifier = lineItemIndex !== undefined ? `--item${lineItemIndex}` : '';
+  
+  // Toujours mettre la couleur avant la taille
   return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}${uniqueIdentifier}`;
 };

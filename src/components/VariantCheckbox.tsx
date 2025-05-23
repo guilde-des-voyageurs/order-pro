@@ -63,8 +63,7 @@ export const VariantCheckbox = ({
 
   const handleCheckboxChange = async (event: any) => {
     const newChecked = event.target.checked;
-    setChecked(newChecked);
-
+    
     const encodedOrderId = encodeFirestoreId(orderId);
     const document: VariantDocument = {
       checked: newChecked,
@@ -76,12 +75,18 @@ export const VariantCheckbox = ({
       orderId: encodedOrderId
     };
 
-    // Mettre à jour le document de la variante
-    const variantRef = doc(db, 'variants-ordered-v2', variantId);
-    await setDoc(variantRef, document);
+    try {
+      // Utiliser l'ID unique qui inclut l'index
+      const variantRef = doc(db, 'variants-ordered-v2', variantId);
+      await setDoc(variantRef, document);
 
-    // Mettre à jour le compteur de la commande
-    await ordersService.updateCheckedCount(orderId);
+      // Une fois que le document est mis à jour, mettre à jour le compteur
+      await ordersService.updateCheckedCount(orderId);
+      
+      // Note: pas besoin de setChecked ici car le onSnapshot va le faire
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+    }
   };
 
   // Rendu côté serveur

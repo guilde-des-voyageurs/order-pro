@@ -45,8 +45,8 @@ export const VariantCheckboxGroup = ({
               sku,
               color,
               size,
-              quantityIndex,
-              productIndex
+              productIndex,
+              quantityIndex
             )}
           />
         ))}

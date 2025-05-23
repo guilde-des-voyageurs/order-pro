@@ -1,5 +1,6 @@
 import { collection, getDocs, writeBatch, doc, query, where, setDoc } from 'firebase/firestore';
 import { db } from '../db';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
 
 const ORDERS_COLLECTION = 'orders-v2';
@@ -17,24 +18,83 @@ const sanitizeShopifyId = (shopifyId: string): string => {
   return matches[1];
 };
 
+const cleanupVariants = async (orderId: string, encodedOrderId: string) => {
+  const variantsRef = collection(db, 'variants-ordered-v2');
+  const variantsSnap = await getDocs(query(
+    variantsRef,
+    where('orderId', '==', encodedOrderId)
+  ));
+
+  const batch = writeBatch(db);
+  let hasInvalidVariants = false;
+
+  variantsSnap.forEach(doc => {
+    if (doc.id.includes('--') && doc.id.split('--').length >= 5) {
+      const parts = doc.id.split('--');
+      const [docOrderId, sku, part1, part2] = parts;
+      if (part1.length <= 3 && part2.length > 3) {
+        batch.delete(doc.ref);
+        hasInvalidVariants = true;
+      }
+    }
+  });
+
+  if (hasInvalidVariants) {
+    await batch.commit();
+  }
+};
+
 export const ordersService = {
   /**
    * Met à jour le nombre de variants cochés pour une commande
    * @param orderId - L'ID de la commande
    */
   async updateCheckedCount(orderId: string): Promise<void> {
-    // Récupérer tous les variants cochés pour cette commande
+    console.log('Début updateCheckedCount pour', orderId);
+    
+    // Encoder l'ID pour la requête des variants
+    const encodedOrderId = encodeFirestoreId(orderId);
+    console.log('ID encodé:', encodedOrderId);
+
+    // Nettoyer les variants invalides
+    await cleanupVariants(orderId, encodedOrderId);
+
+    // Récupérer TOUS les variants de cette commande
     const variantsRef = collection(db, 'variants-ordered-v2');
     const variantsSnap = await getDocs(query(
       variantsRef,
-      where('orderId', '==', orderId),
-      where('checked', '==', true)
+      where('orderId', '==', encodedOrderId)
     ));
+    
+    // Ne compter que les variants uniques et cochés
+    const uniqueVariants = new Set();
+    console.log('Analyse des variants...');
+    variantsSnap.forEach(doc => {
+      const data = doc.data();
+      console.log('Variant:', doc.id, '-> checked:', data.checked);
+
+      // Vérifier que le variant est bien coché
+      if (!data.checked) {
+        console.log('Variant ignoré car non coché:', doc.id);
+        return;
+      }
+
+      if (doc.id.includes('--')) {
+        uniqueVariants.add(doc.id);
+        console.log('Variant coché et valide:', doc.id);
+      } else {
+        console.log('Variant ignoré (ancien format):', doc.id);
+      }
+    });
+
+    console.log('Nombre de variants uniques:', uniqueVariants.size);
 
     // Mettre à jour le compteur dans textile-progress-v2
-    const progressRef = doc(db, 'textile-progress-v2', orderId);
+    const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
+    console.log('Mise à jour du compteur:', encodedOrderId, uniqueVariants.size);
+    
     await setDoc(progressRef, {
-      checkedCount: variantsSnap.size
+      checkedCount: uniqueVariants.size
     }, { merge: true });
   },
 
@@ -131,10 +191,12 @@ export const ordersService = {
         return acc + (item.quantity || 0);
       }, 0);
 
-      const progressRef = doc(db, 'textile-progress-v2', sanitizedId);
+      const encodedOrderId = encodeFirestoreId(order.id);
+      const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
+      
+      // Ne mettre à jour que le totalCount, pas le checkedCount
       batch.set(progressRef, {
-        totalCount,
-        checkedCount: 0
+        totalCount
       }, { merge: true });
     });
 
