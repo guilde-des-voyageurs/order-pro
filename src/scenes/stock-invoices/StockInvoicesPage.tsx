@@ -9,6 +9,7 @@ import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import styles from './StockInvoicesPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
@@ -145,9 +146,34 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         <Text size="sm" c="dimmed">
                           {formatItemString(item)}
                         </Text>
-                        <Text size="sm" fw={500}>
-                          {calculateItemPrice(formatItemString(item), rules).toFixed(2)}€
-                        </Text>
+                        <Group gap={4}>
+                          {(() => {
+                            const price = calculateItemPrice(formatItemString(item), rules);
+                            const checkedCount = useCheckedVariants({
+                              sku: item.sku || '',
+                              color: item.variantTitle?.split(' / ')[0] || '',
+                              size: item.variantTitle?.split(' / ')[1] || ''
+                            });
+                            return (
+                              <>
+                                <Text size="sm" fw={500}>
+                                  {price.toFixed(2)}€
+                                </Text>
+                                {checkedCount > 0 && (
+                                  <>
+                                    <Text size="sm" c="dimmed">
+                                      x{checkedCount}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">=</Text>
+                                    <Text size="sm" fw={500}>
+                                      {(price * checkedCount).toFixed(2)}€
+                                    </Text>
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </Group>
                       </Group>
                     </div>
                   </div>
