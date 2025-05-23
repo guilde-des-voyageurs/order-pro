@@ -24,12 +24,19 @@ export const ordersService = {
    * @returns Promise<void>
    */
   async syncOrders(orders: ShopifyOrder[]): Promise<void> {
-    // Filtrer les commandes non annulées
-    const activeOrders = orders.filter(order => !order.cancelledAt);
+    console.log('💾 Préparation de la synchronisation...');
+    // Filtrer les commandes non annulées et exclure #1465
+    const excludedOrders = orders.filter(order => order.name === '#1465');
+    if (excludedOrders.length > 0) {
+      console.log('❌ Commande exclue :', excludedOrders.map(order => order.name));
+    }
+    const activeOrders = orders.filter(order => !order.cancelledAt && order.name !== '#1465');
     console.log(`🔄 Début de la synchronisation de ${activeOrders.length} commandes actives sur ${orders.length} commandes totales`);
+    console.log('💾 Préparation du batch d’écriture...');
     
     const batch = writeBatch(db);
     const ordersRef = collection(db, ORDERS_COLLECTION);
+    console.log('💾 Collection cible :', ORDERS_COLLECTION);
 
     activeOrders.forEach((order) => {
       const formatDate = (date: string) => {

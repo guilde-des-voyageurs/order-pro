@@ -12,7 +12,7 @@ export const TEST_QUERY = `
 export const ORDERS_QUERY = `
 query {
   orders(
-    first: 1, 
+    first: 50, 
     sortKey: CREATED_AT, 
     reverse: true
   ) {

@@ -72,10 +72,24 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <InvoiceCheckbox 
-              orderId={encodeFirestoreId(order.id)} 
-              readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
-            />
+            <Group gap="lg" align="center">
+              <InvoiceCheckbox 
+                orderId={encodeFirestoreId(order.id)} 
+                readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
+              />
+              <Text fw={500} size="lg">
+                Total HT : {order.lineItems?.reduce((total, item) => {
+                  if (item.isCancelled) return total;
+                  const price = calculateItemPrice(formatItemString(item), rules);
+                  const checkedCount = useCheckedVariants({
+                    sku: item.sku || '',
+                    color: item.variantTitle?.split(' / ')[0] || '',
+                    size: item.variantTitle?.split(' / ')[1] || ''
+                  });
+                  return total + (price * checkedCount);
+                }, 0).toFixed(2)}€
+              </Text>
+            </Group>
           </div>
         </div>
 
@@ -159,17 +173,13 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                                 <Text size="sm" fw={500}>
                                   {price.toFixed(2)}€
                                 </Text>
-                                {checkedCount > 0 && (
-                                  <>
-                                    <Text size="sm" c="dimmed">
-                                      x{checkedCount}
-                                    </Text>
-                                    <Text size="sm" c="dimmed">=</Text>
-                                    <Text size="sm" fw={500}>
-                                      {(price * checkedCount).toFixed(2)}€
-                                    </Text>
-                                  </>
-                                )}
+                                <Text size="sm" c="dimmed">
+                                  x{checkedCount}
+                                </Text>
+                                <Text size="sm" c="dimmed">=</Text>
+                                <Text size="sm" fw={500}>
+                                  {(price * checkedCount).toFixed(2)}€
+                                </Text>
                               </>
                             );
                           })()}

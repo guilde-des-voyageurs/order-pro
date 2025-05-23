@@ -10,8 +10,12 @@ export function SyncButton() {
 
   const handleSync = async () => {
     try {
+      console.log('🔄 Début de la synchronisation...');
       setIsSyncing(true);
+      console.log('📡 Récupération des commandes depuis Shopify...');
       const orders = await fetchOrdersApiAction();
+      console.log(`✅ ${orders.length} commandes récupérées depuis Shopify`);
+      console.log('💾 Synchronisation avec Firebase...');
       await ordersService.syncOrders(orders);
 
       notifications.show({

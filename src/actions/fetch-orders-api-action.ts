@@ -93,17 +93,35 @@ interface ShopifyResponse {
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
   try {
+    console.log('📡 Test de connexion à l’API Shopify...');
     // Test la connexion avant de faire la requête
     await shopifyClient.request(TEST_QUERY);
+    console.log('✅ Connexion établie');
     
+    console.log('📥 Récupération des commandes...');
     // Faire la requête principale
     const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
+    console.log('✅ Requête réussie');
+    
+    if (!result?.data?.orders?.nodes) {
+      console.log('❌ Aucune commande reçue de Shopify');
+      return [];
+    }
 
-    // Log de la réponse brute
-    console.log('\n📦 Données brutes de Shopify :', JSON.stringify({
-      order: result?.data?.orders?.nodes[0],
-      tags: result?.data?.orders?.nodes[0]?.tags
-    }, null, 2));
+    console.log(`💶 Nombre total de commandes reçues : ${result.data.orders.nodes.length}`);
+    console.log('💶 Première commande reçue :', {
+      name: result.data.orders.nodes[0]?.name,
+      status: result.data.orders.nodes[0]?.displayFinancialStatus
+    });
+
+    // Log des 2 dernières commandes (sauf #1465)
+    const lastTwoOrders = (result?.data?.orders?.nodes || [])
+      .slice(-2)
+      .filter(order => order.name !== '#1465');
+    console.log('💶 Données des 2 dernières commandes :', lastTwoOrders.map(order => ({
+      name: order.name,
+      tags: order.tags
+    })));
 
     if (!result?.data?.orders?.nodes) {
       return [];
@@ -113,10 +131,18 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
     // Transformer les données pour correspondre à notre type
     const orders = result.data.orders.nodes
       .map(order => {
-        console.log(`\n📌 Données brutes de la commande ${order.name}:`, {
-          tags: order.tags,
-          rawOrder: order
-        });
+        // Ne logger que les 2 dernières commandes
+        if (lastTwoOrders.find(o => o.id === order.id)) {
+          console.log(`📌 Détails de la commande ${order.name}:`, {
+            tags: order.tags,
+            lineItems: order.lineItems.nodes.map(item => ({
+              title: item.title,
+              sku: item.sku,
+              quantity: item.quantity,
+              price: item.originalUnitPriceSet.shopMoney.amount
+            }))
+          });
+        }
 
         // Filtrer les articles pour ne garder que ceux de l'emplacement accepté
         const filteredLineItems = order.lineItems.nodes
@@ -179,10 +205,19 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
           }))
         } as ShopifyOrder;
 
-        console.log(`\n💾 Commande transformée ${order.name}:`, JSON.stringify({
-          tags: transformedOrder.tags,
-          order: transformedOrder
-        }, null, 2));
+        // Ne logger que les 2 dernières commandes
+        if (lastTwoOrders.find(o => o.id === order.id)) {
+          console.log(`💾 Commande transformée ${order.name}:`, {
+            tags: transformedOrder.tags,
+            lineItems: transformedOrder.lineItems?.map(item => ({
+              title: item.title,
+              sku: item.sku,
+              quantity: item.quantity,
+              price: item.price,
+              isCancelled: item.isCancelled
+            }))
+          });
+        }
 
         return transformedOrder;
       })
