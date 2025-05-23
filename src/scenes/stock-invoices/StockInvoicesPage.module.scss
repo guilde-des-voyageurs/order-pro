@@ -73,16 +73,7 @@
       height: 100%;
     }
 
-    .productImageContainer {
-      flex-shrink: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0.5rem;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-      width: 100px;
-    }
+
 
     .productInfo {
       flex: 1;
@@ -126,11 +117,7 @@
       font-weight: 500;
     }
 
-    .productImageContainer {
-      flex: 0 0 100px;
-      width: 100px;
-      height: 100px;
-    }
+
 
     .productInfo {
       flex: 1;

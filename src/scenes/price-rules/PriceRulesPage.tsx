@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Paper, Button, TextInput, NumberInput, Group, Stack, Text, ActionIcon, Select } from '@mantine/core';
+import { Container, Title, Paper, Button, TextInput, NumberInput, Group, Stack, Text, ActionIcon } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase/db';
@@ -7,20 +7,17 @@ import { notifications } from '@mantine/notifications';
 
 interface PriceRule {
   id?: string;
-  sku: string;
-  color: string;
-  printFile: string;
+  terms: string[];
   price: number;
 }
 
 export function PriceRulesPage() {
   const [rules, setRules] = useState<PriceRule[]>([]);
   const [newRule, setNewRule] = useState<PriceRule>({
-    sku: '',
-    color: '',
-    printFile: '',
+    terms: [],
     price: 0
   });
+  const [termsInput, setTermsInput] = useState('');
 
   // Charger les règles depuis Firebase
   useEffect(() => {
@@ -39,23 +36,37 @@ export function PriceRulesPage() {
   // Ajouter une nouvelle règle
   const handleAddRule = async () => {
     try {
-      if (!newRule.sku || !newRule.color || !newRule.price) {
+      // Convertir l'entrée en termes
+      const terms = termsInput.trim().split(/\s+/).filter(Boolean);
+
+      if (terms.length === 0 || terms.length > 2) {
         notifications.show({
           title: 'Erreur',
-          message: 'Veuillez remplir tous les champs obligatoires',
+          message: 'Veuillez entrer 1 ou 2 termes',
           color: 'red'
         });
         return;
       }
 
-      await addDoc(collection(db, 'price-rules'), newRule);
+      if (!newRule.price) {
+        notifications.show({
+          title: 'Erreur',
+          message: 'Veuillez entrer un prix',
+          color: 'red'
+        });
+        return;
+      }
+
+      await addDoc(collection(db, 'price-rules'), {
+        terms,
+        price: newRule.price
+      });
       
       setNewRule({
-        sku: '',
-        color: '',
-        printFile: '',
+        terms: [],
         price: 0
       });
+      setTermsInput('');
 
       notifications.show({
         title: 'Succès',
@@ -98,31 +109,12 @@ export function PriceRulesPage() {
         <Stack>
           <Title order={4}>Nouvelle règle</Title>
           <TextInput
-            label="SKU"
-            placeholder="ex: Creator 2.0"
-            value={newRule.sku}
-            onChange={(e) => setNewRule({ ...newRule, sku: e.target.value })}
+            label="Termes (1 ou 2)"
+            placeholder="ex: VR1 ou CREATOR 2.0 BLACK"
+            value={termsInput}
+            onChange={(e) => setTermsInput(e.target.value)}
+            description="Entrez 1 ou 2 termes séparés par des espaces"
             required
-          />
-          <TextInput
-            label="Couleur"
-            placeholder="ex: Noir"
-            value={newRule.color}
-            onChange={(e) => setNewRule({ ...newRule, color: e.target.value })}
-            required
-          />
-          <Select
-            label="Fichier d'impression"
-            placeholder="Sélectionner un fichier"
-            value={newRule.printFile}
-            onChange={(value) => setNewRule({ ...newRule, printFile: value || '' })}
-            data={[
-              { value: 'CUI', label: 'CUI' },
-              { value: 'OPA', label: 'OPA' },
-              { value: 'VR1', label: 'VR1' },
-              { value: 'VR2', label: 'VR2' }
-            ]}
-            clearable
           />
           <NumberInput
             label="Prix HT (€)"
@@ -143,10 +135,7 @@ export function PriceRulesPage() {
           <Paper key={rule.id} withBorder p="md">
             <Group justify="space-between" align="flex-start">
               <div>
-                <Text fw={500}>{rule.sku} - {rule.color}</Text>
-                {rule.printFile && (
-                  <Text size="sm" c="dimmed">Fichier: {rule.printFile}</Text>
-                )}
+                <Text fw={500}>{rule.terms.join(' ')}</Text>
                 <Text>{rule.price.toFixed(2)}€ HT</Text>
               </div>
               <ActionIcon 
