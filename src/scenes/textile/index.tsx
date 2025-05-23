@@ -190,7 +190,7 @@ export default function TextilePage() {
                           quantity={1}
                           orderId={encodedOrderId}
                           productIndex={variant.productIndex}
-                          variantId={variantId}
+                          quantityIndex={quantityIndex}
                         />
                       );
                     });

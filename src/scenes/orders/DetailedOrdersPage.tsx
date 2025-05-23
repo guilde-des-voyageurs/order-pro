@@ -153,14 +153,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           size={item.variantTitle?.split(' / ')[1] || ''}
                           quantity={1}
                           productIndex={index}
-                          variantId={generateVariantId(
-                            encodeFirestoreId(order.id),
-                            item.sku || '',
-                            item.variantTitle?.split(' / ')[0] || '',
-                            item.variantTitle?.split(' / ')[1] || '',
-                            quantityIndex,
-                            index
-                          )}
+                          quantityIndex={quantityIndex}
                         />
                       ))}
                     </Group>
