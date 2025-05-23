@@ -1,20 +1,34 @@
 'use client';
 
+// External dependencies
 import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Checkbox, Alert, ActionIcon, Tooltip } from '@mantine/core';
-import { useStockInvoicesPresenter } from './StockInvoicesPage.presenter';
 import { clsx } from 'clsx';
+import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
+import { useState } from 'react';
+
+// Internal dependencies
+import { useStockInvoicesPresenter } from './StockInvoicesPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
+
+// Hooks
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
-import styles from './StockInvoicesPage.module.scss';
+import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
+
+// Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { transformColor } from '@/utils/color-transformer';
-import { colorMappings } from '@/utils/color-transformer';
+import { transformColor, colorMappings } from '@/utils/color-transformer';
+import { generateVariantId, getDefaultSku, calculateGlobalVariantIndex } from '@/utils/variant-helpers';
+
+// Types
+import type { ShopifyOrder } from '@/types/shopify';
+
+// Styles
+import styles from './StockInvoicesPage.module.scss';
 
 function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[0]) {
   // SKU
@@ -36,15 +50,16 @@ function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[0]) {
     m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
   )?.value || '';
 
+  // Verso impression
+  const versoFile = item.variant?.metafields?.find(
+    m => m.namespace === 'custom' && m.key === 'verso_impression'
+  )?.value || '';
+
   // Construire la chaîne finale
-  const parts = [sku, transformedColor, size, printFile].filter(Boolean);
+  const parts = [sku, transformedColor, size, printFile, versoFile].filter(Boolean);
   return parts.join(' - ');
 }
-import { generateVariantId, getDefaultSku, calculateGlobalVariantIndex } from '@/utils/variant-helpers';
-import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
-import { useState } from 'react';
-import type { ShopifyOrder } from '@/types/shopify';
-import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
+
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -78,25 +93,28 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 orderId={encodeFirestoreId(order.id)} 
                 readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
               />
-              <Text fw={500} size="lg">
-                Total HT : {(() => {
-                  const total = order.lineItems?.reduce((acc, item, itemIndex) => {
-                    if (item.isCancelled) return acc;
-                    const price = calculateItemPrice(formatItemString(item), rules);
-                    const checkedCount = useCheckedVariants({
-                      orderId: encodeFirestoreId(order.id),
-                      sku: item.sku || '',
-                      color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
-                      size: item.variantTitle?.split(' / ')[1] || '',
-                      index: itemIndex,
-                      lineItemIndex: undefined,
-                      quantity: item.quantity
-                    });
-                    return acc + (price * checkedCount);
-                  }, 0);
-                  return total?.toFixed(2) + '€';
-                })()}
-              </Text>
+              {(() => {
+                const total = order.lineItems?.reduce((acc, item, itemIndex) => {
+                  if (item.isCancelled) return acc;
+                  const price = calculateItemPrice(formatItemString(item), rules);
+                  const checkedCount = useCheckedVariants({
+                    orderId: encodeFirestoreId(order.id),
+                    sku: item.sku || '',
+                    color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
+                    size: item.variantTitle?.split(' / ')[1] || '',
+                    index: itemIndex,
+                    lineItemIndex: undefined,
+                    quantity: item.quantity
+                  });
+                  return acc + (price * checkedCount);
+                }, 0);
+                if (!total || total <= 0) return null;
+                return (
+                  <Text fw={500} size="lg">
+                    Total HT : {total.toFixed(2)}€
+                  </Text>
+                );
+              })()} 
             </Group>
           </div>
         </div>
@@ -145,6 +163,22 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             }}
                           >
                             {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                          </Badge>
+                        )}
+                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
+                          <Badge
+                            variant="light"
+                            color="gray"
+                            radius="xl"
+                            size="lg"
+                            styles={{
+                              root: {
+                                fontWeight: 400,
+                                color: 'var(--mantine-color-dark-6)'
+                              }
+                            }}
+                          >
+                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
                           </Badge>
                         )}
                       </Group>
@@ -205,24 +239,21 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               lineItemIndex: undefined,
                               quantity: item.quantity
                             });
+                            if (!checkedCount) return null;
                             return (
-                              <>
+                              <Group gap={4}>
                                 <Text size="sm" fw={500}>
                                   {price.toFixed(2)}€
                                 </Text>
-                                {checkedCount > 0 && (
-                                  <>
-                                    <Text size="sm" c="dimmed">
-                                      x {checkedCount}
-                                    </Text>
-                                    <Text size="sm" fw={500}>
-                                      {(price * checkedCount).toFixed(2)}€
-                                    </Text>
-                                  </>
-                                )}
-                              </>
+                                <Text size="sm" c="dimmed">
+                                  x {checkedCount}
+                                </Text>
+                                <Text size="sm" fw={500}>
+                                  {(price * checkedCount).toFixed(2)}€
+                                </Text>
+                              </Group>
                             );
-                          })()}
+                          })()} 
                         </Group>
                       </Group>
                     </div>
