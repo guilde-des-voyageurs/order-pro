@@ -135,7 +135,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   <div className={styles.productContent}>
                     <div className={styles.productInfo}>
                       <Text fw={500}>{item.title}</Text>
-                      <Group gap="xs">
+                      <Group gap="xs" className={styles.productMetadata}>
                         {item.sku && (
                           <Text size="sm" c="dimmed">{item.sku}</Text>
                         )}
@@ -186,11 +186,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           </Badge>
                         )}
                       </Group>
-                      <Group gap="xs" className={styles.productActions}>
-                        <Badge color={item.isCancelled ? 'red' : 'blue'}>
-                          {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
-                        </Badge>
-                      </Group>
+                      {item.isCancelled && (
+                        <Group gap="xs" className={styles.productActions}>
+                          <Badge color="red">Annulé</Badge>
+                        </Group>
+                      )}
 
                       {(() => {
                         const checkedCount = useCheckedVariants({
@@ -216,8 +216,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                                   quantity={1}
                                   productIndex={itemIndex}
                                   quantityIndex={quantityIndex}
-                                  disabled={item.isCancelled ?? false}
-
+                                  disabled={true}
                                 />
                               ))}
                             </div>
