@@ -98,71 +98,73 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         </>
                       )}
                     </div>
-                    <div className={styles.productInfo}>
-                      <Text fw={500}>{item.title}</Text>
-                      <Group gap="xs">
-                        {item.sku && (
-                          <Text size="sm" c="dimmed">{item.sku}</Text>
-                        )}
-                        {item.variantTitle && (
-                          <Text size="sm" c="dimmed">
-                            {item.variantTitle.split(' / ').map((variant) => {
-                              const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
-                              const normalizedColor = cleanedVariant.toLowerCase()
-                                .normalize('NFD')
-                                .replace(/[\u0300-\u036f]/g, '');
-                              const foundColor = Object.entries(colorMappings).find(([key]) => 
-                                key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
-                              );
-                              return foundColor ? foundColor[1].internalName : variant;
-                            }).join(' / ')}
-                          </Text>
-                        )}
-                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                          <Badge
-                            variant="light"
-                            color="gray"
-                            radius="xl"
-                            size="lg"
-                            styles={{
-                              root: {
-                                fontWeight: 400,
-                                color: 'var(--mantine-color-dark-6)'
-                              }
-                            }}
-                          >
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                          </Badge>
-                        )}
-                      </Group>
-                    </div>
-                    <Group gap="xs" className={styles.productActions}>
-                      <Badge color={item.isCancelled ? 'red' : 'blue'}>
-                        {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
-                      </Badge>
-                    </Group>
-                    <Group gap="xs">
-                      {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                        <VariantCheckbox
-                          key={`${item.id}-${quantityIndex}`}
-                          orderId={encodeFirestoreId(order.id)}
-                          sku={item.sku || ''}
-                          color={item.variantTitle?.split(' / ')[0] || ''}
-                          size={item.variantTitle?.split(' / ')[1] || ''}
-                          quantity={1}
-                          productIndex={index}
-                          disabled={item.isCancelled ?? false}
-                          variantId={generateVariantId(
-                            encodeFirestoreId(order.id),
-                            item.sku || '',
-                            item.variantTitle?.split(' / ')[0] || '',
-                            item.variantTitle?.split(' / ')[1] || '',
-                            quantityIndex,
-                            index
+                    <div>
+                      <div className={styles.productInfo}>
+                        <Text fw={500}>{item.title}</Text>
+                        <Group gap="xs">
+                          {item.sku && (
+                            <Text size="sm" c="dimmed">{item.sku}</Text>
                           )}
-                        />
-                      ))}
-                    </Group>
+                          {item.variantTitle && (
+                            <Text size="sm" c="dimmed">
+                              {item.variantTitle.split(' / ').map((variant) => {
+                                const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
+                                const normalizedColor = cleanedVariant.toLowerCase()
+                                  .normalize('NFD')
+                                  .replace(/[\u0300-\u036f]/g, '');
+                                const foundColor = Object.entries(colorMappings).find(([key]) => 
+                                  key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
+                                );
+                                return foundColor ? foundColor[1].internalName : variant;
+                              }).join(' / ')}
+                            </Text>
+                          )}
+                          {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                            <Badge
+                              variant="light"
+                              color="gray"
+                              radius="xl"
+                              size="lg"
+                              styles={{
+                                root: {
+                                  fontWeight: 400,
+                                  color: 'var(--mantine-color-dark-6)'
+                                }
+                              }}
+                            >
+                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                            </Badge>
+                          )}
+                        </Group>
+                        <Group gap="xs" className={styles.productActions}>
+                          <Badge color={item.isCancelled ? 'red' : 'blue'}>
+                            {item.isCancelled ? 'Annulé' : `${item.quantity}x`}
+                          </Badge>
+                        </Group>
+                      </div>
+                      <div className={styles.variantCheckboxes}>
+                        {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                          <VariantCheckbox
+                            key={`${item.id}-${quantityIndex}`}
+                            orderId={encodeFirestoreId(order.id)}
+                            sku={item.sku || ''}
+                            color={item.variantTitle?.split(' / ')[0] || ''}
+                            size={item.variantTitle?.split(' / ')[1] || ''}
+                            quantity={1}
+                            productIndex={index}
+                            disabled={item.isCancelled ?? false}
+                            variantId={generateVariantId(
+                              encodeFirestoreId(order.id),
+                              item.sku || '',
+                              item.variantTitle?.split(' / ')[0] || '',
+                              item.variantTitle?.split(' / ')[1] || '',
+                              quantityIndex,
+                              index
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
                     <Box mt="md" px="md">

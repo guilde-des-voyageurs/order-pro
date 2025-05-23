@@ -97,23 +97,26 @@ export const VariantCheckbox = ({
 
   // Rendu côté client
   return (
-    <Group gap={0}>
-      <Checkbox
-        checked={checked}
-        onChange={handleCheckboxChange}
-        disabled={disabled}
-        className={className}
-        styles={{
-          root: {
-            margin: 0,
-            padding: 0,
-            marginRight: 2
-          },
-          inner: {
-            margin: 0
-          }
-        }}
-      />
-    </Group>
+    <Checkbox
+      checked={checked}
+      onChange={handleCheckboxChange}
+      disabled={disabled}
+      className={className}
+      styles={{
+        root: {
+          margin: 0,
+          padding: 0,
+          display: 'inline-flex',
+          marginRight: 2
+        },
+        inner: {
+          margin: 0
+        },
+        body: {
+          display: 'inline-flex',
+          alignItems: 'center'
+        }
+      }}
+    />
   );
 };
