@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Stack, Group, Text, UnstyledButton } from '@mantine/core';
+import { Title, Paper, Table, Stack, Group, Text, UnstyledButton, Badge } from '@mantine/core';
+import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { transformColor } from '@/utils/color-transformer';
+import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import styles from './facturation.module.scss';
 import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
@@ -14,6 +17,33 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { ShopifyOrder } from '@/types/shopify';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
+interface VariantCheckboxesProps {
+  orderId: string;
+  sku: string;
+  color: string;
+  size: string;
+  itemIndex: number;
+  quantity: number;
+}
+
+function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity }: VariantCheckboxesProps) {
+  const checkedCount = useCheckedVariants({
+    orderId,
+    sku,
+    color,
+    size,
+    index: itemIndex,
+    lineItemIndex: undefined,
+    quantity
+  });
+
+  return (
+    <Badge size="sm" variant="light" color="blue">
+      {checkedCount}/{quantity} cochées
+    </Badge>
+  );
+}
+
 interface Order {
   id: string;
   name: string;  // Le numéro de commande
@@ -24,6 +54,15 @@ interface Order {
     quantity: number;
     unitCost?: number | null;
     totalCost?: number | null;
+    sku?: string;
+    variantTitle?: string;
+    variant?: {
+      metafields?: Array<{
+        namespace: string;
+        key: string;
+        value: string;
+      }>;
+    };
   }>;
 }
 
@@ -80,11 +119,6 @@ export default function FacturationPage() {
             // Exclure les commandes remboursées ou annulées
             const status = order.displayFinancialStatus?.toLowerCase();
             if (status === 'refunded' || status === 'canceled') {
-              return false;
-            }
-
-            // Exclure les commandes avec une balise contenant 'batch'
-            if (order.tags?.some(tag => tag.toLowerCase().includes('batch'))) {
               return false;
             }
 
@@ -177,7 +211,7 @@ export default function FacturationPage() {
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Commande</Table.Th>
-                      <Table.Th>Nombre de produits</Table.Th>
+                      <Table.Th>Détails</Table.Th>
                       <Table.Th>Facturation</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
@@ -192,7 +226,53 @@ export default function FacturationPage() {
                             {order.name}
                           </UnstyledButton>
                         </Table.Td>
-                        <Table.Td>{getProductCount(order)}</Table.Td>
+                        <Table.Td>
+                          <Stack gap="md">
+                            {order.lineItems.map((item, itemIndex) => {
+                              const [color, size] = (item.variantTitle || '').split(' / ');
+                              const cleanedColor = color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '';
+                              const transformedColor = transformColor(cleanedColor);
+
+                              return (
+                                <div key={itemIndex}>
+                                  <Group gap="xs">
+                                    {item.sku && (
+                                      <Text size="sm" c="dimmed">{item.sku}</Text>
+                                    )}
+                                    {item.variantTitle && (
+                                      <Text size="sm" c="dimmed">{cleanedColor}</Text>
+                                    )}
+                                    {item.variant?.metafields?.map((metafield, index) => {
+                                      if (metafield.namespace === 'custom' && 
+                                          (metafield.key === 'fichier_d_impression' || metafield.key === 'verso_impression')) {
+                                        return (
+                                          <Badge
+                                            key={index}
+                                            variant="light"
+                                            color="gray"
+                                            radius="xl"
+                                            size="lg"
+                                          >
+                                            {metafield.value}
+                                          </Badge>
+                                        );
+                                      }
+                                      return null;
+                                    })}
+                                  </Group>
+                                  <VariantCheckboxes
+                                    orderId={`gid://shopify/Order/${order.id}`}
+                                    sku={item.sku || ''}
+                                    color={transformedColor}
+                                    size={size || ''}
+                                    itemIndex={itemIndex}
+                                    quantity={item.quantity}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </Stack>
+                        </Table.Td>
                         <Table.Td>
                           <Group gap="md">
                             <BillingCheckbox 
