@@ -1,7 +1,7 @@
 'use client';
 
 // External dependencies
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Checkbox, Alert, ActionIcon, Tooltip } from '@mantine/core';
+import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Checkbox, Alert, ActionIcon, Tooltip, Box } from '@mantine/core';
 import { clsx } from 'clsx';
 import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -14,10 +14,12 @@ import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 
 import { VariantCheckbox } from '@/components/VariantCheckbox';
+import { BillingNoteInput } from '@/components/BillingNoteInput/BillingNoteInput';
 
 // Hooks
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
+import { useBillingNotes } from '@/hooks/useBillingNotes';
 
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
@@ -81,6 +83,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   <Badge key={tag} size="sm" variant="light" color="gray">{tag}</Badge>
                 ))}
               </Group>
+              {order.tags.some(tag => tag.toLowerCase().includes('batch')) && (
+                <Box mt="xs">
+                  <BillingNoteInput orderId={order.id} />
+                </Box>
+              )}
             </div>
             <div className={styles.orderWaiting}>
               <DaysElapsed 
@@ -98,7 +105,8 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
               />
               {(() => {
-                const total = order.lineItems?.reduce((acc, item, itemIndex) => {
+                const { deliveryCost } = useBillingNotes(order.id);
+                const itemsTotal = order.lineItems?.reduce((acc, item, itemIndex) => {
                   if (item.isCancelled) return acc;
                   const price = calculateItemPrice(formatItemString(item), rules);
                   const checkedCount = useCheckedVariants({
@@ -112,10 +120,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   });
                   return acc + (price * checkedCount);
                 }, 0);
+                const total = Number(itemsTotal) + Number(deliveryCost || 0);
                 if (!total || total <= 0) return null;
                 return (
                   <Text fw={500} size="lg">
-                    Total HT : {total.toFixed(2)}€
+                    Total HT : {total.toFixed(2)}€ {deliveryCost ? `(dont ${deliveryCost}€ de frais de port)` : ''}
                   </Text>
                 );
               })()} 
@@ -232,7 +241,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         </Text>
                         <Group gap={4}>
                           {(() => {
-                            const price = calculateItemPrice(formatItemString(item), rules);
+                            const price = Number(calculateItemPrice(formatItemString(item), rules));
                             const checkedCount = useCheckedVariants({
                               orderId: encodeFirestoreId(order.id),
                               sku: item.sku || '',

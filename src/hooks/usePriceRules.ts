@@ -43,5 +43,5 @@ export function calculateItemPrice(itemString: string, rules: PriceRule[]): numb
     }
   });
 
-  return totalPrice;
+  return Number(totalPrice);
 }
