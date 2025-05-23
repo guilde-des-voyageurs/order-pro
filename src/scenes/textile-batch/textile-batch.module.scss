@@ -1,0 +1,76 @@
+@use "src/style/_mantine.scss" as *;
+
+.pageContainer {
+  padding: 20px 30px;
+  max-width: 1100px;
+}
+
+.tableRow {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  color: #6f7986;
+  
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
+  }
+}
+
+.orderNumber {
+  color: var(--mantine-color-blue-6);
+  transition: color 0.2s ease;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--mantine-color-blue-8);
+  }
+}
+
+.orderNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.variantTitle {
+  font-size: 13px;
+  color: var(--mantine-color-gray-6);
+}
+
+.variantGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variantGroupTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--mantine-color-gray-8);
+}
+
+.variantGroupContent {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.variantItem {
+  padding: 16px;
+  border-radius: 8px;
+  background-color: var(--mantine-color-gray-0);
+  border: 1px solid var(--mantine-color-gray-2);
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.skuTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--mantine-color-gray-8);
+  margin-bottom: 16px;
+}

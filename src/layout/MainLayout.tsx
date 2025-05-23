@@ -90,6 +90,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           label: `Stock (${stockOrdersCount})`
         },
         {
+          href: '/textile-batch',
+          label: 'Textile Batch'
+        },
+        {
           href: '/stock-invoices',
           label: 'Facturation Stock',
         },
