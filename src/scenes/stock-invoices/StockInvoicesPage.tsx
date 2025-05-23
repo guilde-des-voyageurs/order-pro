@@ -12,7 +12,7 @@ import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-import { FinancialStatus } from '@/components/FinancialStatus';
+
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 
 // Hooks
@@ -76,7 +76,11 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           <div className={styles.orderHeader}>
             <div className={styles.orderTitle}>
               <Text fw={500}>{order.name}</Text>
-              <FinancialStatus status={order.displayFinancialStatus} />
+              <Group gap="xs">
+                {order.tags.map((tag) => (
+                  <Badge key={tag} size="sm" variant="light" color="gray">{tag}</Badge>
+                ))}
+              </Group>
             </div>
             <div className={styles.orderWaiting}>
               <DaysElapsed 
