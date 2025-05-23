@@ -7,17 +7,16 @@ import { notifications } from '@mantine/notifications';
 
 interface PriceRule {
   id?: string;
-  terms: string[];
+  searchString: string;
   price: number;
 }
 
 export function PriceRulesPage() {
   const [rules, setRules] = useState<PriceRule[]>([]);
   const [newRule, setNewRule] = useState<PriceRule>({
-    terms: [],
+    searchString: '',
     price: 0
   });
-  const [termsInput, setTermsInput] = useState('');
 
   // Charger les règles depuis Firebase
   useEffect(() => {
@@ -36,13 +35,10 @@ export function PriceRulesPage() {
   // Ajouter une nouvelle règle
   const handleAddRule = async () => {
     try {
-      // Convertir l'entrée en termes
-      const terms = termsInput.trim().split(/\s+/).filter(Boolean);
-
-      if (terms.length === 0 || terms.length > 2) {
+      if (!newRule.searchString.trim()) {
         notifications.show({
           title: 'Erreur',
-          message: 'Veuillez entrer 1 ou 2 termes',
+          message: 'Veuillez entrer une chaîne de recherche',
           color: 'red'
         });
         return;
@@ -58,15 +54,14 @@ export function PriceRulesPage() {
       }
 
       await addDoc(collection(db, 'price-rules'), {
-        terms,
+        searchString: newRule.searchString.trim(),
         price: newRule.price
       });
       
       setNewRule({
-        terms: [],
+        searchString: '',
         price: 0
       });
-      setTermsInput('');
 
       notifications.show({
         title: 'Succès',
@@ -109,11 +104,11 @@ export function PriceRulesPage() {
         <Stack>
           <Title order={4}>Nouvelle règle</Title>
           <TextInput
-            label="Termes (1 ou 2)"
+            label="Chaîne de recherche"
             placeholder="ex: VR1 ou CREATOR 2.0 BLACK"
-            value={termsInput}
-            onChange={(e) => setTermsInput(e.target.value)}
-            description="Entrez 1 ou 2 termes séparés par des espaces"
+            value={newRule.searchString}
+            onChange={(e) => setNewRule({ ...newRule, searchString: e.target.value })}
+            description="Entrez la chaîne de caractères à rechercher"
             required
           />
           <NumberInput
@@ -135,7 +130,7 @@ export function PriceRulesPage() {
           <Paper key={rule.id} withBorder p="md">
             <Group justify="space-between" align="flex-start">
               <div>
-                <Text fw={500}>{rule.terms.join(' ')}</Text>
+                <Text fw={500}>{rule.searchString}</Text>
                 <Text>{rule.price.toFixed(2)}€ HT</Text>
               </div>
               <ActionIcon 

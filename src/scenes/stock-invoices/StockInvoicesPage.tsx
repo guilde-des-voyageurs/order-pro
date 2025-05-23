@@ -42,6 +42,7 @@ import { generateVariantId, getDefaultSku, calculateGlobalVariantIndex } from '@
 import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
+import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -50,6 +51,7 @@ interface OrderRowProps {
 }
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+  const { rules } = usePriceRules();
   return (
     <Paper className={styles.orderRow} withBorder>
       <Stack gap="md">
@@ -150,9 +152,14 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           />
                         ))}
                       </div>
-                      <Text size="sm" c="dimmed" mt="xs">
-                        {formatItemString(item)}
-                      </Text>
+                      <Group gap="xs" mt="xs">
+                        <Text size="sm" c="dimmed">
+                          {formatItemString(item)}
+                        </Text>
+                        <Text size="sm" fw={500}>
+                          {calculateItemPrice(formatItemString(item), rules).toFixed(2)}€
+                        </Text>
+                      </Group>
                     </div>
                   </div>
 
