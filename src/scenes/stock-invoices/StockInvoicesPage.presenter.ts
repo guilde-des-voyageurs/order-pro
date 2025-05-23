@@ -57,9 +57,7 @@ export function useStockInvoicesPresenter() {
         return false;
       }
 
-      // Ne pas inclure les commandes expédiées
-      const status = order.displayFulfillmentStatus?.toLowerCase();
-      return status !== 'fulfilled';
+      return true;
     });
   }, [orders]);
 

@@ -28,21 +28,35 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [stockOrdersCount, setStockOrdersCount] = useState(0);
 
   useEffect(() => {
-    const ordersRef = collection(db, 'orders-v2');
-    const q = query(ordersRef);
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Compteur des commandes clients
+    const unsubscribeOrders = onSnapshot(collection(db, 'orders-v2'), snapshot => {
       const count = snapshot.docs.filter(doc => {
         const data = doc.data();
         return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled' 
-          && data.displayFinancialStatus?.toLowerCase() !== 'refunded';
+          && data.displayFinancialStatus?.toLowerCase() !== 'refunded'
+          && !data.tags?.some((tag: string) => tag.toLowerCase().includes('batch'));
       }).length;
       setPendingOrdersCount(count);
     });
 
-    return () => unsubscribe();
+    // Compteur des commandes stock
+    const unsubscribeStock = onSnapshot(collection(db, 'orders-v2'), snapshot => {
+      const count = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled' 
+          && data.displayFinancialStatus?.toLowerCase() !== 'refunded'
+          && data.tags?.some((tag: string) => tag.toLowerCase().includes('batch'));
+      }).length;
+      setStockOrdersCount(count);
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeStock();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -66,10 +80,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           href: '/facturation',
           label: 'Facturation',
         },
-        {
-          href: '/orders',
-          label: `Vue résumée`,
-        },
       ],
     },
     {
@@ -77,7 +87,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       items: [
         {
           href: '/batch',
-          label: 'Stock',
+          label: `Stock (${stockOrdersCount})`
         },
         {
           href: '/stock-invoices',
