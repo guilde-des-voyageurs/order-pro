@@ -77,6 +77,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           label: `Commandes (${pendingOrdersCount})`,
         },
         {
+          href: '/textile',
+          label: 'Textile',
+        },
+        {
           href: '/facturation',
           label: 'Facturation',
         },
@@ -100,12 +104,8 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       ],
     },
     {
-      title: 'Autres',
+      title: 'Réglages',
       items: [
-        {
-          href: '/textile',
-          label: 'Textile',
-        },
         {
           href: '/price-rules',
           label: 'Règles de prix',
