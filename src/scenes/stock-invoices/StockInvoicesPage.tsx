@@ -9,7 +9,7 @@ import { useState } from 'react';
 // Internal dependencies
 import { useStockInvoicesPresenter } from './StockInvoicesPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
-import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
+import { InvoiceCheckbox, useInvoiceStatus } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 
@@ -71,8 +71,10 @@ interface OrderRowProps {
 
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   const { rules } = usePriceRules();
+  const { isInvoiced } = useInvoiceStatus(order.id);
+  
   return (
-    <Paper className={styles.orderRow} withBorder>
+    <Paper className={clsx(styles.orderRow, { [styles.invoiced]: isInvoiced })} withBorder>
       <Stack gap="md">
         <div className={styles.orderInfo}>
           <div className={styles.orderHeader}>

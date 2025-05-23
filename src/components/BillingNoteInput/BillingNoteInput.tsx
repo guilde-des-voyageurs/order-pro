@@ -17,12 +17,12 @@ export function BillingNoteInput({ orderId }: BillingNoteInputProps) {
     <Stack gap="xs">
       <TextInput
         placeholder="Numéro de facture..."
-        defaultValue={note}
+        value={note}
         onChange={(event) => debouncedUpdate(event.currentTarget.value, deliveryCost)}
       />
       <NumberInput
         placeholder="Frais de port..."
-        defaultValue={deliveryCost}
+        value={deliveryCost}
         onChange={(value) => debouncedUpdate(note, value || 0)}
       />
     </Stack>

@@ -14,7 +14,7 @@ interface InvoiceCheckboxProps {
   readOnly?: boolean;
 }
 
-export function InvoiceCheckbox({ orderId, totalAmount, currency, readOnly = false }: InvoiceCheckboxProps) {
+export function useInvoiceStatus(orderId: string) {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +33,12 @@ export function InvoiceCheckbox({ orderId, totalAmount, currency, readOnly = fal
 
     return () => unsubscribe();
   }, [orderId]);
+
+  return { isInvoiced: checked, loading };
+}
+
+export function InvoiceCheckbox({ orderId, totalAmount, currency, readOnly = false }: InvoiceCheckboxProps) {
+  const { isInvoiced: checked, loading } = useInvoiceStatus(orderId);
 
   const handleChange = async (checked: boolean) => {
     const encodedOrderId = encodeFirestoreId(orderId);
