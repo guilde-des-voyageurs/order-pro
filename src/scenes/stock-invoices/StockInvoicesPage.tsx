@@ -201,39 +201,25 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               sku: item.sku || '',
                               color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
                               size: item.variantTitle?.split(' / ')[1] || '',
-                              index: calculateGlobalVariantIndex(
-                                (order.lineItems || []).map(i => ({
-                                  sku: i.sku || '',
-                                  selectedOptions: [
-                                    { name: 'couleur', value: i.variantTitle?.split(' / ')[0] || '' },
-                                    { name: 'taille', value: i.variantTitle?.split(' / ')[1] || '' }
-                                  ],
-                                  quantity: i.quantity
-                                })),
-                                {
-                                  sku: item.sku || '',
-                                  selectedOptions: [
-                                    { name: 'couleur', value: item.variantTitle?.split(' / ')[0] || '' },
-                                    { name: 'taille', value: item.variantTitle?.split(' / ')[1] || '' }
-                                  ]
-                                },
-                                itemIndex
-                              ),
-                              lineItemIndex: itemIndex,
+                              index: itemIndex,
+                              lineItemIndex: undefined,
                               quantity: item.quantity
                             });
-                            if (!checkedCount) return null;
                             return (
                               <>
                                 <Text size="sm" fw={500}>
                                   {price.toFixed(2)}€
                                 </Text>
-                                <Text size="sm" c="dimmed">
-                                  x {checkedCount}
-                                </Text>
-                                <Text size="sm" fw={500}>
-                                  {(price * checkedCount).toFixed(2)}€
-                                </Text>
+                                {checkedCount > 0 && (
+                                  <>
+                                    <Text size="sm" c="dimmed">
+                                      x {checkedCount}
+                                    </Text>
+                                    <Text size="sm" fw={500}>
+                                      {(price * checkedCount).toFixed(2)}€
+                                    </Text>
+                                  </>
+                                )}
                               </>
                             );
                           })()}
