@@ -1,11 +1,12 @@
 'use client';
 
-import { Checkbox, Group } from '@mantine/core';
+import { Checkbox, Group, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/config';
 import { doc, onSnapshot, setDoc, getDoc, increment } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { useHasMounted } from '@/hooks/useHasMounted';
+import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 
 interface VariantCheckboxProps {
   sku: string;
@@ -95,28 +96,37 @@ export const VariantCheckbox = ({
     );
   }
 
+  // Utiliser le hook pour obtenir le nombre total de variantes cochées
+  const checkedCount = useCheckedVariants({ sku, color, size });
+
   // Rendu côté client
   return (
-    <Checkbox
-      checked={checked}
-      onChange={handleCheckboxChange}
-      disabled={disabled}
-      className={className}
-      styles={{
-        root: {
-          margin: 0,
-          padding: 0,
-          display: 'inline-flex',
-          marginRight: 2
-        },
-        inner: {
-          margin: 0
-        },
-        body: {
-          display: 'inline-flex',
-          alignItems: 'center'
-        }
-      }}
-    />
+    <Group gap={4} wrap="nowrap">
+      <Checkbox
+        checked={checked}
+        onChange={handleCheckboxChange}
+        disabled={disabled}
+        className={className}
+        styles={{
+          root: {
+            margin: 0,
+            padding: 0,
+            display: 'inline-flex'
+          },
+          inner: {
+            margin: 0
+          },
+          body: {
+            display: 'inline-flex',
+            alignItems: 'center'
+          }
+        }}
+      />
+      {checkedCount > 0 && (
+        <Text size="xs" c="dimmed" fw={500}>
+          ({checkedCount})
+        </Text>
+      )}
+    </Group>
   );
 };
