@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Title, Paper, Table, Stack, Group, Text, UnstyledButton, Badge } from '@mantine/core';
+import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { transformColor } from '@/utils/color-transformer';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
@@ -24,9 +25,36 @@ interface VariantCheckboxesProps {
   size: string;
   itemIndex: number;
   quantity: number;
+  printFile?: string;
+  versoFile?: string;
 }
 
-function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity }: VariantCheckboxesProps) {
+function formatItemString(item: Order['lineItems'][0]) {
+  // SKU
+  const sku = item.sku || '';
+
+  // Transformer la couleur et la taille
+  const [color, size] = (item.variantTitle || '').split(' / ');
+  const cleanedColor = color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '';
+  const transformedColor = transformColor(cleanedColor);
+
+  // Fichier d'impression
+  const printFile = item.variant?.metafields?.find(
+    m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+  )?.value || '';
+
+  // Verso impression
+  const versoFile = item.variant?.metafields?.find(
+    m => m.namespace === 'custom' && m.key === 'verso_impression'
+  )?.value || '';
+
+  // Construire la chaîne finale
+  const parts = [sku, transformedColor, size, printFile, versoFile].filter(Boolean);
+  return parts.join(' - ');
+}
+
+function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity, printFile, versoFile }: VariantCheckboxesProps) {
+  const { rules } = usePriceRules();
   const checkedCount = useCheckedVariants({
     orderId,
     sku,
@@ -38,9 +66,44 @@ function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity }: V
   });
 
   return (
-    <Badge size="sm" variant="light" color="blue">
-      {checkedCount}/{quantity} cochées
-    </Badge>
+    <Stack gap="xs">
+      <Badge size="sm" variant="light" color="blue">
+        {checkedCount}/{quantity} cochées
+      </Badge>
+      {checkedCount > 0 && (
+        <Group gap={4}>
+          <Text size="sm" fw={500}>
+            {Number(calculateItemPrice(formatItemString({
+              sku,
+              variantTitle: `${color} / ${size}`,
+              variant: {
+                metafields: [
+                  ...(printFile ? [{ namespace: 'custom', key: 'fichier_d_impression', value: printFile }] : []),
+                  ...(versoFile ? [{ namespace: 'custom', key: 'verso_impression', value: versoFile }] : [])
+                ]
+              },
+              quantity: 1
+            }), rules)).toFixed(2)}€
+          </Text>
+          <Text size="sm" c="dimmed">
+            x {checkedCount}
+          </Text>
+          <Text size="sm" fw={500}>
+            {(Number(calculateItemPrice(formatItemString({
+              sku,
+              variantTitle: `${color} / ${size}`,
+              variant: {
+                metafields: [
+                  ...(printFile ? [{ namespace: 'custom', key: 'fichier_d_impression', value: printFile }] : []),
+                  ...(versoFile ? [{ namespace: 'custom', key: 'verso_impression', value: versoFile }] : [])
+                ]
+              },
+              quantity: 1
+            }), rules)) * checkedCount).toFixed(2)}€
+          </Text>
+        </Group>
+      )}
+    </Stack>
   );
 }
 
@@ -267,6 +330,8 @@ export default function FacturationPage() {
                                     size={size || ''}
                                     itemIndex={itemIndex}
                                     quantity={item.quantity}
+                                    printFile={item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                                    versoFile={item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
                                   />
                                 </div>
                               );
