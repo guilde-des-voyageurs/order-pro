@@ -293,14 +293,11 @@ export function BatchPage() {
       >
         <Group gap="sm">
           <Badge size="lg" variant="light" color="gray">retirer les étiquettes Stanley</Badge>
-          <Badge size="lg" variant="light" color="gray">glisser le mot de remerciement</Badge>
-          <Badge size="lg" variant="light" color="gray">le sticker</Badge>
-          <Badge size="lg" variant="light" color="gray">le Flyer !</Badge>
         </Group>
       </Alert>
 
       <OrdersSection
-        title="Commandes en cours"
+        title="Batchs"
         orders={pendingOrders}
         selectedOrder={selectedOrder}
         onSelect={onSelectOrder}

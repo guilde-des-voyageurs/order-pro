@@ -31,6 +31,7 @@ export interface ShopifyOrder {
     variant?: {
       id: string;
       title: string;
+      sku?: string | null;
       metafields: Array<{
         namespace: string;
         key: string;
