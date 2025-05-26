@@ -5,6 +5,7 @@ import { Title, Paper, Table, Text, Stack, Group } from '@mantine/core';
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
+import { InvoiceStatusCheckbox } from '@/components/InvoiceStatusCheckbox';
 import { usePriceRules } from '@/hooks/usePriceRules';
 import { CostRow } from '@/components/CostRow';
 import { HANDLING_FEE } from '@/config/billing';
@@ -88,6 +89,7 @@ export default function FacturationV2Page() {
               <Table.Th>Manutention</Table.Th>
               <Table.Th>Total</Table.Th>
               <Table.Th>Actions</Table.Th>
+              <Table.Th>Facturé</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -150,6 +152,9 @@ export default function FacturationV2Page() {
                     lineItems={order.lineItems}
                     rules={rules}
                   />
+                </Table.Td>
+                <Table.Td>
+                  <InvoiceStatusCheckbox orderId={encodeFirestoreId(order.id)} />
                 </Table.Td>
               </Table.Tr>
             ))}
