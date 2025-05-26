@@ -46,7 +46,7 @@ export function MonthlyBillingNote({ monthKey }: MonthlyBillingNoteProps) {
     <div>
       {total !== null && (
         <Text size="lg" fw={500} mb="xs" c="blue">
-          Total du mois : {total.toFixed(2)} €
+          Total du mois : {total.toFixed(2)} € HT
         </Text>
       )}
       <Group align="flex-end">
