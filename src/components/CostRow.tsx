@@ -52,7 +52,7 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   if (printFile) {
     const printPrice = rules.find(r => r.searchString.toLowerCase() === printFile.value.toLowerCase())?.price || 0;
     totalPrice += printPrice;
-    parts.push(`fichier_d_impression (${printPrice.toFixed(2)}€)`);
+    parts.push(`${printFile.value} (${printPrice.toFixed(2)}€)`);
   }
 
   // Verso impression
@@ -60,12 +60,14 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   if (versoFile) {
     const versoPrice = rules.find(r => r.searchString.toLowerCase() === versoFile.value.toLowerCase())?.price || 0;
     totalPrice += versoPrice;
-    parts.push(`verso_impression (${versoPrice.toFixed(2)}€)`);
+    parts.push(`${versoFile.value} (${versoPrice.toFixed(2)}€)`);
   }
 
   return (
     <Text size="sm">
-      {checkedCount}x ({parts.join(' + ')} = {(totalPrice * checkedCount).toFixed(2)}€)
+      {checkedCount}x (
+        {parts.join(' +\n        ')} = {(totalPrice * checkedCount).toFixed(2)}€
+      )
     </Text>
   );
 }

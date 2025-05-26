@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Text, Stack, Group, Badge } from '@mantine/core';
+import { Title, Paper, Table, Text, Stack, Group } from '@mantine/core';
+import { CalculateCostButton } from '@/components/CalculateCostButton';
+import { OrderTotalCell } from '@/components/OrderTotalCell';
+import { HandlingFeeCell } from '@/components/HandlingFeeCell';
 import { usePriceRules } from '@/hooks/usePriceRules';
 import { CostRow } from '@/components/CostRow';
 import { HANDLING_FEE } from '@/config/billing';
@@ -83,6 +86,8 @@ export default function FacturationV2Page() {
               <Table.Th>Contenu</Table.Th>
               <Table.Th>Coût</Table.Th>
               <Table.Th>Manutention</Table.Th>
+              <Table.Th>Total</Table.Th>
+              <Table.Th>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -131,7 +136,20 @@ export default function FacturationV2Page() {
                   </Stack>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm" fw={500}>{HANDLING_FEE.toFixed(2)}€ HT</Text>
+                  <HandlingFeeCell
+                    orderId={encodeFirestoreId(order.id)}
+                    lineItems={order.lineItems}
+                  />
+                </Table.Td>
+                <Table.Td>
+                  <OrderTotalCell orderId={encodeFirestoreId(order.id)} />
+                </Table.Td>
+                <Table.Td>
+                  <CalculateCostButton
+                    orderId={encodeFirestoreId(order.id)}
+                    lineItems={order.lineItems}
+                    rules={rules}
+                  />
                 </Table.Td>
               </Table.Tr>
             ))}
