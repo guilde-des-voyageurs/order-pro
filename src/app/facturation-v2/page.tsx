@@ -8,11 +8,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import styles from './facturation-v2.module.scss';
-
-const extractOrderId = (shopifyId: string): string => {
-  const match = shopifyId.match(/Order\/([0-9]+)/);
-  return match ? match[1] : shopifyId;
-};
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface Order {
   id: string;
@@ -91,7 +87,7 @@ export default function FacturationV2Page() {
                             {item.quantity}x {item.sku} {formatVariant(item.variantTitle)}
                           </Text>
                           <VariantCheckboxGroup
-                            orderId={extractOrderId(order.id)}
+                            orderId={encodeFirestoreId(order.id)}
                             sku={item.sku || ''}
                             color={color || ''}
                             size={size || ''}

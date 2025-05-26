@@ -5,6 +5,11 @@ import type { ShopifyOrder } from '@/types/shopify';
 
 const ORDERS_COLLECTION = 'orders-v2';
 
+const extractOrderId = (shopifyId: string): string => {
+  const match = shopifyId.match(/Order\/([0-9]+)/);
+  return match ? match[1] : shopifyId;
+};
+
 /**
  * Sanitize un ID Shopify pour qu'il soit utilisable comme chemin Firebase
  * @param shopifyId - L'ID Shopify au format gid://shopify/Order/123456789
@@ -50,13 +55,13 @@ export const ordersService = {
    * @param orderId - L'ID de la commande
    */
   async updateCheckedCount(orderId: string): Promise<void> {
-    const encodedOrderId = encodeFirestoreId(orderId);
-    await cleanupVariants(orderId, encodedOrderId);
+    // orderId est déjà encodé quand il arrive ici
+    await cleanupVariants(orderId, orderId);
 
     const variantsRef = collection(db, 'variants-ordered-v2');
     const variantsSnap = await getDocs(query(
       variantsRef,
-      where('orderId', '==', encodedOrderId)
+      where('orderId', '==', orderId)
     ));
     
     const uniqueVariants = new Set();

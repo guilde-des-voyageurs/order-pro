@@ -32,32 +32,12 @@ export const VariantCheckboxGroup = ({
   disabled,
   lineItems = []
 }: VariantCheckboxGroupProps) => {
-  // Calculer le nombre de variants cochés
-  const globalIndex = calculateGlobalVariantIndex(
-    lineItems.map(item => ({
-      sku: item.sku || '',
-      selectedOptions: [
-        { name: 'couleur', value: item.variantTitle?.split(' / ')[0] || '' },
-        { name: 'taille', value: item.variantTitle?.split(' / ')[1] || '' }
-      ],
-      quantity: item.quantity
-    })),
-    {
-      sku,
-      selectedOptions: [
-        { name: 'couleur', value: color },
-        { name: 'taille', value: size }
-      ]
-    },
-    productIndex
-  );
-
   const checkedCount = useCheckedVariants({
-    orderId,
+    orderId: orderId, // orderId est déjà encodé car passé depuis la page
     sku,
     color,
     size,
-    index: globalIndex,
+    index: productIndex,
     lineItemIndex: productIndex,
     quantity
   });

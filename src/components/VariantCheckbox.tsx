@@ -10,7 +10,6 @@ import { useHasMounted } from '@/hooks/useHasMounted';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { transformColor } from '@/utils/color-transformer';
 
-
 interface VariantCheckboxProps {
   sku: string;
   color: string;
@@ -82,9 +81,9 @@ export const VariantCheckbox = ({
       sku,
       color: color || 'no-color',
       size: size || 'no-size',
-      originalId: orderId,
+      originalId: orderId, // orderId est déjà encodé
       updatedAt: new Date().toISOString(),
-      orderId: orderId
+      orderId: orderId // orderId est déjà encodé
     };
 
     try {

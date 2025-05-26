@@ -82,10 +82,7 @@ export const generateVariantId = (
   const cleanColor = color?.trim() || 'no-color';
   const cleanSize = size?.trim() || 'no-size';
   
-  // Encoder l'ID pour Firebase
-  const encodedOrderId = encodeFirestoreId(orderId);
-  
   // Créer un ID cohérent avec productIndex et quantityIndex
   // Format: orderId--sku--color--size--productIndex--quantityIndex
-  return `${encodedOrderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}--${lineItemIndex ?? 0}`;
+  return `${orderId}--${sku}--${cleanColor}--${cleanSize}--${productIndex}--${lineItemIndex ?? 0}`;
 };

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { generateVariantId } from '@/utils/variant-helpers';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface VariantKey {
   orderId: string;
@@ -31,7 +30,7 @@ export function useCheckedVariants({ orderId, sku, color, size, index, lineItemI
     // Générer les IDs pour tous les variants de cette combinaison
     const variantIds = Array.from({ length: quantity }).map((_, quantityIndex) => {
       return generateVariantId(
-        orderId,
+        orderId,  // orderId est déjà encodé
         sku,
         color,
         size,
