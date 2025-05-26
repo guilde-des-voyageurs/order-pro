@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Stack, Table, Text, Group, Box } from '@mantine/core';
+import { Title, Paper, Stack, Table, Text, Group, Box, Select } from '@mantine/core';
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
@@ -43,6 +43,10 @@ interface Order {
 export default function FacturationV2Page() {
   const queryClient = useQueryClient();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const { rules } = usePriceRules();
 
   useEffect(() => {
@@ -88,12 +92,37 @@ export default function FacturationV2Page() {
     return acc;
   }, {});
 
+  // Extraire la liste des mois disponibles
+  const availableMonths = [...new Set(orders.map(order => {
+    const date = new Date(order.createdAt);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }))].sort().reverse();
+
+  const monthOptions = availableMonths.map(monthKey => {
+    const [year, month] = monthKey.split('-');
+    const monthTitle = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('fr-FR', {
+      month: 'long',
+      year: 'numeric'
+    });
+    return { value: monthKey, label: monthTitle };
+  });
+
   return (
     <div className={styles.container}>
-      <Title order={2} mb="md">Facturation V2</Title>
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Facturation V2</Title>
+        <Select
+          label="Mois"
+          placeholder="Sélectionnez un mois"
+          data={monthOptions}
+          value={selectedMonth}
+          onChange={(value) => setSelectedMonth(value || '')}
+          w={300}
+        />
+      </Group>
       <Paper p="md" radius="sm" className={styles.tableContainer}>
         {Object.entries(ordersByMonth)
-          .sort((a, b) => b[0].localeCompare(a[0])) // Trier les mois par ordre décroissant
+          .filter(([monthKey]) => monthKey === selectedMonth)
           .map(([monthKey, monthOrders]) => {
             const [year, month] = monthKey.split('-');
             const monthTitle = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('fr-FR', {
