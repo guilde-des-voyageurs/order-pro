@@ -20,6 +20,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { MonthlyInvoiceButton } from '@/components/MonthlyInvoiceButton';
 import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
+import { OrderBalanceCell } from '@/components/OrderBalanceCell';
 import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
 
 interface Order {
@@ -158,8 +159,9 @@ export default function FacturationV2Page() {
                       <Table.Th>Contenu</Table.Th>
                       <Table.Th>Coût</Table.Th>
                       <Table.Th>Manutention</Table.Th>
+                      <Table.Th>Balance (€ HT)</Table.Th>
                       <Table.Th>Total</Table.Th>
-                      <Table.Th>Actions</Table.Th>
+                      <Table.Th>Facturer</Table.Th>
                       <Table.Th>Facturé</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
@@ -215,6 +217,9 @@ export default function FacturationV2Page() {
                           />
                         </Table.Td>
                         <Table.Td>
+                          <OrderBalanceCell orderId={order.id} />
+                        </Table.Td>
+                        <Table.Td>
                           <OrderTotalCell orderId={encodeFirestoreId(order.id)} />
                         </Table.Td>
                         <Table.Td>
@@ -223,6 +228,9 @@ export default function FacturationV2Page() {
                             lineItems={order.lineItems}
                             rules={rules}
                           />
+                        </Table.Td>
+                        <Table.Td>
+                          <InvoiceCheckbox orderId={order.id} />
                         </Table.Td>
                         <Table.Td>
                           <InvoiceStatusCheckbox orderId={encodeFirestoreId(order.id)} />

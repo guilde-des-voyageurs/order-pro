@@ -7,7 +7,7 @@ export interface Order {
   lineItems: Array<{
     quantity: number;
     unitCost?: number | null;
-    totalCost?: number | null;
+    total: number | null;
     sku?: string;
     variantTitle?: string;
     variant?: {

@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { useState } from 'react';
+import { doc, setDoc, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { HANDLING_FEE } from '@/config/billing';
 import { calculateItemPrice } from '@/hooks/usePriceRules';
@@ -24,80 +25,91 @@ interface CalculateCostButtonProps {
 }
 
 export function CalculateCostButton({ orderId, lineItems, rules }: CalculateCostButtonProps) {
+  const [isCalculating, setIsCalculating] = useState(false);
   const calculateTotalCost = async () => {
-    let totalCost = 0;
-    let hasCheckedVariants = false;
-
-    // Filtrer les lineItems qui ont un SKU
-    const validLineItems = lineItems.filter(item => item.sku);
-
-    // Calculer le coût pour chaque ligne
-    for (let index = 0; index < validLineItems.length; index++) {
-      const item = validLineItems[index];
-      const [color, size] = (item.variantTitle || '').split(' / ');
-      
-      // Générer les IDs pour toutes les variantes de cette ligne
-      const variantIds = Array.from({ length: item.quantity }).map((_, quantityIndex) => {
-        return generateVariantId(
-          orderId,
-          item.sku || '',
-          color || '',
-          size || '',
-          index,
-          quantityIndex
-        );
-      });
-
-      // Compter les variantes cochées
-      const checkedVariantsQuery = query(
-        collection(db, 'variants-ordered-v2'),
-        where('__name__', 'in', variantIds)
-      );
-      const checkedVariantsSnapshot = await getDocs(checkedVariantsQuery);
-      const checkedCount = checkedVariantsSnapshot.docs.filter(doc => doc.data().checked).length;
-
-      // Si des variantes sont cochées, calculer leur coût
-      if (checkedCount > 0) {
-        hasCheckedVariants = true;
-        let itemCost = 0;
-
-        // Prix de base (SKU + couleur)
-        const baseItemString = `${item.sku} - ${color}`;
-        const basePrice = calculateItemPrice(baseItemString, rules);
-        itemCost += basePrice;
-
-        // Prix du fichier d'impression
-        const printFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression');
-        if (printFile) {
-          const printPrice = rules.find(r => r.searchString.toLowerCase() === printFile.value.toLowerCase())?.price || 0;
-          itemCost += printPrice;
-        }
-
-        // Prix du verso
-        const versoFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression');
-        if (versoFile) {
-          const versoPrice = rules.find(r => r.searchString.toLowerCase() === versoFile.value.toLowerCase())?.price || 0;
-          itemCost += versoPrice;
-        }
-
-        // Multiplier par le nombre de variantes cochées
-        totalCost += itemCost * checkedCount;
-      }
-    }
-
-    // Ajouter la manutention une seule fois si au moins une variante est cochée
-    if (hasCheckedVariants) {
-      totalCost += HANDLING_FEE;
-    }
-
-    // Sauvegarder dans Firebase
+    setIsCalculating(true);
     try {
-      await setDoc(doc(db, 'orders-cost', orderId), {
-        totalCost,
-        calculatedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'enregistrement du coût:', error);
+      // Récupérer la balance de la commande
+      const balanceRef = doc(db, 'orders-balance', orderId);
+      const balanceSnap = await getDoc(balanceRef);
+      const balance = balanceSnap.exists() ? balanceSnap.data().amount || 0 : 0;
+
+      let totalCost = 0;
+      let hasCheckedVariants = false;
+
+      // Filtrer les lineItems qui ont un SKU
+      const validLineItems = lineItems.filter(item => item.sku);
+
+      // Calculer le coût pour chaque ligne
+      for (let index = 0; index < validLineItems.length; index++) {
+        const item = validLineItems[index];
+        const [color, size] = (item.variantTitle || '').split(' / ');
+        
+        // Générer les IDs pour toutes les variantes de cette ligne
+        const variantIds = Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+          return generateVariantId(
+            orderId,
+            item.sku || '',
+            color || '',
+            size || '',
+            index,
+            quantityIndex
+          );
+        });
+
+        // Compter les variantes cochées
+        const checkedVariantsQuery = query(
+          collection(db, 'variants-ordered-v2'),
+          where('__name__', 'in', variantIds)
+        );
+        const checkedVariantsSnapshot = await getDocs(checkedVariantsQuery);
+        const checkedCount = checkedVariantsSnapshot.docs.filter(doc => doc.data().checked).length;
+
+        // Si des variantes sont cochées, calculer leur coût
+        if (checkedCount > 0) {
+          hasCheckedVariants = true;
+          let itemCost = 0;
+
+          // Prix de base (SKU + couleur)
+          const baseItemString = `${item.sku} - ${color}`;
+          const basePrice = calculateItemPrice(baseItemString, rules);
+          itemCost += basePrice;
+
+          // Prix du fichier d'impression
+          const printFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression');
+          if (printFile) {
+            const printPrice = rules.find(r => r.searchString.toLowerCase() === printFile.value.toLowerCase())?.price || 0;
+            itemCost += printPrice;
+          }
+
+          // Prix du verso
+          const versoFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression');
+          if (versoFile) {
+            const versoPrice = rules.find(r => r.searchString.toLowerCase() === versoFile.value.toLowerCase())?.price || 0;
+            itemCost += versoPrice;
+          }
+
+          // Multiplier par le nombre de variantes cochées
+          totalCost += itemCost * checkedCount;
+        }
+      }
+
+      // Ajouter la manutention une seule fois si au moins une variante est cochée
+      if (hasCheckedVariants) {
+        totalCost += HANDLING_FEE;
+      }
+
+      // Sauvegarder dans Firebase
+      try {
+        await setDoc(doc(db, 'orders-cost', orderId), {
+          total: totalCost + balance,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du coût:', error);
+      }
+    } finally {
+      setIsCalculating(false);
     }
   };
 

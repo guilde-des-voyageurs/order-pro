@@ -3,6 +3,7 @@ import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { calculateItemPrice } from '@/hooks/usePriceRules';
 import { formatItemString } from '@/utils/order-total';
 import type { PriceRule } from '@/hooks/usePriceRules';
+import { doc, getFirestore, getDoc } from 'firebase/firestore';
 
 interface CostRowProps {
   orderId: string;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Group } from '@mantine/core';
 import { doc, writeBatch, setDoc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { db } from '@/firebase/db';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useBillingNotes } from '@/hooks/useBillingNotes';
@@ -21,28 +22,24 @@ export function MonthlyInvoiceButton({ orders, monthId }: MonthlyInvoiceButtonPr
 
   const calculateMonthTotal = async (ordersToInvoice: typeof orders) => {
     console.log('Orders to invoice:', ordersToInvoice);
-    const orderIds = ordersToInvoice.map(order => order.id.split('/').pop() || '');
+    const orderIds = ordersToInvoice.map(order => encodeFirestoreId(order.id));
     console.log('Order IDs:', orderIds);
-    // On récupère directement les documents par leurs IDs car ce sont les numéros de commande
-    const costDocs = await Promise.all(
-      orderIds.map(orderId => 
-        getDoc(doc(db, 'orders-cost', orderId))
-      )
+
+    // Récupérer les coûts des commandes
+    const orderCostsQuery = query(
+      collection(db, 'orders-cost'),
+      where('__name__', 'in', orderIds)
     );
 
-    console.log('Found costs documents:', costDocs.length);
+    const orderCostsSnapshot = await getDocs(orderCostsQuery);
     let total = 0;
 
-    costDocs.forEach((doc: DocumentSnapshot<DocumentData>) => {
-      if (!doc.exists()) return;
-      console.log('Cost document:', doc.id, doc.data());
+    orderCostsSnapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.totalCost) {
-        total += data.totalCost;
-      }
+      total += data.total || 0;
     });
 
-    console.log('Final total:', total);
+    console.log('Orders total:', total);
     return total;
   };
 
@@ -79,11 +76,17 @@ export function MonthlyInvoiceButton({ orders, monthId }: MonthlyInvoiceButtonPr
 
       // Si on facture (pas si on défacture), on calcule et sauvegarde le total
       if (setInvoiced) {
-        const itemsTotal = await calculateMonthTotal(ordersToInvoice);
-        const newTotal = Number(itemsTotal) + Number(deliveryCost || 0) + Number(balance || 0);
-        setTotal(newTotal);
+        const ordersTotal = await calculateMonthTotal(ordersToInvoice);
+        const monthlyNoteRef = doc(db, 'MonthlyBillingNotes', monthId);
+        const monthlyNoteSnap = await getDoc(monthlyNoteRef);
+        const monthlyNoteData = monthlyNoteSnap.exists() ? monthlyNoteSnap.data() : {};
+        const monthlyBalance = monthlyNoteData.balance || 0;
+
+        const finalTotal = ordersTotal + Number(monthlyBalance);
+        setTotal(finalTotal);
+
         await setDoc(monthlyNoteRef, {
-          total: newTotal,
+          total: finalTotal,
           invoicedAt: new Date().toISOString()
         }, { merge: true });
       }

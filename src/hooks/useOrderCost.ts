@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import type { OrderCost } from '@/types/order-cost';
 import { db } from '@/firebase/db';
-
-interface OrderCost {
-  totalCost: number;
-  calculatedAt: string;
-}
 
 export function useOrderCost(orderId: string) {
   const [orderCost, setOrderCost] = useState<OrderCost | null>(null);
