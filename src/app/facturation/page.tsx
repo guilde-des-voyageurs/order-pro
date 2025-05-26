@@ -57,7 +57,7 @@ function formatItemString(item: Order['lineItems'][0]) {
 
 function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity, printFile, versoFile }: VariantCheckboxesProps) {
   const { rules } = usePriceRules();
-  const checkedCount = useCheckedVariants({
+  const { checkedCount } = useCheckedVariants({
     orderId,
     sku,
     color,

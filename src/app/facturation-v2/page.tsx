@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Title, Paper, Table, Text, Stack, Group, Badge } from '@mantine/core';
+import { usePriceRules } from '@/hooks/usePriceRules';
+import { CostRow } from '@/components/CostRow';
+import { HANDLING_FEE } from '@/config/billing';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { db } from '@/firebase/db';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
@@ -32,6 +35,7 @@ interface Order {
 
 export default function FacturationV2Page() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const { rules } = usePriceRules();
 
   useEffect(() => {
     // Créer la requête pour les commandes
@@ -75,14 +79,16 @@ export default function FacturationV2Page() {
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Date</Table.Th>
-              <Table.Th>Numéro</Table.Th>
+              <Table.Th>Commande</Table.Th>
               <Table.Th>Contenu</Table.Th>
+              <Table.Th>Coût</Table.Th>
+              <Table.Th>Manutention</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {orders.map((order) => (
               <Table.Tr key={order.id}>
-                <Table.Td>{formatDate(order.createdAt)}</Table.Td>
+                <Table.Td>{format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })}</Table.Td>
                 <Table.Td>{order.name}</Table.Td>
                 <Table.Td>
                   <Stack gap="xs">
@@ -90,31 +96,8 @@ export default function FacturationV2Page() {
                       const [color, size] = (item.variantTitle || '').split(' / ');
                       return (
                         <Group key={index} gap="md" wrap="nowrap" align="center">
-                          <Group gap="xs" w={400} wrap="nowrap">
+                          <Group gap="xs" wrap="nowrap">
                             <Text size="sm">{item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}</Text>
-                            {(item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') || 
-                              item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')) && (
-                              <Group gap={4}>
-                                {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                                  <Badge
-                                    variant="light" 
-                                    color="gray"
-                                    size="sm"
-                                  >
-                                    {item.variant.metafields.find(m => m.key === 'fichier_d_impression')?.value}
-                                  </Badge>
-                                )}
-                                {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
-                                  <Badge
-                                    variant="light" 
-                                    color="gray"
-                                    size="sm"
-                                  >
-                                    {item.variant.metafields.find(m => m.key === 'verso_impression')?.value}
-                                  </Badge>
-                                )}
-                              </Group>
-                            )}
                           </Group>
                           <VariantCheckboxGroup
                             orderId={encodeFirestoreId(order.id)}
@@ -133,6 +116,22 @@ export default function FacturationV2Page() {
                       );
                     })}
                   </Stack>
+                </Table.Td>
+                <Table.Td>
+                  <Stack gap="xs">
+                    {order.lineItems.map((item, index) => (
+                      <CostRow
+                        key={index}
+                        orderId={encodeFirestoreId(order.id)}
+                        item={item}
+                        index={index}
+                        rules={rules}
+                      />
+                    ))}
+                  </Stack>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={500}>{HANDLING_FEE.toFixed(2)}€ HT</Text>
                 </Table.Td>
               </Table.Tr>
             ))}

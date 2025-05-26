@@ -7,7 +7,7 @@ import type { Order } from '../types/order';
 import { calculateItemPrice, PriceRule } from '@/hooks/usePriceRules';
 import { transformColor } from './color-transformer';
 
-function formatItemString(item: Order['lineItems'][0]) {
+export function formatItemString(item: Order['lineItems'][0]) {
   // SKU
   const sku = item.sku || '';
 
