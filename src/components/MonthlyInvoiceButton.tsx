@@ -3,18 +3,21 @@ import { Button, Group } from '@mantine/core';
 import { doc, writeBatch, setDoc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { useBillingNotes } from '@/hooks/useBillingNotes';
+import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
 
 interface MonthlyInvoiceButtonProps {
   orders: Array<{
     id: string;
     tags?: string[];
   }>;
-  monthKey: string;
+  monthId: string;
 }
 
-export function MonthlyInvoiceButton({ orders, monthKey }: MonthlyInvoiceButtonProps) {
+export function MonthlyInvoiceButton({ orders, monthId }: MonthlyInvoiceButtonProps) {
   const [isInvoicing, setIsInvoicing] = useState(false);
   const [isUninvoicing, setIsUninvoicing] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
 
   const calculateMonthTotal = async (ordersToInvoice: typeof orders) => {
     console.log('Orders to invoice:', ordersToInvoice);
@@ -46,13 +49,20 @@ export function MonthlyInvoiceButton({ orders, monthKey }: MonthlyInvoiceButtonP
   const updateInvoiceStatus = async (setInvoiced: boolean) => {
     const setLoading = setInvoiced ? setIsInvoicing : setIsUninvoicing;
     setLoading(true);
+
     try {
       const batch = writeBatch(db);
       
-      // Filtrer les commandes qui ont un tag "batch"
       const ordersToInvoice = orders.filter(order => 
         !order.tags?.some(tag => tag.toLowerCase().includes('batch'))
       );
+
+      // Récupérer la note mensuelle
+      const monthlyNoteRef = doc(db, 'MonthlyBillingNotes', monthId);
+      const monthlyNoteSnap = await getDoc(monthlyNoteRef);
+      const monthlyNoteData = monthlyNoteSnap.exists() ? monthlyNoteSnap.data() : {};
+      const deliveryCost = monthlyNoteData.deliveryCost || 0;
+      const balance = monthlyNoteData.balance || 0;
 
       // Mettre à jour le statut de facturation pour chaque commande
       ordersToInvoice.forEach(order => {
@@ -69,11 +79,12 @@ export function MonthlyInvoiceButton({ orders, monthKey }: MonthlyInvoiceButtonP
 
       // Si on facture (pas si on défacture), on calcule et sauvegarde le total
       if (setInvoiced) {
-        const total = await calculateMonthTotal(ordersToInvoice);
-        const monthlyNoteRef = doc(db, 'MonthlyBillingNotes', monthKey);
+        const itemsTotal = await calculateMonthTotal(ordersToInvoice);
+        const newTotal = Number(itemsTotal) + Number(deliveryCost || 0) + Number(balance || 0);
+        setTotal(newTotal);
         await setDoc(monthlyNoteRef, {
-          total,
-          updatedAt: new Date().toISOString()
+          total: newTotal,
+          invoicedAt: new Date().toISOString()
         }, { merge: true });
       }
     } catch (error) {

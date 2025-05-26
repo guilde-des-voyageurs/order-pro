@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Title, Paper, Stack, Table, Text, Group, Box, Select } from '@mantine/core';
+import { useEffect, useState, useMemo } from 'react';
+import { Title, Paper, Stack, Table, Text, Group, Box, Select, NumberInput } from '@mantine/core';
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
@@ -17,8 +17,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import styles from './facturation-v2.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
+import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { MonthlyInvoiceButton } from '@/components/MonthlyInvoiceButton';
+import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
+import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
 
 interface Order {
   id: string;
@@ -48,6 +50,7 @@ export default function FacturationV2Page() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const { rules } = usePriceRules();
+  const { balance, updateBalance } = useMonthlyBalance(selectedMonth);
 
   useEffect(() => {
     // Créer la requête pour les commandes
@@ -109,8 +112,7 @@ export default function FacturationV2Page() {
 
   return (
     <div className={styles.container}>
-      <Group justify="space-between" mb="md">
-        <Title order={2}>Facturation V2</Title>
+      <Group grow mb="xl">
         <Select
           label="Mois"
           placeholder="Sélectionnez un mois"
@@ -118,6 +120,15 @@ export default function FacturationV2Page() {
           value={selectedMonth}
           onChange={(value) => setSelectedMonth(value || '')}
           w={300}
+        />
+        <NumberInput
+          label="Balance (€ HT)"
+          placeholder="0"
+          decimalScale={2}
+          fixedDecimalScale
+          allowNegative
+          value={balance}
+          onChange={(value) => updateBalance(typeof value === 'string' ? parseFloat(value) : value || 0)}
         />
       </Group>
       <Paper p="md" radius="sm" className={styles.tableContainer}>
@@ -137,7 +148,7 @@ export default function FacturationV2Page() {
                     <Title order={3} mb="sm">{monthTitle}</Title>
                     <MonthlyBillingNote monthKey={monthKey} />
                   </Box>
-                  <MonthlyInvoiceButton orders={monthOrders} monthKey={monthKey} />
+                  <MonthlyInvoiceButton orders={monthOrders} monthId={selectedMonth} />
                 </Group>
                 <Table striped highlightOnHover>
                   <Table.Thead>
