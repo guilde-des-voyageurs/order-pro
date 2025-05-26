@@ -3,22 +3,26 @@ import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { generateVariantId } from '@/utils/variant-helpers';
 
-interface VariantKey {
+interface UseCheckedVariantsProps {
   orderId: string;
-  sku: string;
+  sku?: string;
   color: string;
   size: string;
-  index: number;
-  lineItemIndex?: number;
   quantity: number;
+  productIndex: number;
+  lineItems: Array<{
+    sku?: string;
+    variantTitle?: string;
+    quantity: number;
+  }>;
 }
 
-export function useCheckedVariants({ orderId, sku, color, size, index, lineItemIndex, quantity }: VariantKey) {
+export function useCheckedVariants({ orderId, sku = '', color, size, quantity, productIndex, lineItems }: UseCheckedVariantsProps) {
   const [checkedCount, setCheckedCount] = useState(0);
   const checkedVariantsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    console.log('useCheckedVariants effect running for:', { orderId, sku, color, size, index, lineItemIndex });
+    console.log('useCheckedVariants effect running for:', { orderId, sku, color, size, productIndex });
     
     // Vérifier que l'orderId est valide
     if (!orderId) {
@@ -34,8 +38,8 @@ export function useCheckedVariants({ orderId, sku, color, size, index, lineItemI
         sku,
         color,
         size,
-        index,           // productIndex (ou lineItemIndex)
-        quantityIndex    // quantityIndex
+        productIndex,
+        quantityIndex
       );
     });
 
@@ -64,12 +68,12 @@ export function useCheckedVariants({ orderId, sku, color, size, index, lineItemI
     });
     
     return () => {
-      console.log('Cleanup running for:', { orderId, sku, color, size, index, lineItemIndex });
+      console.log('Cleanup running for:', { orderId, sku, color, size, productIndex });
       unsubscribes.forEach(unsubscribe => unsubscribe());
       checkedVariantsRef.current.clear();
       setCheckedCount(0);
     };
-  }, [orderId, sku, color, size, index, lineItemIndex]);
+  }, [orderId, sku, color, size, productIndex]);
 
   console.log('Current checked count:', checkedCount);
   return checkedCount;

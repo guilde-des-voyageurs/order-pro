@@ -112,13 +112,17 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   if (item.isCancelled) return acc;
                   const price = calculateItemPrice(formatItemString(item), rules);
                   const checkedCount = useCheckedVariants({
-                    orderId: encodeFirestoreId(order.id),
+                    orderId: order.id,
                     sku: item.sku || '',
                     color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
                     size: item.variantTitle?.split(' / ')[1] || '',
-                    index: itemIndex,
-                    lineItemIndex: undefined,
-                    quantity: item.quantity
+                    productIndex: itemIndex,
+                    quantity: item.quantity,
+                    lineItems: order.lineItems?.map(item => ({
+                      sku: item.sku || undefined,
+                      variantTitle: item.variantTitle || undefined,
+                      quantity: item.quantity
+                    })) || []
                   });
                   return acc + (price * checkedCount);
                 }, 0);
@@ -209,9 +213,13 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           sku: item.sku || '',
                           color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
                           size: item.variantTitle?.split(' / ')[1] || '',
-                          index: itemIndex,
-                          lineItemIndex: undefined,
-                          quantity: item.quantity
+                          productIndex: itemIndex,
+                          quantity: item.quantity,
+                          lineItems: order.lineItems?.map(item => ({
+                            sku: item.sku || undefined,
+                            variantTitle: item.variantTitle || undefined,
+                            quantity: item.quantity
+                          })) || []
                         });
 
                         return (
@@ -260,9 +268,13 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               sku: item.sku || '',
                               color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
                               size: item.variantTitle?.split(' / ')[1] || '',
-                              index: itemIndex,
-                              lineItemIndex: undefined,
-                              quantity: item.quantity
+                              productIndex: itemIndex,
+                              quantity: item.quantity,
+                              lineItems: order.lineItems?.map(item => ({
+                                sku: item.sku || undefined,
+                                variantTitle: item.variantTitle || undefined,
+                                quantity: item.quantity
+                              })) || []
                             });
                             if (!checkedCount) return null;
                             return (

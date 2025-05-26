@@ -9,7 +9,7 @@ import type { PriceRule } from '@/hooks/usePriceRules';
 interface CalculateCostButtonProps {
   orderId: string;
   lineItems: Array<{
-    sku: string;
+    sku?: string;
     variantTitle?: string;
     quantity: number;
     variant?: {
@@ -28,9 +28,12 @@ export function CalculateCostButton({ orderId, lineItems, rules }: CalculateCost
     let totalCost = 0;
     let hasCheckedVariants = false;
 
+    // Filtrer les lineItems qui ont un SKU
+    const validLineItems = lineItems.filter(item => item.sku);
+
     // Calculer le coût pour chaque ligne
-    for (let index = 0; index < lineItems.length; index++) {
-      const item = lineItems[index];
+    for (let index = 0; index < validLineItems.length; index++) {
+      const item = validLineItems[index];
       const [color, size] = (item.variantTitle || '').split(' / ');
       
       // Générer les IDs pour toutes les variantes de cette ligne

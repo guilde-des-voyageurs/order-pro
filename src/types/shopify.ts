@@ -16,7 +16,7 @@ export interface ShopifyOrder {
     refundableQuantity: number;
     price: string;
     sku?: string | null;
-    variantTitle?: string | null;
+    variantTitle?: string;
     vendor?: string | null;
     productId: string;
     requiresShipping: boolean;

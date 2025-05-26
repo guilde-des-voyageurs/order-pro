@@ -33,13 +33,13 @@ export const VariantCheckboxGroup = ({
   lineItems = []
 }: VariantCheckboxGroupProps) => {
   const checkedCount = useCheckedVariants({
-    orderId: orderId, // orderId est déjà encodé car passé depuis la page
+    orderId,
     sku,
     color,
     size,
-    index: productIndex,
-    lineItemIndex: productIndex,
-    quantity
+    productIndex,
+    quantity,
+    lineItems
   });
 
   return (

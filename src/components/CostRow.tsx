@@ -7,7 +7,7 @@ import type { PriceRule } from '@/hooks/usePriceRules';
 interface CostRowProps {
   orderId: string;
   item: {
-    sku: string;
+    sku?: string;
     variantTitle?: string;
     quantity: number;
     variant?: {
@@ -23,14 +23,16 @@ interface CostRowProps {
 }
 
 export function CostRow({ orderId, item, index, rules }: CostRowProps) {
+  if (!item.sku) return null;
   const [color, size] = (item.variantTitle || '').split(' / ');
   const checkedCount = useCheckedVariants({
     orderId,
-    sku: item.sku || '',
+    sku: item.sku,
     color: color || '',
     size: size || '',
-    index,
-    quantity: item.quantity
+    quantity: item.quantity,
+    productIndex: index,
+    lineItems: [item]
   });
 
   // Ne pas afficher si aucune variante n'est cochée
