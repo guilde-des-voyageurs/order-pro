@@ -44,7 +44,7 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
     const baseItemString = `${item.sku} - ${color}`;
     const basePrice = calculateItemPrice(baseItemString, rules);
     totalPrice += basePrice;
-    parts.push(`${item.sku} + ${color} (${basePrice.toFixed(2)}€)`);
+    parts.push(`${item.sku} - ${color} (${basePrice.toFixed(2)}€)`);
   }
 
   // Fichier d'impression
