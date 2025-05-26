@@ -13,10 +13,12 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '@/firebase/db';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import styles from './facturation-v2.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
+import { MonthlyInvoiceButton } from '@/components/MonthlyInvoiceButton';
 
 interface Order {
   id: string;
@@ -39,6 +41,7 @@ interface Order {
 }
 
 export default function FacturationV2Page() {
+  const queryClient = useQueryClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const { rules } = usePriceRules();
 
@@ -100,10 +103,13 @@ export default function FacturationV2Page() {
 
             return (
               <Paper key={monthKey} mb="md">
-                <Box mb="md">
-                  <Title order={3} mb="sm">{monthTitle}</Title>
-                  <MonthlyBillingNote monthKey={monthKey} />
-                </Box>
+                <Group justify="space-between" mb="md">
+                  <Box>
+                    <Title order={3} mb="sm">{monthTitle}</Title>
+                    <MonthlyBillingNote monthKey={monthKey} />
+                  </Box>
+                  <MonthlyInvoiceButton orders={monthOrders} monthKey={monthKey} />
+                </Group>
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
