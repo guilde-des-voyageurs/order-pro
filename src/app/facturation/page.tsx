@@ -136,15 +136,28 @@ interface WeeklyOrders {
   orders: Order[];
 }
 
+const getVariantTotal = (item: Order['lineItems'][0], rules: any, checkedCount: number) => {
+  const price = Number(calculateItemPrice(formatItemString({
+    sku: item.sku || '',
+    variantTitle: item.variantTitle,
+    variant: item.variant,
+    quantity: 1
+  }), rules));
+
+  return price * checkedCount;
+}
+
 interface WeekTotalProps {
   orders: Order[];
 }
 
 function WeekTotal({ orders }: WeekTotalProps) {
   const { rules } = usePriceRules();
-  let total = 0;
+  let weekTotal = 0;
 
   orders.forEach(order => {
+    let orderVariantsTotal = 0;
+
     // Calculer le total des variantes cochées
     order.lineItems.forEach((item, itemIndex) => {
       const [color, size] = (item.variantTitle || '').split(' / ');
@@ -160,23 +173,16 @@ function WeekTotal({ orders }: WeekTotalProps) {
         quantity: item.quantity
       });
 
-      const price = Number(calculateItemPrice(formatItemString({
-        sku: item.sku || '',
-        variantTitle: item.variantTitle,
-        variant: item.variant,
-        quantity: 1
-      }), rules));
-
-      total += price * checkedCount;
+      orderVariantsTotal += getVariantTotal(item, rules, checkedCount);
     });
 
-    // Ajouter la manutention
-    total += HANDLING_FEE;
+    // Ajouter la manutention seulement si des variants sont cochés
+    weekTotal += orderVariantsTotal > 0 ? orderVariantsTotal + HANDLING_FEE : 0;
   });
 
   return (
     <Text fw={500} size="lg" c="blue">
-      {total.toFixed(2)}€ HT
+      {weekTotal.toFixed(2)}€ HT
     </Text>
   );
 }
@@ -283,7 +289,7 @@ export default function FacturationPage() {
 
   function OrderTotal({ order }: OrderTotalProps) {
     const { rules } = usePriceRules();
-    let total = 0;
+    let variantsTotal = 0;
 
     // Calculer le total des variantes cochées
     order.lineItems.forEach((item, itemIndex) => {
@@ -300,18 +306,11 @@ export default function FacturationPage() {
         quantity: item.quantity
       });
 
-      const price = Number(calculateItemPrice(formatItemString({
-        sku: item.sku || '',
-        variantTitle: item.variantTitle,
-        variant: item.variant,
-        quantity: 1
-      }), rules));
-
-      total += price * checkedCount;
+      variantsTotal += getVariantTotal(item, rules, checkedCount);
     });
 
-    // Ajouter la manutention
-    total += HANDLING_FEE;
+    // Ajouter la manutention seulement si des variants sont cochés
+    const total = variantsTotal > 0 ? variantsTotal + HANDLING_FEE : 0;
 
     return (
       <Text size="sm" fw={500}>
@@ -320,20 +319,11 @@ export default function FacturationPage() {
     );
   }
 
-  const getVariantTotal = (item: Order['lineItems'][0], rules: any, checkedCount: number) => {
-    const price = Number(calculateItemPrice(formatItemString({
-      sku: item.sku || '',
-      variantTitle: item.variantTitle,
-      variant: item.variant,
-      quantity: 1
-    }), rules));
-  
-    return price * checkedCount;
-  }
+
 
   const getTotalCost = (order: Order) => {
     const { rules } = usePriceRules();
-    let total = 0;
+    let variantsTotal = 0;
 
     // Calculer le total des variantes cochées
     order.lineItems.forEach((item, itemIndex) => {
@@ -350,13 +340,11 @@ export default function FacturationPage() {
         quantity: item.quantity
       });
 
-      total += getVariantTotal(item, rules, checkedCount);
+      variantsTotal += getVariantTotal(item, rules, checkedCount);
     });
 
-    // Ajouter la manutention
-    total += HANDLING_FEE;
-
-    return total;
+    // Ajouter la manutention seulement si des variants sont cochés
+    return variantsTotal > 0 ? variantsTotal + HANDLING_FEE : 0;
   };
 
   const formatWeekRange = (start: Date, end: Date) => {
@@ -366,6 +354,18 @@ export default function FacturationPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
   };
+
+  function ManutentionCell({ order }: { order: Order }) {
+    const total = getTotalCost(order);
+    if (total > 0) {
+      return (
+        <Text size="sm">
+          {HANDLING_FEE.toFixed(2)}€ HT
+        </Text>
+      );
+    }
+    return null;
+  }
 
   if (loading) {
     return <div>Chargement...</div>;
@@ -459,9 +459,7 @@ export default function FacturationPage() {
                           </Stack>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">
-                            {HANDLING_FEE.toFixed(2)}€ HT
-                          </Text>
+                          <ManutentionCell order={order} />
                         </Table.Td>
                         <Table.Td>
                           <Group gap="md">
