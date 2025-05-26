@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Text, Stack, Group } from '@mantine/core';
+import { Title, Paper, Table, Text, Stack, Group, Badge } from '@mantine/core';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { format } from 'date-fns';
@@ -20,6 +20,13 @@ interface Order {
     quantity: number;
     sku: string;
     variantTitle?: string;
+    variant?: {
+      metafields?: Array<{
+        namespace: string;
+        key: string;
+        value: string;
+      }>;
+    };
   }>;
 }
 
@@ -83,9 +90,32 @@ export default function FacturationV2Page() {
                       const [color, size] = (item.variantTitle || '').split(' / ');
                       return (
                         <Group key={index} gap="md" wrap="nowrap" align="center">
-                          <Text size="sm" w={200}>
-                            {item.quantity}x {item.sku} {formatVariant(item.variantTitle)}
-                          </Text>
+                          <Group gap="xs" w={400} wrap="nowrap">
+                            <Text size="sm">{item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}</Text>
+                            {(item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') || 
+                              item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')) && (
+                              <Group gap={4}>
+                                {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
+                                  <Badge
+                                    variant="light" 
+                                    color="gray"
+                                    size="sm"
+                                  >
+                                    {item.variant.metafields.find(m => m.key === 'fichier_d_impression')?.value}
+                                  </Badge>
+                                )}
+                                {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
+                                  <Badge
+                                    variant="light" 
+                                    color="gray"
+                                    size="sm"
+                                  >
+                                    {item.variant.metafields.find(m => m.key === 'verso_impression')?.value}
+                                  </Badge>
+                                )}
+                              </Group>
+                            )}
+                          </Group>
                           <VariantCheckboxGroup
                             orderId={encodeFirestoreId(order.id)}
                             sku={item.sku || ''}
