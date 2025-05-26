@@ -1,0 +1,15 @@
+.container {
+  padding: 1.5rem;
+}
+
+.tableContainer {
+  overflow: auto;
+  
+  td:not(:last-child) {
+    white-space: nowrap;
+  }
+
+  td:last-child {
+    min-width: 400px;
+  }
+}

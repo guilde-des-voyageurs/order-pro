@@ -8,8 +8,8 @@ import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { transformColor } from '@/utils/color-transformer';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import styles from './facturation.module.scss';
-import { db } from '@/firebase/config';
 import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { BillingCheckbox } from '@/components/BillingCheckbox';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -18,6 +18,7 @@ import { WeeklyBillingNote } from '@/components/WeeklyBillingNote';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { ShopifyOrder } from '@/types/shopify';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { calculateOrderTotal } from '@/utils/order-total';
 
 interface VariantCheckboxesProps {
   orderId: string;
@@ -61,8 +62,8 @@ function VariantCheckboxes({ orderId, sku, color, size, itemIndex, quantity, pri
     sku,
     color,
     size,
-    index: itemIndex,
-    lineItemIndex: undefined,
+    index: itemIndex,      // productIndex
+    lineItemIndex: 0,      // quantityIndex (0 car c'est le premier)
     quantity
   });
 
@@ -152,37 +153,26 @@ interface WeekTotalProps {
 }
 
 function WeekTotal({ orders }: WeekTotalProps) {
+  const [weekTotal, setWeekTotal] = useState(0);
   const { rules } = usePriceRules();
-  let weekTotal = 0;
 
-  orders.forEach(order => {
-    let orderVariantsTotal = 0;
+  useEffect(() => {
+    const calculateTotal = async () => {
+      let total = 0;
+      for (const order of orders) {
+        let orderVariantsTotal = 0;
 
-    // Calculer le total des variantes cochées
-    order.lineItems.forEach((item, itemIndex) => {
-      const [color, size] = (item.variantTitle || '').split(' / ');
-      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
+        total += await calculateOrderTotal(order, rules);
+      }
+      setWeekTotal(total);
+    };
 
-      const checkedCount = useCheckedVariants({
-        orderId: `gid://shopify/Order/${order.id}`,
-        sku: item.sku || '',
-        color: transformedColor,
-        size: size || '',
-        index: itemIndex,
-        lineItemIndex: undefined,
-        quantity: item.quantity
-      });
-
-      orderVariantsTotal += getVariantTotal(item, rules, checkedCount);
-    });
-
-    // Ajouter la manutention seulement si des variants sont cochés
-    weekTotal += orderVariantsTotal > 0 ? orderVariantsTotal + HANDLING_FEE : 0;
-  });
+    calculateTotal();
+  }, [orders, rules]);
 
   return (
     <Text fw={500} size="lg" c="blue">
-      {weekTotal.toFixed(2)}€ HT
+      Total semaine : {weekTotal.toFixed(2)}€ HT
     </Text>
   );
 }
@@ -288,29 +278,17 @@ export default function FacturationPage() {
   }
 
   function OrderTotal({ order }: OrderTotalProps) {
+    const [total, setTotal] = useState(0);
     const { rules } = usePriceRules();
-    let variantsTotal = 0;
 
-    // Calculer le total des variantes cochées
-    order.lineItems.forEach((item, itemIndex) => {
-      const [color, size] = (item.variantTitle || '').split(' / ');
-      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
+    useEffect(() => {
+      const calculateTotal = async () => {
+        const orderTotal = await calculateOrderTotal(order, rules);
+        setTotal(orderTotal);
+      };
 
-      const checkedCount = useCheckedVariants({
-        orderId: `gid://shopify/Order/${order.id}`,
-        sku: item.sku || '',
-        color: transformedColor,
-        size: size || '',
-        index: itemIndex,
-        lineItemIndex: undefined,
-        quantity: item.quantity
-      });
-
-      variantsTotal += getVariantTotal(item, rules, checkedCount);
-    });
-
-    // Ajouter la manutention seulement si des variants sont cochés
-    const total = variantsTotal > 0 ? variantsTotal + HANDLING_FEE : 0;
+      calculateTotal();
+    }, [order, rules]);
 
     return (
       <Text size="sm" fw={500}>
@@ -318,34 +296,6 @@ export default function FacturationPage() {
       </Text>
     );
   }
-
-
-
-  const getTotalCost = (order: Order) => {
-    const { rules } = usePriceRules();
-    let variantsTotal = 0;
-
-    // Calculer le total des variantes cochées
-    order.lineItems.forEach((item, itemIndex) => {
-      const [color, size] = (item.variantTitle || '').split(' / ');
-      const transformedColor = transformColor(color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '');
-
-      const checkedCount = useCheckedVariants({
-        orderId: `gid://shopify/Order/${order.id}`,
-        sku: item.sku || '',
-        color: transformedColor,
-        size: size || '',
-        index: itemIndex,
-        lineItemIndex: undefined,
-        quantity: item.quantity
-      });
-
-      variantsTotal += getVariantTotal(item, rules, checkedCount);
-    });
-
-    // Ajouter la manutention seulement si des variants sont cochés
-    return variantsTotal > 0 ? variantsTotal + HANDLING_FEE : 0;
-  };
 
   const formatWeekRange = (start: Date, end: Date) => {
     return `${format(start, 'dd/MM/yyyy', { locale: fr })} - ${format(end, 'dd/MM/yyyy', { locale: fr })}`;
@@ -355,8 +305,47 @@ export default function FacturationPage() {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
   };
 
-  function ManutentionCell({ order }: { order: Order }) {
-    const total = getTotalCost(order);
+  function ManutentionCell({ order }: OrderTotalProps) {
+    const [total, setTotal] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { rules } = usePriceRules();
+
+    useEffect(() => {
+      let isMounted = true;
+
+      const calculateTotal = async () => {
+        try {
+          setIsLoading(true);
+          setError(null);
+          const orderTotal = await calculateOrderTotal(order, rules);
+          if (isMounted) {
+            setTotal(orderTotal);
+          }
+        } catch (err) {
+          if (isMounted) {
+            console.error('Error calculating total:', err);
+            setError('Erreur de calcul du total');
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      calculateTotal();
+      return () => { isMounted = false; };
+    }, [order, rules]);
+
+    if (isLoading) {
+      return <Text size="sm" color="dimmed">Calcul en cours...</Text>;
+    }
+
+    if (error) {
+      return <Text size="sm" color="red">{error}</Text>;
+    }
+
     if (total > 0) {
       return (
         <Text size="sm">
@@ -364,6 +353,7 @@ export default function FacturationPage() {
         </Text>
       );
     }
+
     return null;
   }
 
@@ -421,6 +411,9 @@ export default function FacturationPage() {
                                   <Group gap="xs">
                                     {item.sku && (
                                       <Text size="sm" c="dimmed">{item.sku}</Text>
+                                    )}
+                                    {item.sku && item.variantTitle && (
+                                      <Text size="sm" c="dimmed">-</Text>
                                     )}
                                     {item.variantTitle && (
                                       <Text size="sm" c="dimmed">{cleanedColor}</Text>

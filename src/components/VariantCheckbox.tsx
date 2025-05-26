@@ -77,7 +77,6 @@ export const VariantCheckbox = ({
     const newChecked = event.target.checked;
     console.log('Checkbox clicked:', { variantId, newChecked });
     
-    const encodedOrderId = encodeFirestoreId(orderId);
     const document: VariantDocument = {
       checked: newChecked,
       sku,
@@ -85,7 +84,7 @@ export const VariantCheckbox = ({
       size: size || 'no-size',
       originalId: orderId,
       updatedAt: new Date().toISOString(),
-      orderId: encodedOrderId
+      orderId: orderId
     };
 
     try {

@@ -84,6 +84,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           href: '/facturation',
           label: 'Facturation',
         },
+        {
+          href: '/facturation-v2',
+          label: 'Facturation V2',
+        },
       ],
     },
     {

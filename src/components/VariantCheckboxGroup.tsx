@@ -77,7 +77,7 @@ export const VariantCheckboxGroup = ({
             quantityIndex={quantityIndex}
             disabled={disabled}
             variantId={generateVariantId(
-              encodeFirestoreId(orderId),
+              orderId,
               sku,
               color,
               size,

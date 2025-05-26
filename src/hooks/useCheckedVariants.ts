@@ -28,17 +28,15 @@ export function useCheckedVariants({ orderId, sku, color, size, index, lineItemI
       return;
     }
 
-    const encodedOrderId = encodeFirestoreId(orderId);
-    
     // Générer les IDs pour tous les variants de cette combinaison
     const variantIds = Array.from({ length: quantity }).map((_, quantityIndex) => {
       return generateVariantId(
-        encodedOrderId,
+        orderId,
         sku,
         color,
         size,
-        quantityIndex,
-        index
+        index,           // productIndex (ou lineItemIndex)
+        quantityIndex    // quantityIndex
       );
     });
 
