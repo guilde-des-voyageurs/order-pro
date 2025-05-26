@@ -154,7 +154,10 @@ export function PriceRulesPage() {
             if (sortType === 'alphabetical') {
               return a.searchString.localeCompare(b.searchString);
             } else {
-              return b.createdAt - a.createdAt;
+              // Si createdAt n'existe pas, considérer la règle comme ancienne (0)
+              const aTime = a.createdAt || 0;
+              const bTime = b.createdAt || 0;
+              return bTime - aTime;
             }
           })
           .map((rule) => (
