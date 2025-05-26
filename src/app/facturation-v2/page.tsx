@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Title, Paper, Table, Text, Stack, Group } from '@mantine/core';
+import { Title, Paper, Stack, Table, Text, Group, Box } from '@mantine/core';
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
@@ -16,6 +16,7 @@ import { fr } from 'date-fns/locale';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
 import styles from './facturation-v2.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
 
 interface Order {
   id: string;
@@ -99,7 +100,10 @@ export default function FacturationV2Page() {
 
             return (
               <Paper key={monthKey} mb="md">
-                <Title order={3} mb="md">{monthTitle}</Title>
+                <Box mb="md">
+                  <Title order={3} mb="sm">{monthTitle}</Title>
+                  <MonthlyBillingNote monthKey={monthKey} />
+                </Box>
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
