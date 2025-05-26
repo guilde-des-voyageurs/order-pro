@@ -9,13 +9,18 @@ interface PriceRule {
   id?: string;
   searchString: string;
   price: number;
+  createdAt: number;
 }
+
+type SortType = 'alphabetical' | 'recent';
 
 export function PriceRulesPage() {
   const [rules, setRules] = useState<PriceRule[]>([]);
+  const [sortType, setSortType] = useState<SortType>('alphabetical');
   const [newRule, setNewRule] = useState<PriceRule>({
     searchString: '',
-    price: 0
+    price: 0,
+    createdAt: 0
   });
 
   // Charger les règles depuis Firebase
@@ -55,12 +60,14 @@ export function PriceRulesPage() {
 
       await addDoc(collection(db, 'price-rules'), {
         searchString: newRule.searchString.trim(),
-        price: newRule.price
+        price: newRule.price,
+        createdAt: Date.now()
       });
       
       setNewRule({
         searchString: '',
-        price: 0
+        price: 0,
+        createdAt: 0
       });
 
       notifications.show({
@@ -97,7 +104,23 @@ export function PriceRulesPage() {
 
   return (
     <Container size="lg" py="xl">
-      <Title order={2} mb="xl">Règles de prix</Title>
+      <Group justify="space-between" align="center" mb="xl">
+        <Title order={2}>Règles de prix</Title>
+        <Button.Group>
+          <Button
+            variant={sortType === 'alphabetical' ? 'filled' : 'light'}
+            onClick={() => setSortType('alphabetical')}
+          >
+            Alphabétique
+          </Button>
+          <Button
+            variant={sortType === 'recent' ? 'filled' : 'light'}
+            onClick={() => setSortType('recent')}
+          >
+            Plus récent
+          </Button>
+        </Button.Group>
+      </Group>
 
       {/* Formulaire d'ajout */}
       <Paper withBorder p="md" mb="xl">
@@ -126,7 +149,15 @@ export function PriceRulesPage() {
 
       {/* Liste des règles */}
       <Stack>
-        {rules.map((rule) => (
+        {[...rules]
+          .sort((a, b) => {
+            if (sortType === 'alphabetical') {
+              return a.searchString.localeCompare(b.searchString);
+            } else {
+              return b.createdAt - a.createdAt;
+            }
+          })
+          .map((rule) => (
           <Paper key={rule.id} withBorder p="md">
             <Group justify="space-between" align="flex-start">
               <div>
