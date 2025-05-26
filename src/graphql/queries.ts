@@ -13,8 +13,9 @@ export const ORDERS_QUERY = `
 query {
   orders(
     first: 50, 
-    sortKey: CREATED_AT, 
-    reverse: true
+    sortKey: CREATED_AT,
+    reverse: true,
+    query: "created_at:>='2025-05-13'"
   ) {
     nodes {
       id

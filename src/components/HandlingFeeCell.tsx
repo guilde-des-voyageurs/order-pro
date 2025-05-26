@@ -1,5 +1,5 @@
 import { Text } from '@mantine/core';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { HANDLING_FEE } from '@/config/billing';
@@ -29,14 +29,15 @@ export function HandlingFeeCell({ orderId, lineItems }: HandlingFeeCellProps) {
       try {
         // Filtrer les lineItems qui ont un SKU
         const validLineItems = lineItems.filter(item => item.sku);
+        const allVariantIds = [];
 
+        // Générer tous les IDs de variantes
         for (let index = 0; index < validLineItems.length; index++) {
           const item = validLineItems[index];
           const [color, size] = (item.variantTitle || '').split(' / ');
 
-          // Générer les IDs pour toutes les variantes de cette ligne
-          const variantIds = Array.from({ length: item.quantity }).map((_, quantityIndex) => {
-            return generateVariantId(
+          for (let quantityIndex = 0; quantityIndex < item.quantity; quantityIndex++) {
+            const variantId = generateVariantId(
               orderId,
               item.sku || '',
               color || '',
@@ -44,22 +45,29 @@ export function HandlingFeeCell({ orderId, lineItems }: HandlingFeeCellProps) {
               index,
               quantityIndex
             );
-          });
-
-          // Vérifier s'il y a des variantes cochées
-          const checkedVariantsQuery = query(
-            collection(db, 'variants-ordered-v2'),
-            where('__name__', 'in', variantIds)
-          );
-          const checkedVariantsSnapshot = await getDocs(checkedVariantsQuery);
-          if (checkedVariantsSnapshot.docs.some(doc => doc.data().checked)) {
-            setHasCheckedVariants(true);
-            return; // On sort dès qu'on trouve une variante cochée
+            allVariantIds.push(variantId);
           }
         }
-        setHasCheckedVariants(false);
+
+        // Écouter les changements en temps réel
+        const unsubscribe = onSnapshot(
+          query(
+            collection(db, 'variants-ordered-v2'),
+            where('__name__', 'in', allVariantIds)
+          ),
+          (snapshot: QuerySnapshot<DocumentData>) => {
+            const hasChecked = snapshot.docs.some(doc => doc.data().checked);
+            setHasCheckedVariants(hasChecked);
+          },
+          (error: Error) => {
+            console.error('Error listening to variants:', error);
+            setHasCheckedVariants(false);
+          }
+        );
+
+        return () => unsubscribe();
       } catch (error) {
-        console.error('Error checking variants:', error);
+        console.error('Error setting up variants listener:', error);
         setHasCheckedVariants(false);
       }
     };

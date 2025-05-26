@@ -5,7 +5,6 @@ import { Title, Paper, Stack, Table, Text, Group, Box, Select, NumberInput } fro
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
-import { InvoiceStatusCheckbox } from '@/components/InvoiceStatusCheckbox';
 import { usePriceRules } from '@/hooks/usePriceRules';
 import { CostRow } from '@/components/CostRow';
 import { HANDLING_FEE } from '@/config/billing';
@@ -161,7 +160,6 @@ export default function FacturationV2Page() {
                       <Table.Th>Manutention</Table.Th>
                       <Table.Th>Balance (€ HT)</Table.Th>
                       <Table.Th>Total</Table.Th>
-                      <Table.Th>Facturer</Table.Th>
                       <Table.Th>Facturé</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
@@ -231,9 +229,6 @@ export default function FacturationV2Page() {
                         </Table.Td>
                         <Table.Td>
                           <InvoiceCheckbox orderId={order.id} />
-                        </Table.Td>
-                        <Table.Td>
-                          <InvoiceStatusCheckbox orderId={encodeFirestoreId(order.id)} />
                         </Table.Td>
                       </Table.Tr>
                     ))}
