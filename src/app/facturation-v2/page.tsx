@@ -75,91 +75,115 @@ export default function FacturationV2Page() {
     return `${color} - ${size}`;
   };
 
+  // Grouper les commandes par mois
+  const ordersByMonth = orders.reduce<Record<string, Order[]>>((acc, order) => {
+    const date = new Date(order.createdAt);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!acc[monthKey]) acc[monthKey] = [];
+    acc[monthKey].push(order);
+    return acc;
+  }, {});
+
   return (
     <div className={styles.container}>
       <Title order={2} mb="md">Facturation V2</Title>
       <Paper p="md" radius="sm" className={styles.tableContainer}>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Date</Table.Th>
-              <Table.Th>Commande</Table.Th>
-              <Table.Th>Contenu</Table.Th>
-              <Table.Th>Coût</Table.Th>
-              <Table.Th>Manutention</Table.Th>
-              <Table.Th>Total</Table.Th>
-              <Table.Th>Actions</Table.Th>
-              <Table.Th>Facturé</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {orders.map((order) => (
-              <Table.Tr key={order.id}>
-                <Table.Td>{format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })}</Table.Td>
-                <Table.Td>{order.name}</Table.Td>
-                <Table.Td>
-                  <Stack gap="xs">
-                    {order.lineItems.map((item, index) => {
-                      const [color, size] = (item.variantTitle || '').split(' / ');
-                      return (
-                        <Group key={index} gap="md" wrap="nowrap" align="center">
-                          <Group gap="xs" wrap="nowrap">
-                            <Text size="sm">{item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}</Text>
-                          </Group>
-                          <VariantCheckboxGroup
+        {Object.entries(ordersByMonth)
+          .sort((a, b) => b[0].localeCompare(a[0])) // Trier les mois par ordre décroissant
+          .map(([monthKey, monthOrders]) => {
+            const [year, month] = monthKey.split('-');
+            const monthTitle = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('fr-FR', {
+              month: 'long',
+              year: 'numeric'
+            });
+
+            return (
+              <Paper key={monthKey} mb="md">
+                <Title order={3} mb="md">{monthTitle}</Title>
+                <Table striped highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Date</Table.Th>
+                      <Table.Th>Commande</Table.Th>
+                      <Table.Th>Contenu</Table.Th>
+                      <Table.Th>Coût</Table.Th>
+                      <Table.Th>Manutention</Table.Th>
+                      <Table.Th>Total</Table.Th>
+                      <Table.Th>Actions</Table.Th>
+                      <Table.Th>Facturé</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {monthOrders.map((order) => (
+                      <Table.Tr key={order.id}>
+                        <Table.Td>{format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })}</Table.Td>
+                        <Table.Td>{order.name}</Table.Td>
+                        <Table.Td>
+                          <Stack gap="xs">
+                            {order.lineItems.map((item, index) => {
+                              const [color, size] = (item.variantTitle || '').split(' / ');
+                              return (
+                                <Group key={index} gap="md" wrap="nowrap" align="center">
+                                  <Group gap="xs" wrap="nowrap">
+                                    <Text size="sm">{item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}</Text>
+                                  </Group>
+                                  <VariantCheckboxGroup
+                                    orderId={encodeFirestoreId(order.id)}
+                                    sku={item.sku || ''}
+                                    color={color || ''}
+                                    size={size || ''}
+                                    quantity={item.quantity}
+                                    productIndex={index}
+                                    lineItems={order.lineItems.map(item => ({
+                                      sku: item.sku || '',
+                                      variantTitle: item.variantTitle,
+                                      quantity: item.quantity
+                                    }))}  
+                                  />
+                                </Group>
+                              );
+                            })}
+                          </Stack>
+                        </Table.Td>
+                        <Table.Td>
+                          <Stack gap="xs">
+                            {order.lineItems.map((item, index) => (
+                              <CostRow
+                                key={index}
+                                orderId={encodeFirestoreId(order.id)}
+                                item={item}
+                                index={index}
+                                rules={rules}
+                              />
+                            ))}
+                          </Stack>
+                        </Table.Td>
+                        <Table.Td>
+                          <HandlingFeeCell
                             orderId={encodeFirestoreId(order.id)}
-                            sku={item.sku || ''}
-                            color={color || ''}
-                            size={size || ''}
-                            quantity={item.quantity}
-                            productIndex={index}
-                            lineItems={order.lineItems.map(item => ({
-                              sku: item.sku || '',
-                              variantTitle: item.variantTitle,
-                              quantity: item.quantity
-                            }))}  
+                            lineItems={order.lineItems}
                           />
-                        </Group>
-                      );
-                    })}
-                  </Stack>
-                </Table.Td>
-                <Table.Td>
-                  <Stack gap="xs">
-                    {order.lineItems.map((item, index) => (
-                      <CostRow
-                        key={index}
-                        orderId={encodeFirestoreId(order.id)}
-                        item={item}
-                        index={index}
-                        rules={rules}
-                      />
+                        </Table.Td>
+                        <Table.Td>
+                          <OrderTotalCell orderId={encodeFirestoreId(order.id)} />
+                        </Table.Td>
+                        <Table.Td>
+                          <CalculateCostButton
+                            orderId={encodeFirestoreId(order.id)}
+                            lineItems={order.lineItems}
+                            rules={rules}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <InvoiceStatusCheckbox orderId={encodeFirestoreId(order.id)} />
+                        </Table.Td>
+                      </Table.Tr>
                     ))}
-                  </Stack>
-                </Table.Td>
-                <Table.Td>
-                  <HandlingFeeCell
-                    orderId={encodeFirestoreId(order.id)}
-                    lineItems={order.lineItems}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <OrderTotalCell orderId={encodeFirestoreId(order.id)} />
-                </Table.Td>
-                <Table.Td>
-                  <CalculateCostButton
-                    orderId={encodeFirestoreId(order.id)}
-                    lineItems={order.lineItems}
-                    rules={rules}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <InvoiceStatusCheckbox orderId={encodeFirestoreId(order.id)} />
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+                  </Table.Tbody>
+                </Table>
+              </Paper>
+            );
+          })}
       </Paper>
     </div>
   );
