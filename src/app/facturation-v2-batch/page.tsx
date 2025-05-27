@@ -195,7 +195,7 @@ export default function FacturationV2BatchPage() {
                     <LineItemBalance
                       orderId={order.id}
                       sku={item.sku}
-                      total={(rules?.find(rule => rule.sku === item.sku)?.price || 0) * item.quantity}
+                      total={(rules?.find(rule => rule.searchString === item.sku)?.price || 0) * item.quantity}
                     />
                   </Table.Td>
 

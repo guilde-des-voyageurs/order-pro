@@ -34,11 +34,10 @@ export function useBillingNotes(orderId: string) {
 
   // Mettre à jour ou créer une note
   const { mutate: updateNote } = useMutation({
-    mutationFn: async ({ note, deliveryCost }: { note: string; deliveryCost: number }) => {
+    mutationFn: async ({ note }: { note: string }) => {
       const noteData: BillingNote = {
         orderId,
         note,
-        deliveryCost,
         createdAt: billingNote?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -52,7 +51,6 @@ export function useBillingNotes(orderId: string) {
 
   return {
     note: billingNote?.note || '',
-    deliveryCost: Number(billingNote?.deliveryCost) || 0,
-    updateNote: useCallback((note: string, deliveryCost: number) => updateNote({ note, deliveryCost }), [updateNote]),
+    updateNote: useCallback((note: string) => updateNote({ note }), [updateNote]),
   };
 }
