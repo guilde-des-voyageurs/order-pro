@@ -107,16 +107,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           )}
                           {item.variantTitle && (
                             <Text size="sm" c="dimmed">
-                              {item.variantTitle.split(' / ').map((variant) => {
-                                const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
-                                const normalizedColor = cleanedVariant.toLowerCase()
-                                  .normalize('NFD')
-                                  .replace(/[\u0300-\u036f]/g, '');
-                                const foundColor = Object.entries(colorMappings).find(([key]) => 
-                                  key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
-                                );
-                                return foundColor ? foundColor[1].internalName : variant;
-                              }).join(' / ')}
+                              {item.variantTitle.split(' / ').map((variant) => transformColor(variant)).join(' / ')}
                             </Text>
                           )}
                           <Group gap="xs">

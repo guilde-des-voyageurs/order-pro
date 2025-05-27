@@ -58,21 +58,35 @@ export const colorMappings: { [key: string]: ColorMapping } = {
 export function transformColor(color: string): string {
   if (!color) return 'Sans couleur';
   
-  // Normaliser la couleur en minuscules et sans accents
-  const normalizedColor = color.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  
-  // Chercher la correspondance dans le mapping
-  const mapping = colorMappings[normalizedColor] || 
-                 Object.entries(colorMappings)
-                   .find(([key]) => key.normalize('NFD')
-                     .replace(/[\u0300-\u036f]/g, '') === normalizedColor)?.[1];
-
-  if (mapping) {
-    return normalizedColor;
+  // Chercher une correspondance directe
+  if (colorMappings[color]) {
+    return colorMappings[color].internalName;
   }
 
-  // Si aucune correspondance n'est trouvée, retourner la couleur avec une majuscule
-  return color.charAt(0).toUpperCase() + color.slice(1).toLowerCase();
+  // Nettoyer la couleur (enlever les parenthèses et leur contenu)
+  const cleanColor = color.replace(/\s*\([^)]*\)/g, '').trim();
+
+  // Chercher une correspondance avec la couleur nettoyée
+  if (colorMappings[cleanColor]) {
+    return colorMappings[cleanColor].internalName;
+  }
+
+  // Si toujours pas de correspondance, essayer avec la normalisation
+  const normalizedInput = cleanColor.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const foundColor = Object.entries(colorMappings).find(([key]) => {
+    const normalizedKey = key.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return normalizedKey === normalizedInput;
+  });
+
+  if (foundColor) {
+    return foundColor[1].internalName;
+  }
+
+  // Si aucune correspondance n'est trouvée, retourner la couleur originale
+  return cleanColor;
 }

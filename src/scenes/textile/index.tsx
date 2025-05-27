@@ -16,6 +16,7 @@ import {
   Button 
 } from '@mantine/core';
 import { IconAlertTriangle, IconMessage } from '@tabler/icons-react';
+import { transformColor } from '@/utils/color-transformer';
 import styles from './textile.module.scss';
 import { variantsService, type Variant } from '@/firebase/services/variants';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
@@ -194,7 +195,7 @@ export default function TextilePage() {
                   ))}
                 </Group>
               </Table.Td>
-              <Table.Td>{group.totalQuantity} × {group.displayName}</Table.Td>
+              <Table.Td>{group.totalQuantity} × {group.sku} - {group.size} - {transformColor(group.color)}</Table.Td>
               <Table.Td>
                 <div className={styles.orderNumbers}>
                   {group.variants.map(({ variant }) => (
