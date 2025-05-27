@@ -15,9 +15,11 @@ export function BillingNoteInput({ orderId }: BillingNoteInputProps) {
 
   return (
     <TextInput
-      placeholder="Numéro de facture..."
+      placeholder="Note, Numéro de facture..."
       value={note}
       onChange={(event) => debouncedUpdate(event.currentTarget.value)}
+      w={500}
+      size="md"
     />
   );
 }

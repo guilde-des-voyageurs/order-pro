@@ -3,7 +3,7 @@
 // External dependencies
 import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select, Button } from '@mantine/core';
 import { IconMessage, IconAlertTriangle, IconCalculator } from '@tabler/icons-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { useState, useEffect, useRef } from 'react';
 
@@ -179,6 +179,20 @@ export function StockInvoicesPage() {
   const currentOrder = orders.find(o => o.id === selectedOrderId);
   const itemPrices = useRef<Map<number, number>>(new Map());
 
+  // Écouter les changements de total
+  useEffect(() => {
+    if (!currentOrder) return;
+
+    const encodedId = encodeFirestoreId(currentOrder.id);
+    const unsubscribe = onSnapshot(doc(db, 'BillingNotesBatch', encodedId), (doc) => {
+      if (doc.exists()) {
+        setTotalAmount(doc.data().total || 0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentOrder]);
+
   const calculateTotal = async () => {
     if (!currentOrder) return;
 
@@ -186,8 +200,15 @@ export function StockInvoicesPage() {
     const encodedId = encodeFirestoreId(currentOrder.id);
     const balanceDoc = await getDoc(doc(db, 'BillingNotesBatch', encodedId));
     const balance = balanceDoc.exists() ? (balanceDoc.data().balance || 0) : 0;
+    const newTotal = itemsTotal + balance;
 
-    setTotalAmount(itemsTotal + balance);
+    // Mettre à jour le total dans Firebase
+    await setDoc(doc(db, 'BillingNotesBatch', encodedId), {
+      total: newTotal,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    setTotalAmount(newTotal);
   };
 
   if (isLoading) {
