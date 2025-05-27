@@ -218,8 +218,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           }}
                           onClick={() => {
                             const cleanTitle = item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase();
                             const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
@@ -229,8 +228,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         >
                           <Text span fw={700} inherit>
                             RECTO : {item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
                           </Text>
@@ -264,8 +262,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                           }}
                           onClick={() => {
                             const cleanTitle = item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase();
                             const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
@@ -275,8 +272,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                         >
                           <Text span fw={700} inherit>
                             VERSO : {item.title
-                              .replace(/\s*\|\s*/g, '')
-                              .replace(/\s*(t-shirt|unisexe|sweatshirt|débardeur)\s*/gi, '')
+                              .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
                           </Text>
