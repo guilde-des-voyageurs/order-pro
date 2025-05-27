@@ -189,20 +189,6 @@ export function StockInvoicesPage() {
       <Stack gap="xl">
         <div className={styles.header}>
           <Title order={2}>Facturation Stock</Title>
-          <Group gap="xs">
-            <Badge size="lg" variant="light" color="yellow">
-              <Group gap="xs">
-                <IconAlertTriangle size={16} />
-                {orderStats.old} commandes &gt; 14 jours
-              </Group>
-            </Badge>
-            <Badge size="lg" variant="light" color="orange">
-              <Group gap="xs">
-                <IconMessage size={16} />
-                {orderStats.medium} commandes &gt; 7 jours
-              </Group>
-            </Badge>
-          </Group>
         </div>
 
         <Paper p="md" withBorder>
