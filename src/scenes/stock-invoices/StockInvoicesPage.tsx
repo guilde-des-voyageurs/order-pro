@@ -257,7 +257,10 @@ export function StockInvoicesPage() {
               <Paper withBorder p="md">
                 <Stack gap="md">
                   <Group justify="space-between" align="center">
-                    <Text fw={500} size="lg">{currentOrder.name}</Text>
+                    <Group gap="xs">
+                      <Text fw={500} size="lg">{currentOrder.name}</Text>
+                      <TextileProgress orderId={encodeFirestoreId(currentOrder.id)} />
+                    </Group>
                     <Group gap="xl">
                       <BatchBalance orderId={currentOrder.id} />
                       <Group>
