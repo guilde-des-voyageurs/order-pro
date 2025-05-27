@@ -27,6 +27,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { compareSizes } from '@/utils/size-helpers';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { ShopifyOrder } from '@/types/shopify';
+import { SkuGroupActions } from '@/components/SkuGroupCheckbox';
 
 interface GroupedVariant {
   sku: string;
@@ -258,9 +259,19 @@ export default function TextilePage() {
           .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
           .map(([sku, variants]) => (
           <Stack key={sku} className={styles.section}>
-            <Title order={3} className={styles.skuTitle}>
-              {sku}
-            </Title>
+            <Group align="center" justify="space-between">
+              <Title order={3} className={styles.skuTitle}>
+                {sku}
+              </Title>
+              <SkuGroupActions
+                sku={sku}
+                variants={variants.flatMap(group => group.variants.map(v => ({
+                  ...v,
+                  color: group.color,
+                  size: group.size
+                })))}
+              />
+            </Group>
             {renderVariantsTable(variants)}
           </Stack>
         ))}
