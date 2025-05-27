@@ -15,9 +15,12 @@ export function BatchBalance({ orderId }: BatchBalanceProps) {
 
   useEffect(() => {
     const fetchBalance = async () => {
-      const balanceDoc = await getDoc(doc(db, 'BillingNotesBatch', orderId));
+      const encodedId = encodeFirestoreId(orderId);
+      const balanceDoc = await getDoc(doc(db, 'BillingNotesBatch', encodedId));
       if (balanceDoc.exists()) {
         setBalance(balanceDoc.data().balance || 0);
+      } else {
+        setBalance(0);
       }
     };
 
@@ -27,7 +30,8 @@ export function BatchBalance({ orderId }: BatchBalanceProps) {
   const saveBalance = async () => {
     try {
       setIsSaving(true);
-      await setDoc(doc(db, 'BillingNotesBatch', orderId), {
+      const encodedId = encodeFirestoreId(orderId);
+      await setDoc(doc(db, 'BillingNotesBatch', encodedId), {
         balance,
         updatedAt: new Date().toISOString()
       }, { merge: true });

@@ -3,6 +3,8 @@
 // External dependencies
 import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select, Button } from '@mantine/core';
 import { IconMessage, IconAlertTriangle, IconCalculator } from '@tabler/icons-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase/db';
 import { useState, useEffect, useRef } from 'react';
 
 // Internal dependencies
@@ -13,6 +15,7 @@ import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { BillingNoteInput } from '@/components/BillingNoteInput/BillingNoteInput';
+import { BatchBalance } from '@/components/BatchBalance';
 
 // Hooks
 import { calculateItemPrice, PriceRule, usePriceRules } from '@/hooks/usePriceRules';
@@ -21,6 +24,7 @@ import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
+
 
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
@@ -171,10 +175,20 @@ export function StockInvoicesPage() {
 
   const { rules } = usePriceRules();
   const [totalAmount, setTotalAmount] = useState<number>(0);
-  const itemPrices = useRef<Map<number, number>>(new Map());
-
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const currentOrder = orders.find(o => o.id === selectedOrderId);
+  const itemPrices = useRef<Map<number, number>>(new Map());
+
+  const calculateTotal = async () => {
+    if (!currentOrder) return;
+
+    const itemsTotal = Array.from(itemPrices.current.values()).reduce((sum, p) => sum + p, 0);
+    const encodedId = encodeFirestoreId(currentOrder.id);
+    const balanceDoc = await getDoc(doc(db, 'BillingNotesBatch', encodedId));
+    const balance = balanceDoc.exists() ? (balanceDoc.data().balance || 0) : 0;
+
+    setTotalAmount(itemsTotal + balance);
+  };
 
   if (isLoading) {
     return (
@@ -244,10 +258,20 @@ export function StockInvoicesPage() {
                 <Stack gap="md">
                   <Group justify="space-between" align="center">
                     <Text fw={500} size="lg">{currentOrder.name}</Text>
-                    <Group>
-                      <Text fw={700}>
-                        Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
-                      </Text>
+                    <Group gap="xl">
+                      <BatchBalance orderId={currentOrder.id} />
+                      <Group>
+                        <Button
+                          variant="light"
+                          leftSection={<IconCalculator size={16} />}
+                          onClick={calculateTotal}
+                        >
+                          Calculer le total
+                        </Button>
+                        <Text fw={700}>
+                          Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
+                        </Text>
+                      </Group>
                     </Group>
                     <BillingNoteInput orderId={currentOrder.id} />
                   </Group>
@@ -272,8 +296,6 @@ export function StockInvoicesPage() {
                           rules={rules}
                           onPriceCalculated={(price) => {
                             itemPrices.current.set(index, price);
-                            const newTotal = Array.from(itemPrices.current.values()).reduce((sum, p) => sum + p, 0);
-                            setTotalAmount(newTotal);
                           }}
                         />
                       ))}
