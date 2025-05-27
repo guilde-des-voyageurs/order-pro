@@ -1,9 +1,9 @@
 'use client';
 
 // External dependencies
-import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select } from '@mantine/core';
-import { IconMessage, IconAlertTriangle } from '@tabler/icons-react';
-import { useState } from 'react';
+import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select, Button } from '@mantine/core';
+import { IconMessage, IconAlertTriangle, IconCalculator } from '@tabler/icons-react';
+import { useState, useEffect, useRef } from 'react';
 
 // Internal dependencies
 import { useStockInvoicesPresenter } from './StockInvoicesPage.presenter';
@@ -65,7 +65,7 @@ function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[number]) 
   return parts.join(' - ');
 }
 
-function LineItemRow({ item, index, orderId, rules }: LineItemRowProps) {
+function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineItemRowProps & { onPriceCalculated: (price: number) => void }) {
   const [color, size] = (item.variantTitle || '').split(' / ');
   const checkedCount = useCheckedVariants({
     orderId: orderId,
@@ -83,6 +83,11 @@ function LineItemRow({ item, index, orderId, rules }: LineItemRowProps) {
 
   const price = calculateItemPrice(formatItemString(item), rules);
   const total = checkedCount > 0 ? `${price.toFixed(2)}€ × ${checkedCount} = ${(price * checkedCount).toFixed(2)}€` : '-';
+
+  // Notifier le parent du prix calculé quand le nombre d'éléments cochés change
+  useEffect(() => {
+    onPriceCalculated(price * checkedCount);
+  }, [checkedCount, price, onPriceCalculated]);
 
   // Séparer l'affichage du calcul
   const displayString = (() => {
@@ -165,7 +170,8 @@ export function StockInvoicesPage() {
   } = useStockInvoicesPresenter();
 
   const { rules } = usePriceRules();
-  const checkedCountsMap = new Map<string, number>();
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  const itemPrices = useRef<Map<number, number>>(new Map());
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const currentOrder = orders.find(o => o.id === selectedOrderId);
@@ -236,8 +242,13 @@ export function StockInvoicesPage() {
             {currentOrder && (
               <Paper withBorder p="md">
                 <Stack gap="md">
-                  <Group justify="space-between">
+                  <Group justify="space-between" align="center">
                     <Text fw={500} size="lg">{currentOrder.name}</Text>
+                    <Group>
+                      <Text fw={700}>
+                        Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
+                      </Text>
+                    </Group>
                     <BillingNoteInput orderId={currentOrder.id} />
                   </Group>
 
@@ -259,10 +270,26 @@ export function StockInvoicesPage() {
                           index={index}
                           orderId={currentOrder.id}
                           rules={rules}
+                          onPriceCalculated={(price) => {
+                            itemPrices.current.set(index, price);
+                            const newTotal = Array.from(itemPrices.current.values()).reduce((sum, p) => sum + p, 0);
+                            setTotalAmount(newTotal);
+                          }}
                         />
                       ))}
                     </Table.Tbody>
+                  <Table.Tfoot>
+                    <Table.Tr>
+                      <Table.Td colSpan={4} style={{ textAlign: 'right' }}>
+                        <Text fw={700}>Total :</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text fw={700}>{totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  </Table.Tfoot>
                   </Table>
+
                 </Stack>
               </Paper>
             )}
