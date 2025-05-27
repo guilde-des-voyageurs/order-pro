@@ -23,9 +23,16 @@ import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { generateVariantId } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { db } from '@/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { ShopifyOrder } from '@/types/shopify';
+
+interface ExtendedShopifyOrder extends ShopifyOrder {
+  fulfillmentStatus?: string;
+}
+import { fr } from 'date-fns/locale';
+import { format } from 'date-fns';
+import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 
 interface GroupedVariant {
   sku: string;
@@ -46,12 +53,42 @@ export default function TextileBatchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
+  const [selectedOrder, setSelectedOrder] = useState<ExtendedShopifyOrder | undefined>(undefined);
   const [drawerOpened, setDrawerOpened] = useState(false);
+  const [batchOrders, setBatchOrders] = useState<ExtendedShopifyOrder[]>([]);
 
   useEffect(() => {
     loadVariants();
+    loadBatchOrders();
   }, []);
+
+  const loadBatchOrders = async () => {
+    try {
+      const ordersQuery = query(
+        collection(db, 'orders-v2'),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+        const filteredOrders = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as ExtendedShopifyOrder))
+          .filter(order => 
+            // Filtrer les commandes remboursées
+            order.displayFinancialStatus !== 'REFUNDED' &&
+            // Ne garder que les commandes batch
+            order.tags?.some(tag => tag.toLowerCase().includes('batch')) &&
+            // Ne garder que les commandes en cours
+            !order.fulfillmentStatus
+          );
+        
+        setBatchOrders(filteredOrders);
+      });
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Erreur lors du chargement des commandes batch:', err);
+    }
+  };
 
   const loadVariants = async () => {
     try {
@@ -179,17 +216,66 @@ export default function TextileBatchPage() {
     );
   }
 
-  return (
-    <>
-      <div className={styles.pageContainer}>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <Stack align="center" mt="xl">
+          <Loader />
+          <Text>Chargement des variantes...</Text>
+        </Stack>
+      );
+    }
+
+    if (error) {
+      return (
+        <Alert icon={<IconAlertTriangle size={16} />} title="Erreur" color="red">
+          {error}
+        </Alert>
+      );
+    }
+
+    // Convertir la Map en tableau et trier par SKU
+    const variants = Array.from(variantsBySku.entries())
+      .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
+      .flatMap(([_, groups]) => groups);
+
+    if (variants.length === 0) {
+      return (
+        <Alert icon={<IconMessage size={16} />} title="Aucune variante" color="gray">
+          Aucune variante trouvée dans les commandes batch.
+        </Alert>
+      );
+    }
+
+    return (
+      <Stack gap="xl">
+        {batchOrders.length > 0 && (
+        <Paper withBorder p="md" mb="xl">
+          <Title order={3} mb="md">Commandes Batch en cours</Title>
+          <List>
+            {batchOrders.map(order => (
+              <List.Item key={order.id}>
+                <Group gap="xs">
+                  <Text fw={500}>{order.name}</Text>
+                  <Text c="dimmed">({format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })})</Text>
+                  <TextileProgress orderId={encodeFirestoreId(order.id)} />
+                  {order.tags?.map(tag => (
+                    <Badge key={tag} size="sm">{tag}</Badge>
+                  ))}
+                </Group>
+              </List.Item>
+            ))}
+          </List>
+        </Paper>
+      )}
         <Stack gap="lg">
           <Title order={2}>Textile Batch</Title>
         
-          {loading && (
-            <Group justify="center">
-              <Loader />
-            </Group>
-          )}
+        {loading && (
+          <Group justify="center">
+            <Loader />
+          </Group>
+        )}
 
           {error && (
             <Alert icon={<IconAlertTriangle size={16} />} title="Erreur" color="red">
@@ -296,8 +382,13 @@ export default function TextileBatchPage() {
             </Stack>
           )}
         </Stack>
-      </div>
+      </Stack>
+    );
+  };
 
+  return (
+    <div className={styles.container}>
+      {renderContent()}
       <OrderDrawer
         opened={drawerOpened}
         onClose={() => {
@@ -307,6 +398,6 @@ export default function TextileBatchPage() {
         }}
         order={selectedOrder}
       />
-    </>
+    </div>
   );
 }
