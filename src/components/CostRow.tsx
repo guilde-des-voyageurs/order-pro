@@ -7,33 +7,31 @@ import { doc, getFirestore, getDoc } from 'firebase/firestore';
 
 interface CostRowProps {
   orderId: string;
-  item: {
-    sku?: string;
-    variantTitle?: string;
-    quantity: number;
-    variant?: {
-      metafields?: Array<{
-        namespace: string;
-        key: string;
-        value: string;
-      }>;
-    };
-  };
-  index: number;
+  sku: string;
+  quantity: number;
+  productIndex: number;
   rules: PriceRule[];
+  variantTitle?: string;
+  variant?: {
+    metafields?: Array<{
+      namespace: string;
+      key: string;
+      value: string;
+    }>;
+  };
 }
 
-export function CostRow({ orderId, item, index, rules }: CostRowProps) {
-  if (!item.sku) return null;
-  const [color, size] = (item.variantTitle || '').split(' / ');
+export function CostRow({ orderId, sku, quantity, productIndex, rules, variantTitle, variant }: CostRowProps) {
+  const [color, size] = (variantTitle || '').split(' / ');
+  
   const checkedCount = useCheckedVariants({
     orderId,
-    sku: item.sku,
+    sku,
     color: color || '',
     size: size || '',
-    quantity: item.quantity,
-    productIndex: index,
-    lineItems: [item]
+    quantity,
+    productIndex,
+    lineItems: [{ sku, quantity, variantTitle, variant }]
   });
 
   // Ne pas afficher si aucune variante n'est cochée
@@ -43,15 +41,17 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   let totalPrice = 0;
 
   // SKU + Couleur
-  if (item.sku && item.variantTitle) {
-    const baseItemString = `${item.sku} - ${color}`;
+  if (sku && variantTitle) {
+    const baseItemString = `${sku} - ${color}`;
     const basePrice = calculateItemPrice(baseItemString, rules);
     totalPrice += basePrice;
-    parts.push(`${item.sku} - ${color} (${basePrice.toFixed(2)}€)`);
+    parts.push(`${sku} - ${color} (${basePrice.toFixed(2)}€)`);
   }
 
   // Fichier d'impression
-  const printFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression');
+  const printFile = variant?.metafields?.find((m: { namespace: string; key: string; value: string; }) => 
+    m.namespace === 'custom' && m.key === 'fichier_d_impression'
+  );
   if (printFile) {
     const printPrice = rules.find(r => r.searchString.toLowerCase() === printFile.value.toLowerCase())?.price || 0;
     totalPrice += printPrice;
@@ -59,7 +59,9 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   }
 
   // Verso impression
-  const versoFile = item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression');
+  const versoFile = variant?.metafields?.find((m: { namespace: string; key: string; value: string; }) => 
+    m.namespace === 'custom' && m.key === 'verso_impression'
+  );
   if (versoFile) {
     const versoPrice = rules.find(r => r.searchString.toLowerCase() === versoFile.value.toLowerCase())?.price || 0;
     totalPrice += versoPrice;

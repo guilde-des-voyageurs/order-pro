@@ -14,6 +14,13 @@ interface UseCheckedVariantsProps {
     sku?: string;
     variantTitle?: string;
     quantity: number;
+    variant?: {
+      metafields?: Array<{
+        namespace: string;
+        key: string;
+        value: string;
+      }>;
+    };
   }>;
 }
 
