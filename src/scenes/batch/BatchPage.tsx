@@ -212,7 +212,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase();
-                            const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
+                            const path = `/Utilisateurs/Mac/Desktop/NAS Runes de Chene/PRODUCTION/MOTIFS/${cleanTitle}`;
 
                             clipboard.copy(path);
                           }}
@@ -256,7 +256,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                               .replace(/^(.+?)\s*\|.*$/, '$1')
                               .trim()
                               .toUpperCase();
-                            const path = `\\\\EGIDE\\Atelier Textile\\PRODUCTION\\MOTIFS\\${cleanTitle}`;
+                              const path = `/Utilisateurs/Mac/Desktop/NAS Runes de Chene/PRODUCTION/MOTIFS/${cleanTitle}`;
 
                             clipboard.copy(path);
                           }}
