@@ -245,15 +245,31 @@ export default function TextileBatchPage() {
                           <Table.Td>{group.totalQuantity} × {group.sku} - {group.size} - {transformColor(group.color)}</Table.Td>
                           <Table.Td>
                             <div className={styles.orderNumbers}>
-                              {group.variants.map(({ variant }) => (
-                                <Text 
-                                  key={variant.orderNumber}
-                                  className={styles.orderNumber}
-                                  onClick={() => viewOrder(variant.orderId)}
-                                >
-                                  #{variant.orderNumber}
-                                </Text>
-                              ))}
+                              {/* Récupérer tous les tags uniques de toutes les variantes du groupe */}
+                              {(() => {
+                                const uniqueTags = new Set<string>();
+                                group.variants.forEach(({ variant }) => {
+                                  variant.tags.forEach(tag => uniqueTags.add(tag));
+                                });
+                                return (
+                                  <Group gap="xs">
+                                    {Array.from(uniqueTags).map((tag) => (
+                                      <Badge
+                                        key={tag}
+                                        variant="light"
+                                        size="sm"
+                                        color="gray"
+                                        className={styles.orderNumber}
+                                        onClick={() => viewOrder(group.variants[0].variant.orderId)}
+                                        style={{ cursor: 'pointer' }}
+                                      >
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </Group>
+                                );
+                              })()
+                              }
                             </div>
                           </Table.Td>
                         </Table.Tr>

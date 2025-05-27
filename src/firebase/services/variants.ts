@@ -34,6 +34,7 @@ export interface Variant {
   unitCost?: number;
   totalOrders: number;
   totalQuantity: number;
+  tags: string[];  // Tags de la commande d'origine
 }
 
 interface VariantsService {
@@ -101,7 +102,8 @@ export const variantsService: VariantsService = {
             productIndex: index,  // Index du produit dans la commande d'origine
             unitCost: item.unitCost,
             totalOrders: 1,
-            totalQuantity: item.quantity
+            totalQuantity: item.quantity,
+            tags: order.tags || []
           });
         }
       });
@@ -169,7 +171,8 @@ export const variantsService: VariantsService = {
             productIndex: index,  // Index du produit dans la commande d'origine
             unitCost: item.unitCost,
             totalOrders: 1,
-            totalQuantity: item.quantity
+            totalQuantity: item.quantity,
+            tags: order.tags || []
           });
         }
       });
