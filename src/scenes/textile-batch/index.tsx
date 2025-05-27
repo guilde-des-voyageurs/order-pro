@@ -33,6 +33,8 @@ interface ExtendedShopifyOrder extends ShopifyOrder {
 import { fr } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
+import { compareSizes } from '@/utils/size-helpers';
+import { TextileBatchNote } from '@/components/TextileBatchNote';
 
 interface GroupedVariant {
   sku: string;
@@ -98,7 +100,8 @@ export default function TextileBatchPage() {
       // Grouper les variantes par SKU
       const groupedVariants = new Map<string, GroupedVariant[]>();
       
-      data.forEach((variant) => {
+      // D'abord grouper les variantes
+      data.forEach(variant => {
         const sku = variant.sku || 'Sans SKU';
         if (!groupedVariants.has(sku)) {
           groupedVariants.set(sku, []);
@@ -160,6 +163,19 @@ export default function TextileBatchPage() {
             totalQuantity: variant.totalQuantity
           });
         }
+      });
+      
+      // Trier les groupes par couleur puis par taille
+      groupedVariants.forEach((groups, sku) => {
+        const sortedGroups = groups.sort((a, b) => {
+          // D'abord trier par couleur
+          const colorCompare = a.color.localeCompare(b.color);
+          if (colorCompare !== 0) return colorCompare;
+          
+          // Ensuite trier par taille selon l'ordre défini
+          return compareSizes(a.size, b.size);
+        });
+        groupedVariants.set(sku, sortedGroups);
       });
       
       setVariantsBySku(groupedVariants);
@@ -270,6 +286,7 @@ export default function TextileBatchPage() {
       )}
         <Stack gap="lg">
           <Title order={2}>Textile Batch</Title>
+          <TextileBatchNote />
         
         {loading && (
           <Group justify="center">
@@ -300,8 +317,8 @@ export default function TextileBatchPage() {
                     const colorCompare = a.color.localeCompare(b.color);
                     if (colorCompare !== 0) return colorCompare;
                     
-                    // Ensuite par taille
-                    return a.size.localeCompare(b.size);
+                    // Ensuite par taille selon l'ordre défini
+                    return compareSizes(a.size, b.size);
                   });
 
                   return (

@@ -24,6 +24,7 @@ import { generateVariantId } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { db } from '@/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
+import { compareSizes } from '@/utils/size-helpers';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
 import { ShopifyOrder } from '@/types/shopify';
 
@@ -169,8 +170,8 @@ export default function TextilePage() {
       const colorCompare = a.color.localeCompare(b.color);
       if (colorCompare !== 0) return colorCompare;
       
-      // Ensuite par taille
-      return a.size.localeCompare(b.size);
+      // Ensuite par taille selon l'ordre défini
+      return compareSizes(a.size, b.size);
     });
 
     return (
