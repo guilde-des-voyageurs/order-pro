@@ -1,30 +1,25 @@
 'use client';
 
 // External dependencies
-import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Checkbox, Alert, ActionIcon, Tooltip, Box } from '@mantine/core';
-import { clsx } from 'clsx';
-import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
+import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select } from '@mantine/core';
+import { IconMessage, IconAlertTriangle } from '@tabler/icons-react';
 import { useState } from 'react';
 
 // Internal dependencies
 import { useStockInvoicesPresenter } from './StockInvoicesPage.presenter';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
-import { InvoiceCheckbox, useInvoiceStatus } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
+import { useInvoiceStatus } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
-
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { BillingNoteInput } from '@/components/BillingNoteInput/BillingNoteInput';
 
 // Hooks
-import { useCheckedVariants } from '@/hooks/useCheckedVariants';
-import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
-import { useBillingNotes } from '@/hooks/useBillingNotes';
+import { calculateItemPrice, PriceRule } from '@/hooks/usePriceRules';
 
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { transformColor, colorMappings } from '@/utils/color-transformer';
-import { generateVariantId, getDefaultSku, calculateGlobalVariantIndex } from '@/utils/variant-helpers';
+import { generateVariantId } from '@/utils/variant-helpers';
 
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
@@ -32,371 +27,172 @@ import type { ShopifyOrder } from '@/types/shopify';
 // Styles
 import styles from './StockInvoicesPage.module.scss';
 
-function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[0]) {
-  // SKU
-  const sku = item.sku || '';
-
-  // Transformer la couleur et la taille
-  const [color, size] = (item.variantTitle || '').split(' / ');
-  const cleanedColor = color?.replace(/\s*\([^)]*\)\s*/g, '').trim() || '';
-  const normalizedColor = cleanedColor.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  const foundColor = Object.entries(colorMappings).find(([key]) => 
-    key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
-  );
-  const transformedColor = foundColor ? foundColor[1].internalName : cleanedColor;
-
-  // Fichier d'impression
-  const printFile = item.variant?.metafields?.find(
-    m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
-  )?.value || '';
-
-  // Verso impression
-  const versoFile = item.variant?.metafields?.find(
-    m => m.namespace === 'custom' && m.key === 'verso_impression'
-  )?.value || '';
-
-  // Construire la chaîne finale
-  const parts = [sku, transformedColor, size, printFile, versoFile].filter(Boolean);
-  return parts.join(' - ');
-}
-
-
-interface OrderRowProps {
+interface OrderOptionType {
+  value: string;
+  label: string;
   order: ShopifyOrder;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
 }
 
-function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
-  const { rules } = usePriceRules();
-  const { isInvoiced } = useInvoiceStatus(order.id);
-  
-  return (
-    <Paper className={clsx(styles.orderRow, { [styles.invoiced]: isInvoiced })} withBorder>
-      <Stack gap="md">
-        <div className={styles.orderInfo}>
-          <div className={styles.orderHeader}>
-            <div className={styles.orderTitle}>
-              <Text fw={500}>{order.name}</Text>
-              <Group gap="xs">
-                {order.tags.map((tag) => (
-                  <Badge key={tag} size="sm" variant="light" color="gray">{tag}</Badge>
-                ))}
-              </Group>
-              {order.tags.some(tag => tag.toLowerCase().includes('batch')) && (
-                <Box mt="xs">
-                  <BillingNoteInput orderId={order.id} />
-                </Box>
-              )}
-            </div>
-            <div className={styles.orderWaiting}>
-              <DaysElapsed 
-                createdAt={order.createdAt} 
-                isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
-              />
-              <TextileProgress orderId={encodeFirestoreId(order.id)} />
-            </div>
-          </div>
-
-          <div className={styles.orderDetails}>
-            <Group gap="lg" align="center">
-              <InvoiceCheckbox 
-                orderId={encodeFirestoreId(order.id)} 
-                readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
-              />
-              {(() => {
-                const { deliveryCost } = useBillingNotes(order.id);
-                const itemsTotal = order.lineItems?.reduce((acc, item, itemIndex) => {
-                  if (item.isCancelled) return acc;
-                  const price = calculateItemPrice(formatItemString(item), rules);
-                  const checkedCount = useCheckedVariants({
-                    orderId: order.id,
-                    sku: item.sku || '',
-                    color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
-                    size: item.variantTitle?.split(' / ')[1] || '',
-                    productIndex: itemIndex,
-                    quantity: item.quantity,
-                    lineItems: order.lineItems?.map(item => ({
-                      sku: item.sku || undefined,
-                      variantTitle: item.variantTitle || undefined,
-                      quantity: item.quantity
-                    })) || []
-                  });
-                  return acc + (price * checkedCount);
-                }, 0);
-                const total = Number(itemsTotal) + Number(deliveryCost || 0);
-                if (!total || total <= 0) return null;
-                return (
-                  <Text fw={500} size="lg">
-                    Total HT : {total.toFixed(2)}€ {deliveryCost ? `(dont ${deliveryCost}€ de frais de port)` : ''}
-                  </Text>
-                );
-              })()} 
-            </Group>
-          </div>
-        </div>
-
-        <div className={styles.orderItems}>
-          <div className={styles.productList}>
-            {order.lineItems?.map((item, itemIndex) => (
-                <Paper 
-                  key={item.id} 
-                  className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
-                  withBorder
-                  p="md"
-                >
-                  <div className={styles.productContent}>
-                    <div className={styles.productInfo}>
-                      <Text fw={500}>{item.title}</Text>
-                      <Group gap="xs" className={styles.productMetadata}>
-                        {item.sku && (
-                          <Text size="sm" c="dimmed">{item.sku}</Text>
-                        )}
-                        {item.variantTitle && (
-                          <Text size="sm" c="dimmed">
-                            {item.variantTitle.split(' / ').map((variant) => {
-                              const cleanedVariant = variant.replace(/\s*\([^)]*\)\s*/g, '').trim();
-                              const normalizedColor = cleanedVariant.toLowerCase()
-                                .normalize('NFD')
-                                .replace(/[\u0300-\u036f]/g, '');
-                              const foundColor = Object.entries(colorMappings).find(([key]) => 
-                                key.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalizedColor
-                              );
-                              return foundColor ? foundColor[1].internalName : variant;
-                            }).join(' / ')}
-                          </Text>
-                        )}
-                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                          <Badge
-                            variant="light"
-                            color="gray"
-                            radius="xl"
-                            size="lg"
-                            styles={{
-                              root: {
-                                fontWeight: 400,
-                                color: 'var(--mantine-color-dark-6)'
-                              }
-                            }}
-                          >
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                          </Badge>
-                        )}
-                        {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
-                          <Badge
-                            variant="light"
-                            color="gray"
-                            radius="xl"
-                            size="lg"
-                            styles={{
-                              root: {
-                                fontWeight: 400,
-                                color: 'var(--mantine-color-dark-6)'
-                              }
-                            }}
-                          >
-                            {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
-                          </Badge>
-                        )}
-                      </Group>
-                      {item.isCancelled && (
-                        <Group gap="xs" className={styles.productActions}>
-                          <Badge color="red">Annulé</Badge>
-                        </Group>
-                      )}
-
-                      {(() => {
-                        const checkedCount = useCheckedVariants({
-                          orderId: encodeFirestoreId(order.id),
-                          sku: item.sku || '',
-                          color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
-                          size: item.variantTitle?.split(' / ')[1] || '',
-                          productIndex: itemIndex,
-                          quantity: item.quantity,
-                          lineItems: order.lineItems?.map(item => ({
-                            sku: item.sku || undefined,
-                            variantTitle: item.variantTitle || undefined,
-                            quantity: item.quantity
-                          })) || []
-                        });
-
-                        return (
-                          <Group align="center">
-                            <div className={styles.variantCheckboxes}>
-                              {Array.from({ length: item.quantity }).map((_, quantityIndex) => {
-                                const variantId = generateVariantId(
-                                  encodeFirestoreId(order.id),
-                                  item.sku || '',
-                                  item.variantTitle?.split(' / ')[0] || '',
-                                  item.variantTitle?.split(' / ')[1] || '',
-                                  itemIndex,
-                                  quantityIndex
-                                );
-                                return (
-                                  <VariantCheckbox
-                                    key={variantId}
-                                    orderId={encodeFirestoreId(order.id)}
-                                    sku={item.sku || ''}
-                                    color={item.variantTitle?.split(' / ')[0] || ''}
-                                    size={item.variantTitle?.split(' / ')[1] || ''}
-                                    quantity={1}
-                                    productIndex={itemIndex}
-                                    quantityIndex={quantityIndex}
-                                    disabled={true}
-                                    variantId={variantId}
-                                  />
-                                );
-                              })}
-                            </div>
-                            <Badge variant="outline">
-                              {checkedCount}/{item.quantity}
-                            </Badge>
-                          </Group>
-                        );
-                      })()}
-                      <Group gap="xs" mt="xs">
-                        <Text size="sm" c="dimmed">
-                          {formatItemString(item)}
-                        </Text>
-                        <Group gap={4}>
-                          {(() => {
-                            const price = Number(calculateItemPrice(formatItemString(item), rules));
-                            const checkedCount = useCheckedVariants({
-                              orderId: encodeFirestoreId(order.id),
-                              sku: item.sku || '',
-                              color: transformColor(item.variantTitle?.split(' / ')[0] || ''),
-                              size: item.variantTitle?.split(' / ')[1] || '',
-                              productIndex: itemIndex,
-                              quantity: item.quantity,
-                              lineItems: order.lineItems?.map(item => ({
-                                sku: item.sku || undefined,
-                                variantTitle: item.variantTitle || undefined,
-                                quantity: item.quantity
-                              })) || []
-                            });
-                            if (!checkedCount) return null;
-                            return (
-                              <Group gap={4}>
-                                <Text size="sm" fw={500}>
-                                  {price.toFixed(2)}€
-                                </Text>
-                                <Text size="sm" c="dimmed">
-                                  x {checkedCount}
-                                </Text>
-                                <Text size="sm" fw={500}>
-                                  {(price * checkedCount).toFixed(2)}€
-                                </Text>
-                              </Group>
-                            );
-                          })()} 
-                        </Group>
-                      </Group>
-                    </div>
-                  </div>
-
-                </Paper>
-            ))}
-          </div>
-        </div>
-      </Stack>
-    </Paper>
-  );
-}
-
-function OrdersSection({ 
-  title, 
-  orders, 
-  selectedOrder, 
-  onSelect, 
-  type,
-  isReversed,
-  toggleOrder 
-}: { 
-  title: string;
-  orders: ShopifyOrder[];
-  selectedOrder: ShopifyOrder | undefined;
-  onSelect: (id: string) => void;
-  type: string;
-  isReversed: boolean;
-  toggleOrder: () => void;
-}) {
-  return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Title order={2}>{title}</Title>
-        <Tooltip label={isReversed ? 'Plus récentes d\'abord' : 'Plus anciennes d\'abord'}>
-          <ActionIcon 
-            variant="subtle" 
-            onClick={toggleOrder}
-            aria-label="Inverser l'ordre"
-          >
-            <IconArrowsSort />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-      <div className={styles.ordersGrid}>
-        {orders.map(order => (
-          <OrderRow
-            key={order.id}
-            order={order}
-            isSelected={selectedOrder?.id === order.id}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
-    </Stack>
-  );
+// Helpers
+function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[number]) {
+  const sku = item.sku || '';
+  const [color, size] = (item.variantTitle || '').split(' / ');
+  return `${sku} - ${color || ''} - ${size || ''}`;
 }
 
 export function StockInvoicesPage() {
   const { 
-    pendingOrders,
-    orderStats,
-    isReversed,
-    toggleOrder,
-    selectedOrder,
-    isDrawerOpen,
     isLoading,
+    pendingOrders: orders,
+    selectedOrder,
     onSelectOrder,
-    onCloseDrawer
+    onCloseDrawer,
+    isDrawerOpen,
+    orderStats
   } = useStockInvoicesPresenter();
+
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const currentOrder = orders.find(o => o.id === selectedOrderId);
 
   if (isLoading) {
     return (
-      <Group justify="center" p="xl">
+      <div className={styles.loading}>
         <Loader />
-      </Group>
+      </div>
     );
   }
 
-  return (
-    <div className={styles.main_content}>
-      <Group justify="space-between" align="center">
-        <Title order={1}>Facturation Stock</Title>
-        <Group gap="xs">
-          <Badge size="lg" variant="light" color="red">
-            {orderStats.old} {'>'} 14j
-          </Badge>
-          <Badge size="lg" variant="light" color="orange">
-            {orderStats.medium} 7-14j
-          </Badge>
-          <Badge size="lg" variant="light" color="green">
-            {orderStats.recent} {'<'} 7j
-          </Badge>
-        </Group>
-      </Group>
+  const orderOptions: OrderOptionType[] = orders.map(order => ({
+    value: order.id,
+    label: order.name,
+    order: order
+  }));
 
-      <OrdersSection
-        title="Commandes en attente"
-        orders={pendingOrders}
-        selectedOrder={selectedOrder}
-        onSelect={onSelectOrder}
-        type="pending"
-        isReversed={isReversed}
-        toggleOrder={toggleOrder}
-      />
+  return (
+    <div className={styles.container}>
+      <Stack gap="xl">
+        <div className={styles.header}>
+          <Title order={2}>Facturation Stock</Title>
+          <Group gap="xs">
+            <Badge size="lg" variant="light" color="yellow">
+              <Group gap="xs">
+                <IconAlertTriangle size={16} />
+                {orderStats.old} commandes &gt; 14 jours
+              </Group>
+            </Badge>
+            <Badge size="lg" variant="light" color="orange">
+              <Group gap="xs">
+                <IconMessage size={16} />
+                {orderStats.medium} commandes &gt; 7 jours
+              </Group>
+            </Badge>
+          </Group>
+        </div>
+
+        <Paper p="md" withBorder>
+          <Stack gap="md">
+            <Select
+              label="Sélectionner une commande batch"
+              placeholder="Choisir une commande..."
+              data={orderOptions}
+              value={selectedOrderId}
+              onChange={setSelectedOrderId}
+              searchable
+              clearable
+              renderOption={(props) => {
+                const option = props.option as OrderOptionType;
+                const { isInvoiced } = useInvoiceStatus(option.order.id);
+                return (
+                  <Group justify="space-between" wrap="nowrap">
+                    <Group wrap="nowrap">
+                      <div>
+                        <Text size="sm" fw={500}>{option.order.name}</Text>
+                        <Group gap="xs">
+                          {option.order.tags?.map((tag) => (
+                            <Badge key={tag} size="xs" variant="light" color="gray">{tag}</Badge>
+                          ))}
+                        </Group>
+                      </div>
+                    </Group>
+                    <Group gap="sm" wrap="nowrap">
+                      {isInvoiced && (
+                        <Badge color="green" variant="light">Facturée</Badge>
+                      )}
+                      <DaysElapsed 
+                        createdAt={option.order.createdAt} 
+                        isFulfilled={option.order.displayFulfillmentStatus === 'FULFILLED'}
+                      />
+                      <TextileProgress 
+                        orderId={encodeFirestoreId(option.order.id)} 
+                      />
+                    </Group>
+                  </Group>
+                );
+              }}
+            />
+
+            {currentOrder && (
+              <Paper withBorder p="md">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={500} size="lg">{currentOrder.name}</Text>
+                    <BillingNoteInput orderId={currentOrder.id} />
+                  </Group>
+
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Article</Table.Th>
+                        <Table.Th>Quantité</Table.Th>
+                        <Table.Th>Prix</Table.Th>
+                        <Table.Th>Textile</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {currentOrder.lineItems?.map((item, index) => {
+                        const [color, size] = (item.variantTitle || '').split(' / ');
+                        return (
+                          <Table.Tr key={index}>
+                            <Table.Td>{formatItemString(item)}</Table.Td>
+                            <Table.Td>{item.quantity}</Table.Td>
+                            <Table.Td>
+                              {calculateItemPrice(formatItemString(item), [])}
+                            </Table.Td>
+                            <Table.Td>
+                              <Group gap="xs">
+                                {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+                                  <VariantCheckbox
+                                    key={quantityIndex}
+                                    orderId={currentOrder.id}
+                                    sku={item.sku || ''}
+                                    color={color || ''}
+                                    size={size || ''}
+                                    quantity={1}
+                                    productIndex={index}
+                                    quantityIndex={quantityIndex}
+                                    variantId={generateVariantId(
+                                      encodeFirestoreId(currentOrder.id),
+                                      item.sku || '',
+                                      color || '',
+                                      size || '',
+                                      index,
+                                      quantityIndex
+                                    )}
+                                  />
+                                ))}
+                              </Group>
+                            </Table.Td>
+                          </Table.Tr>
+                        );
+                      })}
+                    </Table.Tbody>
+                  </Table>
+                </Stack>
+              </Paper>
+            )}
+          </Stack>
+        </Paper>
+      </Stack>
 
       <OrderDrawer
         order={selectedOrder}
