@@ -32,7 +32,7 @@ query {
           currencyCode
         }
       }
-      lineItems(first: 50) {
+      lineItems(first: 250) {
         nodes {
           id
           title

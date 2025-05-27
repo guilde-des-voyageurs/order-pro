@@ -21,7 +21,7 @@ query ($orderId: ID!) {
                         id
                     }
                 }
-                lineItems (first: 50) {
+                lineItems (first: 250) {
                     nodes {
                         image {
                             url
