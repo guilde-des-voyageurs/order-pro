@@ -15,7 +15,8 @@ import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { BillingNoteInput } from '@/components/BillingNoteInput/BillingNoteInput';
 
 // Hooks
-import { calculateItemPrice, PriceRule } from '@/hooks/usePriceRules';
+import { calculateItemPrice, PriceRule, usePriceRules } from '@/hooks/usePriceRules';
+import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
@@ -23,6 +24,13 @@ import { generateVariantId } from '@/utils/variant-helpers';
 
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
+
+interface LineItemRowProps {
+  item: NonNullable<ShopifyOrder['lineItems']>[number];
+  index: number;
+  orderId: string;
+  rules: PriceRule[];
+}
 
 // Styles
 import styles from './StockInvoicesPage.module.scss';
@@ -35,9 +43,114 @@ interface OrderOptionType {
 
 // Helpers
 function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[number]) {
+  // SKU et couleur
   const sku = item.sku || '';
+  const [color] = (item.variantTitle || '').split(' / ');
+  
+  // Fichiers d'impression
+  const printFile = item.variant?.metafields?.find(
+    m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+  )?.value || '';
+  const versoFile = item.variant?.metafields?.find(
+    m => m.namespace === 'custom' && m.key === 'verso_impression'
+  )?.value || '';
+
+  // Construire la chaîne pour le calcul du prix
+  const parts = [
+    `${sku} - ${color || ''}`,
+    printFile,
+    versoFile
+  ].filter(Boolean);
+
+  return parts.join(' - ');
+}
+
+function LineItemRow({ item, index, orderId, rules }: LineItemRowProps) {
   const [color, size] = (item.variantTitle || '').split(' / ');
-  return `${sku} - ${color || ''} - ${size || ''}`;
+  const checkedCount = useCheckedVariants({
+    orderId: orderId,
+    sku: item.sku || '',
+    color: color || '',
+    size: size || '',
+    productIndex: index,
+    quantity: item.quantity,
+    lineItems: [{
+      sku: item.sku || undefined,
+      variantTitle: item.variantTitle || undefined,
+      quantity: item.quantity
+    }]
+  });
+
+  const price = calculateItemPrice(formatItemString(item), rules);
+  const total = checkedCount > 0 ? `${price.toFixed(2)}€ × ${checkedCount} = ${(price * checkedCount).toFixed(2)}€` : '-';
+
+  // Séparer l'affichage du calcul
+  const displayString = (() => {
+    const sku = item.sku || '';
+    const [color, size] = (item.variantTitle || '').split(' / ');
+    return `${sku} - ${color || ''} - ${size || ''}`;
+  })();
+
+  return (
+    <Table.Tr>
+      <Table.Td>
+        <Group gap="xs">
+          {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
+            <VariantCheckbox
+              key={quantityIndex}
+              orderId={orderId}
+              sku={item.sku || ''}
+              color={color || ''}
+              size={size || ''}
+              quantity={1}
+              productIndex={index}
+              quantityIndex={quantityIndex}
+              variantId={generateVariantId(
+                encodeFirestoreId(orderId),
+                item.sku || '',
+                color || '',
+                size || '',
+                index,
+                quantityIndex
+              )}
+            />
+          ))}
+        </Group>
+      </Table.Td>
+      <Table.Td>{displayString}</Table.Td>
+      <Table.Td>{item.quantity}</Table.Td>
+      <Table.Td>
+        <Stack gap={2}>
+          {(() => {
+            const appliedRules: PriceRule[] = [];
+            const itemString = formatItemString(item);
+
+            // Trouver les règles appliquées
+            rules.forEach(rule => {
+              if (rule.searchString && itemString.toLowerCase().includes(rule.searchString.toLowerCase())) {
+                appliedRules.push(rule);
+              }
+            });
+
+            return (
+              <>
+                <Text size="sm">{itemString}</Text>
+                {appliedRules.map((rule, i) => (
+                  <Text size="xs" c="dimmed" key={i}>
+                    + {rule.price.toFixed(2)}€ ({rule.searchString})
+                  </Text>
+                ))}
+                <Text fw={500}>
+                  = {price.toFixed(2)}€
+                </Text>
+              </>
+            );
+          })()}
+        </Stack>
+      </Table.Td>
+      <Table.Td>{total}</Table.Td>
+    </Table.Tr>
+  );
 }
 
 export function StockInvoicesPage() {
@@ -50,6 +163,9 @@ export function StockInvoicesPage() {
     isDrawerOpen,
     orderStats
   } = useStockInvoicesPresenter();
+
+  const { rules } = usePriceRules();
+  const checkedCountsMap = new Map<string, number>();
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const currentOrder = orders.find(o => o.id === selectedOrderId);
@@ -142,49 +258,23 @@ export function StockInvoicesPage() {
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
+                        <Table.Th>Textile</Table.Th>
                         <Table.Th>Article</Table.Th>
                         <Table.Th>Quantité</Table.Th>
                         <Table.Th>Prix</Table.Th>
-                        <Table.Th>Textile</Table.Th>
+                        <Table.Th>Calcul</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {currentOrder.lineItems?.map((item, index) => {
-                        const [color, size] = (item.variantTitle || '').split(' / ');
-                        return (
-                          <Table.Tr key={index}>
-                            <Table.Td>{formatItemString(item)}</Table.Td>
-                            <Table.Td>{item.quantity}</Table.Td>
-                            <Table.Td>
-                              {calculateItemPrice(formatItemString(item), [])}
-                            </Table.Td>
-                            <Table.Td>
-                              <Group gap="xs">
-                                {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
-                                  <VariantCheckbox
-                                    key={quantityIndex}
-                                    orderId={currentOrder.id}
-                                    sku={item.sku || ''}
-                                    color={color || ''}
-                                    size={size || ''}
-                                    quantity={1}
-                                    productIndex={index}
-                                    quantityIndex={quantityIndex}
-                                    variantId={generateVariantId(
-                                      encodeFirestoreId(currentOrder.id),
-                                      item.sku || '',
-                                      color || '',
-                                      size || '',
-                                      index,
-                                      quantityIndex
-                                    )}
-                                  />
-                                ))}
-                              </Group>
-                            </Table.Td>
-                          </Table.Tr>
-                        );
-                      })}
+                      {currentOrder.lineItems?.map((item, index) => (
+                        <LineItemRow
+                          key={index}
+                          item={item}
+                          index={index}
+                          orderId={currentOrder.id}
+                          rules={rules}
+                        />
+                      ))}
                     </Table.Tbody>
                   </Table>
                 </Stack>
