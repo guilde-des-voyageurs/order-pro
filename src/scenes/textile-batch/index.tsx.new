@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Table, 
   Loader, 
@@ -9,11 +9,8 @@ import {
   Title, 
   Group, 
   Paper, 
-  Image, 
   Alert, 
-  List, 
-  Badge, 
-  Button 
+  Badge
 } from '@mantine/core';
 import { IconAlertTriangle, IconMessage } from '@tabler/icons-react';
 import { transformColor } from '@/utils/color-transformer';
@@ -45,9 +42,9 @@ export default function TextileBatchPage() {
   const [variantsBySku, setVariantsBySku] = useState<Map<string, GroupedVariant[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
   const [drawerOpened, setDrawerOpened] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder>();
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     loadVariants();
@@ -55,7 +52,6 @@ export default function TextileBatchPage() {
 
   const loadVariants = async () => {
     try {
-      // Utiliser le service pour récupérer les variantes des commandes batch
       const data = await variantsService.getBatchVariants();
       
       // Grouper les variantes par SKU
@@ -87,14 +83,14 @@ export default function TextileBatchPage() {
             existingGroup.variants.push({ 
               variant, 
               encodedOrderId,
-              index: variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
+              index: variant.productIndex,
               variantId: generateVariantId(
                 encodedOrderId,
                 variant.sku,
                 color,
                 size,
                 variant.productIndex,
-                i // Utiliser i comme index de quantité
+                i
               )
             });
           }
@@ -110,14 +106,14 @@ export default function TextileBatchPage() {
             variants: Array.from({ length: variant.totalQuantity }, (_, i) => ({
               variant,
               encodedOrderId,
-              index: variant.productIndex,  // Utiliser l'index du produit dans la commande d'origine
+              index: variant.productIndex,
               variantId: generateVariantId(
                 encodedOrderId,
                 variant.sku,
                 color,
                 size,
                 variant.productIndex,
-                i // Utiliser i comme index de quantité
+                i
               )
             })),
             totalQuantity: variant.totalQuantity
@@ -166,19 +162,6 @@ export default function TextileBatchPage() {
     );
   }
 
-  // Convertir la Map en tableau et trier par SKU
-  const variants = Array.from(variantsBySku.entries())
-    .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
-    .flatMap(([_, groups]) => groups);
-
-  if (variants.length === 0) {
-    return (
-      <Alert icon={<IconMessage size={16} />} title="Aucune variante" color="gray">
-        Aucune variante trouvée dans les commandes batch.
-      </Alert>
-    );
-  }
-
   return (
     <>
       <div className={styles.pageContainer}>
@@ -205,94 +188,86 @@ export default function TextileBatchPage() {
 
           {!loading && !error && variantsBySku.size > 0 && (
             <Stack gap="xl">
-              {Array.from(variantsBySku.entries())
-                .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
-                .map(([sku, variants]) => {
-                  // Trier les variantes par couleur puis par taille
-                  const sortedVariants = [...variants].sort((a, b) => {
-                    // D'abord par couleur
-                    const colorCompare = a.color.localeCompare(b.color);
-                    if (colorCompare !== 0) return colorCompare;
-                    
-                    // Ensuite par taille
-                    return a.size.localeCompare(b.size);
-                  });
-
-                  return (
-                    <Stack key={sku} className={styles.section}>
-                      <Title order={3} className={styles.skuTitle}>
-                        {sku}
-                      </Title>
-                      <Paper withBorder className={styles.tableContainer}>
-                        <Table>
-                          <Table.Thead>
-                            <Table.Tr>
-                              <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
-                              <Table.Th style={{ width: '100%' }}>Nom</Table.Th>
-                              <Table.Th style={{ width: 150 }}>Commandes</Table.Th>
-                            </Table.Tr>
-                          </Table.Thead>
-                          <Table.Tbody>
-                            {sortedVariants.map((group) => (
-                              <Table.Tr 
-                                key={`${group.sku}-${group.color}-${group.size}`}
-                                className={styles.tableRow}
-                              >
-                                <Table.Td>
+              {Array.from(variantsBySku.entries()).map(([sku, variants]) => {
+                // Trier les variantes par couleur puis par taille
+                const sortedVariants = [...variants].sort((a, b) => {
+                  // D'abord par couleur
+                  const colorCompare = a.color.localeCompare(b.color);
+                  if (colorCompare !== 0) return colorCompare;
+                  
+                  // Ensuite par taille
+                  return a.size.localeCompare(b.size);
+                });
+                
+                return (
+                  <Stack key={sku} className={styles.section}>
+                    <Title order={3} className={styles.skuTitle}>
+                      {sku}
+                    </Title>
+                    <Paper withBorder className={styles.tableContainer}>
+                      <Table>
+                        <Table.Thead>
+                          <Table.Tr>
+                            <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
+                            <Table.Th style={{ width: '100%' }}>Nom</Table.Th>
+                            <Table.Th style={{ width: 150 }}>Commandes</Table.Th>
+                          </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                          {sortedVariants.map((group) => (
+                            <Table.Tr 
+                              key={`${group.sku}-${group.color}-${group.size}`}
+                              className={styles.tableRow}
+                            >
+                              <Table.Td>
+                                <Group gap="xs">
+                                  {group.variants.map(({ variant, encodedOrderId, index, variantId }) => (
+                                    <VariantCheckbox
+                                      key={`${variantId}`}
+                                      sku={variant.sku}
+                                      color={group.color}
+                                      size={group.size}
+                                      quantity={1}
+                                      orderId={encodedOrderId}
+                                      productIndex={variant.productIndex}
+                                      quantityIndex={index}
+                                      variantId={variantId}
+                                    />
+                                  ))}
+                                </Group>
+                              </Table.Td>
+                              <Table.Td>{group.totalQuantity} × {group.sku} - {group.size} - {transformColor(group.color)}</Table.Td>
+                              <Table.Td>
+                                <div className={styles.orderNumbers}>
                                   <Group gap="xs">
-                                    {group.variants.map(({ variant, encodedOrderId, index, variantId }) => (
-                                      <VariantCheckbox
-                                        key={`${variantId}`}
-                                        sku={variant.sku}
-                                        color={group.color}
-                                        size={group.size}
-                                        quantity={1}
-                                        orderId={encodedOrderId}
-                                        productIndex={variant.productIndex}
-                                        quantityIndex={index}
-                                        variantId={variantId}
-                                      />
+                                    {Array.from(
+                                      new Set(
+                                        group.variants.flatMap(({ variant }) => variant.tags)
+                                      )
+                                    ).map((tag) => (
+                                      <Badge
+                                        key={tag}
+                                        variant="light"
+                                        size="sm"
+                                        color="gray"
+                                        className={styles.orderNumber}
+                                        onClick={() => viewOrder(group.variants[0].variant.orderId)}
+                                        style={{ cursor: 'pointer' }}
+                                      >
+                                        {tag}
+                                      </Badge>
                                     ))}
                                   </Group>
-                                </Table.Td>
-                                <Table.Td>{group.totalQuantity} × {group.sku} - {transformColor(group.color)} - {group.size}</Table.Td>
-                                <Table.Td>
-                                  <div className={styles.orderNumbers}>
-                                    {/* Récupérer tous les tags uniques de toutes les variantes du groupe */}
-                                    {(() => {
-                                      const uniqueTags = new Set<string>();
-                                      group.variants.forEach(({ variant }) => {
-                                        variant.tags.forEach(tag => uniqueTags.add(tag));
-                                      });
-                                      return (
-                                        <Group gap="xs">
-                                          {Array.from(uniqueTags).map((tag) => (
-                                            <Badge
-                                              key={tag}
-                                              variant="light"
-                                              size="sm"
-                                              color="gray"
-                                              className={styles.orderNumber}
-                                              onClick={() => viewOrder(group.variants[0].variant.orderId)}
-                                              style={{ cursor: 'pointer' }}
-                                            >
-                                              {tag}
-                                            </Badge>
-                                          ))}
-                                        </Group>
-                                      );
-                                    })()
-                                    }
-                                  </div>
-                                </Table.Td>
-                              </Table.Tr>
-                            ))}
-                          </Table.Tbody>
-                        </Table>
-                      </Paper>
-                    </Stack>
-                  );
-                })}
+                                </div>
+                              </Table.Td>
+                            </Table.Tr>
+                          ))}
+                        </Table.Tbody>
+                      </Table>
+                    </Paper>
+                  </Stack>
+                );
+              })}
             </Stack>
           )}
         </Stack>

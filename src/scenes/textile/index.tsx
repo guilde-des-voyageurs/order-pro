@@ -162,9 +162,20 @@ export default function TextilePage() {
     setSelectedOrder(null);
   };
 
-  const renderVariantsTable = (variants: GroupedVariant[]) => (
-    <Paper withBorder className={styles.tableContainer}>
-      <Table>
+  const renderVariantsTable = (variants: GroupedVariant[]) => {
+    // Trier les variantes par couleur puis par taille
+    const sortedVariants = [...variants].sort((a, b) => {
+      // D'abord par couleur
+      const colorCompare = a.color.localeCompare(b.color);
+      if (colorCompare !== 0) return colorCompare;
+      
+      // Ensuite par taille
+      return a.size.localeCompare(b.size);
+    });
+
+    return (
+      <Paper withBorder className={styles.tableContainer}>
+        <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th style={{ width: 200 }}>Commandé</Table.Th>
@@ -173,7 +184,7 @@ export default function TextilePage() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {variants.map((group) => (
+          {sortedVariants.map((group) => (
             <Table.Tr 
               key={`${group.sku}-${group.color}-${group.size}`}
               className={styles.tableRow}
@@ -195,7 +206,7 @@ export default function TextilePage() {
                   ))}
                 </Group>
               </Table.Td>
-              <Table.Td>{group.totalQuantity} × {group.sku} - {group.size} - {transformColor(group.color)}</Table.Td>
+              <Table.Td>{group.totalQuantity} × {group.sku} - {transformColor(group.color)} - {group.size}</Table.Td>
               <Table.Td>
                 <div className={styles.orderNumbers}>
                   {group.variants.map(({ variant }) => (
@@ -217,7 +228,7 @@ export default function TextilePage() {
         </Table.Tbody>
       </Table>
     </Paper>
-  );
+  )};
 
   if (loading) {
     return (
@@ -242,7 +253,9 @@ export default function TextilePage() {
           Textile
         </Title>
         
-        {Array.from(variantsBySku.entries()).map(([sku, variants]) => (
+        {Array.from(variantsBySku.entries())
+          .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
+          .map(([sku, variants]) => (
           <Stack key={sku} className={styles.section}>
             <Title order={3} className={styles.skuTitle}>
               {sku}
