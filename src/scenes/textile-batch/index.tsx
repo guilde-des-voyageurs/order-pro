@@ -35,6 +35,7 @@ import { format } from 'date-fns';
 import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { compareSizes } from '@/utils/size-helpers';
 import { TextileBatchNote } from '@/components/TextileBatchNote';
+import { SkuGroupActions } from '@/components/SkuGroupCheckbox';
 
 interface GroupedVariant {
   sku: string;
@@ -323,9 +324,19 @@ export default function TextileBatchPage() {
 
                   return (
                     <Stack key={sku} className={styles.section}>
-                      <Title order={3} className={styles.skuTitle}>
-                        {sku}
-                      </Title>
+                      <Group align="center" justify="space-between">
+                        <Title order={3} className={styles.skuTitle}>
+                          {sku}
+                        </Title>
+                        <SkuGroupActions
+                          sku={sku}
+                          variants={variants.flatMap(group => group.variants.map(v => ({
+                            ...v,
+                            color: group.color,
+                            size: group.size
+                          })))}
+                        />
+                      </Group>
                       <Paper withBorder className={styles.tableContainer}>
                         <Table>
                           <Table.Thead>

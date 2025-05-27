@@ -7,6 +7,7 @@ import { ClientLayout } from '@/components/ClientLayout';
 import { AuthProvider } from '@/context/AuthContext';
 import '@mantine/core/styles.css';
 import '@mantine/nprogress/styles.css';
+import '@mantine/notifications/styles.css';
 import './globals.scss';
 
 const inter = Inter({
