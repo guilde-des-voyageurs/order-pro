@@ -179,6 +179,11 @@ export function StockInvoicesPage() {
   const currentOrder = orders.find(o => o.id === selectedOrderId);
   const itemPrices = useRef<Map<number, number>>(new Map());
 
+  // Réinitialiser itemPrices quand on change de commande
+  useEffect(() => {
+    itemPrices.current.clear();
+  }, [selectedOrderId]);
+
   // Écouter les changements de total
   useEffect(() => {
     if (!currentOrder) return;
@@ -196,7 +201,10 @@ export function StockInvoicesPage() {
   const calculateTotal = async () => {
     if (!currentOrder) return;
 
-    const itemsTotal = Array.from(itemPrices.current.values()).reduce((sum, p) => sum + p, 0);
+    // Ne calculer que pour la commande courante
+    const itemsTotal = currentOrder.lineItems
+      ?.map((_, index) => itemPrices.current.get(index) || 0)
+      .reduce((sum, p) => sum + p, 0) || 0;
     const encodedId = encodeFirestoreId(currentOrder.id);
     const balanceDoc = await getDoc(doc(db, 'BillingNotesBatch', encodedId));
     const balance = balanceDoc.exists() ? (balanceDoc.data().balance || 0) : 0;
