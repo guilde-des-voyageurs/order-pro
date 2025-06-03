@@ -220,7 +220,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                                       RECTO : {item.title
                                         .replace(/^(.+?)\s*\|.*$/, '$1')
                                         .trim()
-                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
+                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}
                                     </Text>
                                   </Badge>
                                 </Tooltip>
@@ -264,7 +264,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                                       VERSO : {item.title
                                         .replace(/^(.+?)\s*\|.*$/, '$1')
                                         .trim()
-                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
+                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}
                                     </Text>
                                   </Badge>
                                 </Tooltip>
