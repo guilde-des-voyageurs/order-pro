@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Paper, Button, TextInput, NumberInput, Group, Stack, Text, ActionIcon } from '@mantine/core';
-import { IconTrash } from '@tabler/icons-react';
-import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { Container, Title, Paper, Button, TextInput, NumberInput, Group, Stack, Text, ActionIcon, Modal } from '@mantine/core';
+import { IconTrash, IconEdit } from '@tabler/icons-react';
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { notifications } from '@mantine/notifications';
 
@@ -18,6 +18,8 @@ export function PriceRulesPage() {
   const [rules, setRules] = useState<PriceRule[]>([]);
   const [sortType, setSortType] = useState<SortType>('alphabetical');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingRule, setEditingRule] = useState<PriceRule | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newRule, setNewRule] = useState<PriceRule>({
     searchString: '',
     price: 0,
@@ -175,17 +177,84 @@ export function PriceRulesPage() {
                 <Text fw={500}>{rule.searchString}</Text>
                 <Text>{rule.price.toFixed(2)}€ HT</Text>
               </div>
-              <ActionIcon 
-                color="red" 
-                variant="subtle"
-                onClick={() => rule.id && handleDeleteRule(rule.id)}
-              >
-                <IconTrash size={16} />
-              </ActionIcon>
+              <Group gap="xs">
+                <ActionIcon
+                  color="blue"
+                  variant="subtle"
+                  onClick={() => {
+                    setEditingRule(rule);
+                    setIsEditModalOpen(true);
+                  }}
+                >
+                  <IconEdit size={16} />
+                </ActionIcon>
+                <ActionIcon 
+                  color="red" 
+                  variant="subtle"
+                  onClick={() => rule.id && handleDeleteRule(rule.id)}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Group>
             </Group>
           </Paper>
         ))}
       </Stack>
+      {/* Modal d'édition */}
+      <Modal
+        opened={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingRule(null);
+        }}
+        title="Modifier la règle"
+      >
+        {editingRule && (
+          <Stack>
+            <TextInput
+              label="Chaîne de recherche"
+              value={editingRule.searchString}
+              onChange={(e) => setEditingRule({ ...editingRule, searchString: e.target.value })}
+              required
+            />
+            <NumberInput
+              label="Prix HT (€)"
+              value={editingRule.price}
+              onChange={(value) => setEditingRule({ ...editingRule, price: typeof value === 'number' ? value : 0 })}
+              required
+              min={0}
+              decimalScale={2}
+            />
+            <Button
+              onClick={async () => {
+                if (editingRule.id) {
+                  try {
+                    await updateDoc(doc(db, 'price-rules', editingRule.id), {
+                      searchString: editingRule.searchString.trim(),
+                      price: editingRule.price
+                    });
+                    notifications.show({
+                      title: 'Succès',
+                      message: 'Règle de prix mise à jour',
+                      color: 'green'
+                    });
+                    setIsEditModalOpen(false);
+                    setEditingRule(null);
+                  } catch (error) {
+                    notifications.show({
+                      title: 'Erreur',
+                      message: 'Erreur lors de la mise à jour de la règle',
+                      color: 'red'
+                    });
+                  }
+                }
+              }}
+            >
+              Mettre à jour
+            </Button>
+          </Stack>
+        )}
+      </Modal>
     </Container>
   );
 }
