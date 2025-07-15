@@ -25,7 +25,6 @@ import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId } from '@/utils/variant-helpers';
 
-
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
 
@@ -188,6 +187,8 @@ export function StockInvoicesPage() {
   const activeItems = currentOrder?.lineItems?.filter(item => !item.isCancelled) || [];
   const itemPrices = useRef<Map<number, number>>(new Map());
 
+
+
   // Réinitialiser itemPrices quand on change de commande
   useEffect(() => {
     itemPrices.current.clear();
@@ -310,16 +311,22 @@ export function StockInvoicesPage() {
                             // Clé pour SKU + couleur
                             const skuColorKey = `${item.sku} - ${color}`;
                             if (!acc[skuColorKey]) {
-                              acc[skuColorKey] = 0;
+                              acc[skuColorKey] = {
+                                count: 0,
+                                price: calculateItemPrice(skuColorKey, rules)
+                              };
                             }
-                            acc[skuColorKey] += item.quantity;
+                            acc[skuColorKey].count += item.quantity;
 
                             // Clé pour type d'impression
                             if (typeImpression) {
                               if (!acc[typeImpression]) {
-                                acc[typeImpression] = 0;
+                                acc[typeImpression] = {
+                                  count: 0,
+                                  price: calculateItemPrice(typeImpression, rules)
+                                };
                               }
-                              acc[typeImpression] += item.quantity;
+                              acc[typeImpression].count += item.quantity;
                             }
 
                             // Clé pour fichier recto
@@ -328,9 +335,12 @@ export function StockInvoicesPage() {
                             )?.value;
                             if (fichierRecto) {
                               if (!acc[fichierRecto]) {
-                                acc[fichierRecto] = 0;
+                                acc[fichierRecto] = {
+                                  count: 0,
+                                  price: calculateItemPrice(fichierRecto, rules)
+                                };
                               }
-                              acc[fichierRecto] += item.quantity;
+                              acc[fichierRecto].count += item.quantity;
                             }
 
                             // Clé pour fichier verso
@@ -339,17 +349,25 @@ export function StockInvoicesPage() {
                             )?.value;
                             if (fichierVerso) {
                               if (!acc[fichierVerso]) {
-                                acc[fichierVerso] = 0;
+                                acc[fichierVerso] = {
+                                  count: 0,
+                                  price: calculateItemPrice(fichierVerso, rules)
+                                };
                               }
-                              acc[fichierVerso] += item.quantity;
+                              acc[fichierVerso].count += item.quantity;
                             }
 
                             return acc;
-                          }, {} as Record<string, number>);
+                          }, {} as Record<string, { count: number, price: number }>);
 
-                          return groups ? Object.entries(groups).map(([key, count], index) => (
+                          return groups ? Object.entries(groups).map(([key, data], index) => (
                             <Paper key={index} p="xs" withBorder>
-                              <Text>{key} ({count})</Text>
+                              <Group justify="space-between">
+                                <Text>{key} ({data.count})</Text>
+                                {data.price > 0 && (
+                                  <Text fw={500}>{(data.count * data.price).toFixed(2)}€</Text>
+                                )}
+                              </Group>
                             </Paper>
                           )) : null;
                         })()}
