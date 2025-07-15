@@ -17,6 +17,7 @@ type SortType = 'alphabetical' | 'recent';
 export function PriceRulesPage() {
   const [rules, setRules] = useState<PriceRule[]>([]);
   const [sortType, setSortType] = useState<SortType>('alphabetical');
+  const [searchQuery, setSearchQuery] = useState('');
   const [newRule, setNewRule] = useState<PriceRule>({
     searchString: '',
     price: 0,
@@ -106,6 +107,12 @@ export function PriceRulesPage() {
     <Container size="lg" py="xl">
       <Group justify="space-between" align="center" mb="xl">
         <Title order={2}>Règles de prix</Title>
+        <TextInput
+          placeholder="Rechercher une règle..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ width: '300px' }}
+        />
         <Button.Group>
           <Button
             variant={sortType === 'alphabetical' ? 'filled' : 'light'}
@@ -150,6 +157,7 @@ export function PriceRulesPage() {
       {/* Liste des règles */}
       <Stack>
         {[...rules]
+          .filter(rule => rule.searchString.toLowerCase().includes(searchQuery.toLowerCase()))
           .sort((a, b) => {
             if (sortType === 'alphabetical') {
               return a.searchString.localeCompare(b.searchString);
