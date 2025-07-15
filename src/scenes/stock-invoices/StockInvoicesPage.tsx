@@ -1,7 +1,7 @@
 'use client';
 
 // External dependencies
-import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select, Button } from '@mantine/core';
+import { Title, Text, Loader, Table, Group, Stack, Paper, Badge, Select, Button, Divider } from '@mantine/core';
 import { IconMessage, IconAlertTriangle, IconCalculator } from '@tabler/icons-react';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/db';
@@ -85,7 +85,7 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
   });
 
   const price = calculateItemPrice(formatItemString(item), rules);
-  const total = checkedCount > 0 ? `${price.toFixed(2)}€ × ${checkedCount} = ${(price * checkedCount).toFixed(2)}€` : '-';
+  const total = checkedCount > 0 ? `${price.toFixed(2)}€ HT × ${checkedCount} = ${(price * checkedCount).toFixed(2)}€ HT` : '-';
 
   // Notifier le parent du prix calculé quand le nombre d'éléments cochés change
   useEffect(() => {
@@ -153,11 +153,11 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
                 <Text size="sm">{itemString}</Text>
                 {appliedRules.map((rule, i) => (
                   <Text size="xs" c="dimmed" key={i}>
-                    + {rule.price.toFixed(2)}€ ({rule.searchString})
+                    + {rule.price.toFixed(2)}€ HT ({rule.searchString})
                   </Text>
                 ))}
                 <Text fw={500}>
-                  = {price.toFixed(2)}€
+                  = {price.toFixed(2)}€ HT
                 </Text>
               </>
             );
@@ -372,12 +372,12 @@ export function StockInvoicesPage() {
                                   <Group gap="xs">
                                     {appliedRules.map((rule, i) => (
                                       <Text key={i} size="sm" c="dimmed">
-                                        +{rule.price.toFixed(2)}€
+                                        +{rule.price.toFixed(2)}€ HT
                                       </Text>
                                     ))}
                                     {data.price > 0 && (
                                       <Text fw={500}>
-                                        = {data.price.toFixed(2)}€ × {data.count} = {(data.count * data.price).toFixed(2)}€
+                                        = {data.price.toFixed(2)}€ HT × {data.count} = {(data.count * data.price).toFixed(2)}€ HT
                                       </Text>
                                     )}
                                   </Group>
@@ -387,6 +387,17 @@ export function StockInvoicesPage() {
                           }) : null;
                       })()}
                     </Stack>
+                    
+                    {/* Total */}
+                    <Divider my="sm" />
+                    <Group justify="flex-end" gap="xl">
+                      <Group gap="xs">
+                        <Text fw={700} size="lg">Total général :</Text>
+                        <Text fw={700} size="lg" c="blue">
+                          {totalAmount > 0 ? `${totalAmount.toFixed(2)}€ HT` : '-'}
+                        </Text>
+                      </Group>
+                    </Group>
                   </Stack>
                 </Paper>
 
@@ -440,16 +451,7 @@ export function StockInvoicesPage() {
                           />
                         ))}
                       </Table.Tbody>
-                      <Table.Tfoot>
-                        <Table.Tr>
-                          <Table.Td colSpan={4} style={{ textAlign: 'right' }}>
-                            <Text fw={700}>Total :</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text fw={700}>{totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}</Text>
-                          </Table.Td>
-                        </Table.Tr>
-                      </Table.Tfoot>
+
                     </Table>
                   </Stack>
                 </Paper>
