@@ -298,24 +298,62 @@ export function StockInvoicesPage() {
                   <Stack gap="md">
                     <Title order={3}>Résumé d'atelier</Title>
                     <Stack gap="xs">
-                      <Text>
-                        {currentOrder.lineItems?.map((item, index) => {
-                          const [color] = (item.variantTitle || '').split(' / ');
-                          const typeImpression = item.variant?.metafields?.find(
-                            m => m.namespace === 'custom' && m.key === 'type_impression'
-                          )?.value;
+                      <Stack>
+                        {(() => {
+                          // Grouper par type
+                          const groups = currentOrder.lineItems?.reduce((acc, item) => {
+                            const [color] = (item.variantTitle || '').split(' / ');
+                            const typeImpression = item.variant?.metafields?.find(
+                              m => m.namespace === 'custom' && m.key === 'type_impression'
+                            )?.value;
 
-                          const fichierRecto = item.variant?.metafields?.find(
-                            m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
-                          )?.value;
+                            // Clé pour SKU + couleur
+                            const skuColorKey = `${item.sku} - ${color}`;
+                            if (!acc[skuColorKey]) {
+                              acc[skuColorKey] = 0;
+                            }
+                            acc[skuColorKey] += item.quantity;
 
-                          const fichierVerso = item.variant?.metafields?.find(
-                            m => m.namespace === 'custom' && m.key === 'verso_impression'
-                          )?.value;
-                          
-                          return `${item.sku} - ${color}${typeImpression ? `, ${typeImpression}` : ''}${fichierRecto ? `, ${fichierRecto}` : ''}${fichierVerso ? `, ${fichierVerso}` : ''}`;
-                        }).join(', ')}
-                      </Text>
+                            // Clé pour type d'impression
+                            if (typeImpression) {
+                              if (!acc[typeImpression]) {
+                                acc[typeImpression] = 0;
+                              }
+                              acc[typeImpression] += item.quantity;
+                            }
+
+                            // Clé pour fichier recto
+                            const fichierRecto = item.variant?.metafields?.find(
+                              m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+                            )?.value;
+                            if (fichierRecto) {
+                              if (!acc[fichierRecto]) {
+                                acc[fichierRecto] = 0;
+                              }
+                              acc[fichierRecto] += item.quantity;
+                            }
+
+                            // Clé pour fichier verso
+                            const fichierVerso = item.variant?.metafields?.find(
+                              m => m.namespace === 'custom' && m.key === 'verso_impression'
+                            )?.value;
+                            if (fichierVerso) {
+                              if (!acc[fichierVerso]) {
+                                acc[fichierVerso] = 0;
+                              }
+                              acc[fichierVerso] += item.quantity;
+                            }
+
+                            return acc;
+                          }, {} as Record<string, number>);
+
+                          return groups ? Object.entries(groups).map(([key, count], index) => (
+                            <Paper key={index} p="xs" withBorder>
+                              <Text>{key} ({count})</Text>
+                            </Paper>
+                          )) : null;
+                        })()}
+                      </Stack>
                     </Stack>
                   </Stack>
                 </Paper>
