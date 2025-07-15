@@ -101,7 +101,7 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
   })();
 
   return (
-    <Table.Tr>
+    <Table.Tr style={{ opacity: item.isCancelled ? 0.5 : 1 }}>
       <Table.Td>
         <Group gap="xs">
           {Array.from({ length: item.quantity }).map((_, quantityIndex) => (
@@ -122,11 +122,19 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
                 index,
                 quantityIndex
               )}
+              disabled={item.isCancelled === true}
             />
           ))}
         </Group>
       </Table.Td>
-      <Table.Td>{displayString}</Table.Td>
+      <Table.Td>
+        <Group gap="xs">
+          <Text c={item.isCancelled ? "dimmed" : undefined}>{displayString}</Text>
+          {item.isCancelled && (
+            <Badge color="red" variant="light">Annulé</Badge>
+          )}
+        </Group>
+      </Table.Td>
       <Table.Td>{item.quantity}</Table.Td>
       <Table.Td>
         <Stack gap={2}>
@@ -177,6 +185,7 @@ export function StockInvoicesPage() {
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const currentOrder = orders.find(o => o.id === selectedOrderId);
+  const activeItems = currentOrder?.lineItems?.filter(item => !item.isCancelled) || [];
   const itemPrices = useRef<Map<number, number>>(new Map());
 
   // Réinitialiser itemPrices quand on change de commande
@@ -283,8 +292,69 @@ export function StockInvoicesPage() {
             />
 
             {currentOrder && (
-              <Paper withBorder p="md">
-                <Stack gap="md">
+              <Stack gap="md">
+                {/* Résumé d'atelier */}
+                <Paper withBorder p="md">
+                  <Stack gap="md">
+                    <Title order={3}>Résumé d'atelier</Title>
+                    <Stack gap="xs">
+                      {activeItems.map((item, index) => {
+                        const [color] = (item.variantTitle || '').split(' / ');
+                        const variantId = generateVariantId(
+                          encodeFirestoreId(currentOrder.id),
+                          item.sku || '',
+                          color || '',
+                          (item.variantTitle || '').split(' / ')[1] || '',
+                          index,
+                          0
+                        );
+                        
+                        // Récupérer les métafields
+                        const fichierRecto = item.variant?.metafields?.find(
+                          m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+                        )?.value;
+
+                        const fichierVerso = item.variant?.metafields?.find(
+                          m => m.namespace === 'custom' && m.key === 'verso_impression'
+                        )?.value;
+
+                        return (
+                          <Paper key={index} withBorder p="xs" radius="sm">
+                            <Stack gap="xs">
+                              {/* SKU - color */}
+                              {item.sku && color && (
+                                <Group gap="xs">
+                                  <Text fw={500}>SKU - couleur:</Text>
+                                  <Text>{item.sku} - {color}</Text>
+                                </Group>
+                              )}
+                              
+                              {/* Fichier RECTO */}
+                              {fichierRecto && (
+                                <Group gap="xs">
+                                  <Text fw={500}>Fichier d'impression:</Text>
+                                  <Text>{fichierRecto}</Text>
+                                </Group>
+                              )}
+                              
+                              {/* Fichier VERSO */}
+                              {fichierVerso && (
+                                <Group gap="xs">
+                                  <Text fw={500}>Verso impression:</Text>
+                                  <Text>{fichierVerso}</Text>
+                                </Group>
+                              )}
+                            </Stack>
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  </Stack>
+                </Paper>
+
+                {/* Tableau principal */}
+                <Paper withBorder p="md">
+                  <Stack gap="md">
                   <Group justify="space-between" align="center">
                     <Group gap="xs">
                       <Text fw={500} size="lg">{currentOrder.name}</Text>
@@ -319,7 +389,7 @@ export function StockInvoicesPage() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {currentOrder.lineItems?.map((item, index) => (
+                      {activeItems.map((item, index) => (
                         <LineItemRow
                           key={index}
                           item={item}
@@ -343,9 +413,9 @@ export function StockInvoicesPage() {
                     </Table.Tr>
                   </Table.Tfoot>
                   </Table>
-
                 </Stack>
               </Paper>
+            </Stack>
             )}
           </Stack>
         </Paper>
