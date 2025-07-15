@@ -299,10 +299,9 @@ export function StockInvoicesPage() {
                   <Stack gap="md">
                     <Title order={3}>Résumé d'atelier</Title>
                     <Stack gap="xs">
-                      <Stack>
-                        {(() => {
-                          // Grouper par type
-                          const groups = currentOrder.lineItems?.reduce((acc, item) => {
+                      {(() => {
+                        // Grouper par type
+                        const groups = currentOrder.lineItems?.reduce((acc, item) => {
                             const [color] = (item.variantTitle || '').split(' / ');
                             const typeImpression = item.variant?.metafields?.find(
                               m => m.namespace === 'custom' && m.key === 'type_impression'
@@ -360,18 +359,33 @@ export function StockInvoicesPage() {
                             return acc;
                           }, {} as Record<string, { count: number, price: number }>);
 
-                          return groups ? Object.entries(groups).map(([key, data], index) => (
-                            <Paper key={index} p="xs" withBorder>
-                              <Group justify="space-between">
-                                <Text>{key} ({data.count})</Text>
-                                {data.price > 0 && (
-                                  <Text fw={500}>{(data.count * data.price).toFixed(2)}€</Text>
-                                )}
-                              </Group>
-                            </Paper>
-                          )) : null;
-                        })()}
-                      </Stack>
+                          return groups ? Object.entries(groups).map(([key, data], index) => {
+                            // Trouver les règles appliquées
+                            const appliedRules = rules.filter(rule => 
+                              rule.searchString && key.toLowerCase().includes(rule.searchString.toLowerCase())
+                            );
+                            
+                            return (
+                              <Paper key={index} p="xs" withBorder>
+                                <Group justify="space-between">
+                                  <Text>{key} ({data.count})</Text>
+                                  <Group gap="xs">
+                                    {appliedRules.map((rule, i) => (
+                                      <Text key={i} size="sm" c="dimmed">
+                                        +{rule.price.toFixed(2)}€
+                                      </Text>
+                                    ))}
+                                    {data.price > 0 && (
+                                      <Text fw={500}>
+                                        = {data.price.toFixed(2)}€ × {data.count} = {(data.count * data.price).toFixed(2)}€
+                                      </Text>
+                                    )}
+                                  </Group>
+                                </Group>
+                              </Paper>
+                            );
+                          }) : null;
+                      })()}
                     </Stack>
                   </Stack>
                 </Paper>
@@ -379,67 +393,67 @@ export function StockInvoicesPage() {
                 {/* Tableau principal */}
                 <Paper withBorder p="md">
                   <Stack gap="md">
-                  <Group justify="space-between" align="center">
-                    <Group gap="xs">
-                      <Text fw={500} size="lg">{currentOrder.name}</Text>
-                      <TextileProgress orderId={encodeFirestoreId(currentOrder.id)} />
-                    </Group>
-                    <Group gap="xl">
-                      <BatchBalance orderId={currentOrder.id} />
-                      <Group>
-                        <Button
-                          variant="light"
-                          leftSection={<IconCalculator size={16} />}
-                          onClick={calculateTotal}
-                        >
-                          Calculer le total
-                        </Button>
-                        <Text fw={700}>
-                          Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
-                        </Text>
+                    <Group justify="space-between" align="center">
+                      <Group gap="xs">
+                        <Text fw={500} size="lg">{currentOrder?.name}</Text>
+                        <TextileProgress orderId={encodeFirestoreId(currentOrder?.id || '')} />
                       </Group>
+                      <Group gap="xl">
+                        <BatchBalance orderId={currentOrder?.id || ''} />
+                        <Group>
+                          <Button
+                            variant="light"
+                            leftSection={<IconCalculator size={16} />}
+                            onClick={calculateTotal}
+                          >
+                            Calculer le total
+                          </Button>
+                          <Text fw={700}>
+                            Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
+                          </Text>
+                        </Group>
+                      </Group>
+                      <BillingNoteInput orderId={currentOrder?.id || ''} />
                     </Group>
-                    <BillingNoteInput orderId={currentOrder.id} />
-                  </Group>
 
-                  <Table>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Textile</Table.Th>
-                        <Table.Th>Article</Table.Th>
-                        <Table.Th>Quantité</Table.Th>
-                        <Table.Th>Prix</Table.Th>
-                        <Table.Th>Calcul</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {currentOrder.lineItems?.map((item, index) => (
-                        <LineItemRow
-                          key={index}
-                          item={item}
-                          index={index}
-                          orderId={currentOrder.id}
-                          rules={rules}
-                          onPriceCalculated={(price) => {
-                            itemPrices.current.set(index, price);
-                          }}
-                        />
-                      ))}
-                    </Table.Tbody>
-                  <Table.Tfoot>
-                    <Table.Tr>
-                      <Table.Td colSpan={4} style={{ textAlign: 'right' }}>
-                        <Text fw={700}>Total :</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text fw={700}>{totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}</Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  </Table.Tfoot>
-                  </Table>
-                </Stack>
-              </Paper>
-            </Stack>
+                    <Table>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Textile</Table.Th>
+                          <Table.Th>Article</Table.Th>
+                          <Table.Th>Quantité</Table.Th>
+                          <Table.Th>Prix</Table.Th>
+                          <Table.Th>Calcul</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {currentOrder?.lineItems?.map((item, index) => (
+                          <LineItemRow
+                            key={index}
+                            item={item}
+                            index={index}
+                            orderId={currentOrder?.id || ''}
+                            rules={rules}
+                            onPriceCalculated={(price) => {
+                              itemPrices.current.set(index, price);
+                            }}
+                          />
+                        ))}
+                      </Table.Tbody>
+                      <Table.Tfoot>
+                        <Table.Tr>
+                          <Table.Td colSpan={4} style={{ textAlign: 'right' }}>
+                            <Text fw={700}>Total :</Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text fw={700}>{totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}</Text>
+                          </Table.Td>
+                        </Table.Tr>
+                      </Table.Tfoot>
+                    </Table>
+                  </Stack>
+                </Paper>
+              </Stack>
             )}
           </Stack>
         </Paper>
