@@ -298,56 +298,24 @@ export function StockInvoicesPage() {
                   <Stack gap="md">
                     <Title order={3}>Résumé d'atelier</Title>
                     <Stack gap="xs">
-                      {activeItems.map((item, index) => {
-                        const [color] = (item.variantTitle || '').split(' / ');
-                        const variantId = generateVariantId(
-                          encodeFirestoreId(currentOrder.id),
-                          item.sku || '',
-                          color || '',
-                          (item.variantTitle || '').split(' / ')[1] || '',
-                          index,
-                          0
-                        );
-                        
-                        // Récupérer les métafields
-                        const fichierRecto = item.variant?.metafields?.find(
-                          m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
-                        )?.value;
+                      <Text>
+                        {currentOrder.lineItems?.map((item, index) => {
+                          const [color] = (item.variantTitle || '').split(' / ');
+                          const typeImpression = item.variant?.metafields?.find(
+                            m => m.namespace === 'custom' && m.key === 'type_impression'
+                          )?.value;
 
-                        const fichierVerso = item.variant?.metafields?.find(
-                          m => m.namespace === 'custom' && m.key === 'verso_impression'
-                        )?.value;
+                          const fichierRecto = item.variant?.metafields?.find(
+                            m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+                          )?.value;
 
-                        return (
-                          <Paper key={index} withBorder p="xs" radius="sm">
-                            <Stack gap="xs">
-                              {/* SKU - color */}
-                              {item.sku && color && (
-                                <Group gap="xs">
-                                  <Text fw={500}>SKU - couleur:</Text>
-                                  <Text>{item.sku} - {color}</Text>
-                                </Group>
-                              )}
-                              
-                              {/* Fichier RECTO */}
-                              {fichierRecto && (
-                                <Group gap="xs">
-                                  <Text fw={500}>Fichier d'impression:</Text>
-                                  <Text>{fichierRecto}</Text>
-                                </Group>
-                              )}
-                              
-                              {/* Fichier VERSO */}
-                              {fichierVerso && (
-                                <Group gap="xs">
-                                  <Text fw={500}>Verso impression:</Text>
-                                  <Text>{fichierVerso}</Text>
-                                </Group>
-                              )}
-                            </Stack>
-                          </Paper>
-                        );
-                      })}
+                          const fichierVerso = item.variant?.metafields?.find(
+                            m => m.namespace === 'custom' && m.key === 'verso_impression'
+                          )?.value;
+                          
+                          return `${item.sku} - ${color}${typeImpression ? `, ${typeImpression}` : ''}${fichierRecto ? `, ${fichierRecto}` : ''}${fichierVerso ? `, ${fichierVerso}` : ''}`;
+                        }).join(', ')}
+                      </Text>
                     </Stack>
                   </Stack>
                 </Paper>
