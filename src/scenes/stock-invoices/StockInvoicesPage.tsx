@@ -389,7 +389,7 @@ export function StockInvoicesPage() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {activeItems.map((item, index) => (
+                      {currentOrder.lineItems?.map((item, index) => (
                         <LineItemRow
                           key={index}
                           item={item}
