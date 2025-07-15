@@ -67,6 +67,10 @@
     display: flex;
     flex-direction: column;
 
+    &.cancelled {
+      display: none;
+    }
+
     .productContent {
       display: flex;
       gap: 1rem;

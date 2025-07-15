@@ -62,6 +62,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                   className={clsx(styles.productItem, { [styles.cancelled]: item.isCancelled })}
                   withBorder
                   p="md"
+                  style={item.isCancelled ? { display: 'none' } : undefined}
                 >
                   <div className={styles.productContent}>
                     <div className={styles.productImageContainer}>
