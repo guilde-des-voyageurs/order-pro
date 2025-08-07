@@ -1,4 +1,4 @@
-import { Stack, Paper, Text, Button } from '@mantine/core';
+import { Title, Stack, Paper, Text, Button, Box } from '@mantine/core';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
@@ -234,15 +234,22 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
 
   return (
     <Stack gap="xs">
-      {displayedItems.map((item, index) => (
-        <OrderItem 
-          key={index} 
-          item={item} 
-          orderId={order.id}
-          index={index}
-          onCheckedChange={handleCheckedChange}
-        />
-      ))}
+      <Title order={2} mb="md">Résumé d'atelier</Title>
+
+      {/* Liste des articles (cachée) */}
+      <Box style={{ display: 'none' }}>
+        {displayedItems.map((item, index) => (
+          <OrderItem 
+            key={index} 
+            item={item} 
+            orderId={order.id}
+            index={index}
+            onCheckedChange={handleCheckedChange}
+          />
+        ))}
+      </Box>
+
+      {/* Bouton (visible) */}
       <Button 
         fullWidth 
         variant="light" 
@@ -253,19 +260,21 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      {/* Afficher la string globale */}
+      {/* String générée (cachée) */}
       {currentString && (
-        <Stack mt="md">
-          <Text>String générée :</Text>
-          <Paper p="xs" withBorder>
-            {currentString}
-          </Paper>
-        </Stack>
+        <Box style={{ display: 'none' }}>
+          <Stack mt="md">
+            <Text>String générée :</Text>
+            <Paper p="xs" withBorder>
+              {currentString}
+            </Paper>
+          </Stack>
+        </Box>
       )}
 
+      {/* Règles de prix (visibles) */}
       {priceRules.some(rule => (rule.count || 0) > 0) && (
         <Stack mt="md">
-          <Text>Règles de prix trouvées :</Text>
           <Paper p="xs" withBorder>
             {priceRules
               .filter(rule => (rule.count || 0) > 0)
@@ -280,8 +289,6 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   )}
                 </Text>
               ))}
-
-            {/* Total général */}
             {priceRules.some(rule => rule.price && rule.count) && (
               <Text mt="md" fw={700} size="lg">
                 Total HT : {priceRules

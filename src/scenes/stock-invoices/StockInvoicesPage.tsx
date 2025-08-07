@@ -295,23 +295,12 @@ export function StockInvoicesPage() {
 
             {currentOrder && (
               <Stack gap="md">
-                {/* Résumé d'atelier */}
                 <Paper withBorder p="md">
                   <Stack gap="md">
-                    <Title order={3}>Résumé d'atelier</Title>
                     
                     {currentOrder && <OrderItemsList order={currentOrder} />}
                     
-                    {/* Total */}
-                    <Divider my="sm" />
-                    <Group justify="flex-end" gap="xl">
-                      <Group gap="xs">
-                        <Text fw={700} size="lg">Total général :</Text>
-                        <Text fw={700} size="lg" c="blue">
-                          {totalAmount > 0 ? `${totalAmount.toFixed(2)}€ HT` : '-'}
-                        </Text>
-                      </Group>
-                    </Group>
+                  
                   </Stack>
                 </Paper>
 
