@@ -71,14 +71,14 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
 
   return (
     <Stack gap="xs">
-      {order.lineItems.filter(item => !item.isCancelled).map((item, index) => (
+      {order.lineItems.map((item, index) => !item.isCancelled ? (
         <OrderItem 
           key={index} 
           item={item} 
           orderId={order.id}
           index={index}
         />
-      ))}
+      ) : null)}
     </Stack>
   );
 }
