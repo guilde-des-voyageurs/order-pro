@@ -9,6 +9,7 @@ import { encodeFirestoreId } from '@/utils/firestore';
 interface PriceRule {
   id: string;
   searchString: string;
+  price?: number;
   count?: number;
 }
 
@@ -123,7 +124,8 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
           }
           return {
             id: doc.id,
-            searchString: data.searchString || ''
+            searchString: data.searchString || '',
+            price: data.price
           };
         });
         
@@ -268,7 +270,10 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
             {priceRules
               .filter(rule => (rule.count || 0) > 0)
               .map(rule => (
-                <Text key={rule.id}>{rule.count || 0}x {rule.searchString}</Text>
+                <Text key={rule.id}>
+                  {rule.count || 0}x {rule.searchString}
+                  {rule.price && <Text span ml="md" c="blue">{rule.price}€</Text>}
+                </Text>
               ))}
           </Paper>
         </Stack>
