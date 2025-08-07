@@ -253,21 +253,24 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
 
       {/* Afficher la string globale */}
       {currentString && (
-        <Paper withBorder p="xs" mt="md">
-          <Text fw={500}>String générée :</Text>
-          <Text>{currentString}</Text>
-        </Paper>
+        <Stack mt="md">
+          <Text>String générée :</Text>
+          <Paper p="xs" withBorder>
+            {currentString}
+          </Paper>
+        </Stack>
       )}
 
-      {/* Afficher toutes les règles de prix */}
-      {priceRules.length > 0 && (
+      {priceRules.some(rule => (rule.count || 0) > 0) && (
         <Stack mt="md">
-          <Text fw={500}>Règles de prix :</Text>
-          {priceRules.map(rule => (
-            <Text key={rule.id}>
-              <Text span fw={500}>{rule.count || 0}x</Text> {rule.searchString}
-            </Text>
-          ))}
+          <Text>Règles de prix trouvées :</Text>
+          <Paper p="xs" withBorder>
+            {priceRules
+              .filter(rule => (rule.count || 0) > 0)
+              .map(rule => (
+                <Text key={rule.id}>{rule.count || 0}x {rule.searchString}</Text>
+              ))}
+          </Paper>
         </Stack>
       )}
     </Stack>
