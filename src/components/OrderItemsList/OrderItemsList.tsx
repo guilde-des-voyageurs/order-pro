@@ -1,4 +1,4 @@
-import { Title, Stack, Paper, Text, Button, Box } from '@mantine/core';
+import { Title, Stack, Paper, Text, Button, Box, Grid } from '@mantine/core';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
@@ -269,44 +269,49 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      {/* String générée (fixe) */}
-      {currentString && (
-        <Stack mt="md">
-          <Text>String générée :</Text>
-          <Paper p="xs" withBorder>
-            <Text size="12px" c="gray">{currentString}</Text>
-          </Paper>
-        </Stack>
-      )}
+      {/* Colonnes */}
+      <Grid mt="md" gutter="md">
+        {/* String générée (colonne gauche) */}
+        {currentString && (
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Stack>
+              <Text>String générée :</Text>
+              <Paper p="xs" withBorder>
+                <Text size="12px" c="gray">{currentString}</Text>
+              </Paper>
+            </Stack>
+          </Grid.Col>
+        )}
 
-      {/* Règles de prix (visibles) */}
-      {priceRules.some(rule => (rule.count || 0) > 0) && (
-        <Stack mt="md">
-          <Paper p="xs" withBorder>
-            {priceRules
-              .filter(rule => (rule.count || 0) > 0)
-              .map(rule => (
-                <Text key={rule.id}>
-                  {rule.count || 0}x {rule.searchString}
-                  {rule.price && (
-                    <Text span ml="md">
-                      <Text span c="dimmed">(× {rule.price}€) = </Text>
-                      <Text span c="blue" fw={500}>{((rule.count || 0) * rule.price).toFixed(2)}€ HT</Text>
-                    </Text>
-                  )}
+        {/* Règles de prix (colonne droite) */}
+        {priceRules.some(rule => (rule.count || 0) > 0) && (
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Paper p="xs" withBorder>
+              {priceRules
+                .filter(rule => (rule.count || 0) > 0)
+                .map(rule => (
+                  <Text key={rule.id}>
+                    {rule.count || 0}x {rule.searchString}
+                    {rule.price && (
+                      <Text span ml="md">
+                        <Text span c="dimmed">(× {rule.price}€) = </Text>
+                        <Text span c="blue" fw={500}>{((rule.count || 0) * rule.price).toFixed(2)}€ HT</Text>
+                      </Text>
+                    )}
+                  </Text>
+                ))}
+              {priceRules.some(rule => rule.price && rule.count) && (
+                <Text mt="md" fw={700} size="lg">
+                  Total HT : {priceRules
+                    .filter(rule => (rule.count || 0) > 0)
+                    .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
+                    .toFixed(2)}€
                 </Text>
-              ))}
-            {priceRules.some(rule => rule.price && rule.count) && (
-              <Text mt="md" fw={700} size="lg">
-                Total HT : {priceRules
-                  .filter(rule => (rule.count || 0) > 0)
-                  .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
-                  .toFixed(2)}€
-              </Text>
-            )}
-          </Paper>
-        </Stack>
-      )}
+              )}
+            </Paper>
+          </Grid.Col>
+        )}
+      </Grid>
     </Stack>
   );
 }
