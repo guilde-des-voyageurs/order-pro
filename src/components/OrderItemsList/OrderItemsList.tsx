@@ -1,6 +1,8 @@
 import { Stack, Paper, Text, Group, Badge, Button } from '@mantine/core';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
+import { db } from '@/firebase/config';
+import { doc, setDoc, getDoc, increment } from 'firebase/firestore';
 
 interface OrderItemsListProps {
   order: ShopifyOrder;
@@ -32,11 +34,13 @@ function OrderItem({ item, orderId, index }: OrderItemProps) {
   
   // Fichiers d'impression
   const printFile = item.variant?.metafields?.find(
-    m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+    (m: { namespace: string; key: string; value: string }) => 
+      m.namespace === 'custom' && m.key === 'fichier_d_impression'
   )?.value || '';
   
   const versoFile = item.variant?.metafields?.find(
-    m => m.namespace === 'custom' && m.key === 'verso_impression'
+    (m: { namespace: string; key: string; value: string }) => 
+      m.namespace === 'custom' && m.key === 'verso_impression'
   )?.value || '';
 
   // Construire la chaîne d'affichage
@@ -64,6 +68,68 @@ function OrderItem({ item, orderId, index }: OrderItemProps) {
 }
 
 export function OrderItemsList({ order }: OrderItemsListProps) {
+  const handleGenerateWorkshopSheet = async () => {
+    if (!order.lineItems?.length) return;
+
+    // Pour chaque ligne non annulée
+    const processedItems = new Set<string>();
+
+    for (const [index, item] of order.lineItems.entries()) {
+      if (item.isCancelled) continue;
+
+      const [color] = (item.variantTitle || '').split(' / ');
+      const sku = item.sku || '';
+      const printFile = item.variant?.metafields?.find(
+        (m: { namespace: string; key: string; value: string }) => 
+          m.namespace === 'custom' && m.key === 'fichier_d_impression'
+      )?.value;
+      const versoFile = item.variant?.metafields?.find(
+        (m: { namespace: string; key: string; value: string }) => 
+          m.namespace === 'custom' && m.key === 'verso_impression'
+      )?.value;
+
+      // SKU + Couleur
+      const skuColorKey = `${order.id}--${sku} - ${color}`;
+      if (!processedItems.has(skuColorKey)) {
+        const skuColorRef = doc(db, 'order-workshop-detailed', skuColorKey);
+        const skuColorDoc = await getDoc(skuColorRef);
+        
+        await setDoc(skuColorRef, {
+          nombre: skuColorDoc.exists() ? increment(1) : 1
+        }, { merge: true });
+        processedItems.add(skuColorKey);
+      }
+
+      // Fichier d'impression
+      if (printFile) {
+        const printFileKey = `${order.id}--${printFile}`;
+        if (!processedItems.has(printFileKey)) {
+          const printFileRef = doc(db, 'order-workshop-detailed', printFileKey);
+          const printFileDoc = await getDoc(printFileRef);
+          
+          await setDoc(printFileRef, {
+            nombre: printFileDoc.exists() ? increment(1) : 1
+          }, { merge: true });
+          processedItems.add(printFileKey);
+        }
+      }
+
+      // Fichier verso
+      if (versoFile) {
+        const versoFileKey = `${order.id}--${versoFile}`;
+        if (!processedItems.has(versoFileKey)) {
+          const versoFileRef = doc(db, 'order-workshop-detailed', versoFileKey);
+          const versoFileDoc = await getDoc(versoFileRef);
+          
+          await setDoc(versoFileRef, {
+            nombre: versoFileDoc.exists() ? increment(1) : 1
+          }, { merge: true });
+          processedItems.add(versoFileKey);
+        }
+      }
+    }
+  };
+
   if (!order.lineItems?.length) {
     return null;
   }
@@ -82,6 +148,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         fullWidth 
         variant="light" 
         color="blue"
+        onClick={handleGenerateWorkshopSheet}
       >
         Générer la fiche atelier
       </Button>
