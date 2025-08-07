@@ -272,9 +272,24 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
               .map(rule => (
                 <Text key={rule.id}>
                   {rule.count || 0}x {rule.searchString}
-                  {rule.price && <Text span ml="md" c="blue">{rule.price}€</Text>}
+                  {rule.price && (
+                    <Text span ml="md">
+                      <Text span c="dimmed">(× {rule.price}€) = </Text>
+                      <Text span c="blue" fw={500}>{((rule.count || 0) * rule.price).toFixed(2)}€ HT</Text>
+                    </Text>
+                  )}
                 </Text>
               ))}
+
+            {/* Total général */}
+            {priceRules.some(rule => rule.price && rule.count) && (
+              <Text mt="md" fw={700} size="lg">
+                Total HT : {priceRules
+                  .filter(rule => (rule.count || 0) > 0)
+                  .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
+                  .toFixed(2)}€
+              </Text>
+            )}
           </Paper>
         </Stack>
       )}
