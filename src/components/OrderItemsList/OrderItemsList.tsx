@@ -43,26 +43,22 @@ function OrderItem({ item, orderId, index }: OrderItemProps) {
       m.namespace === 'custom' && m.key === 'verso_impression'
   )?.value || '';
 
-  // Construire la chaîne d'affichage
-  const displayParts = [
-    sku,
-    color,
-    printFile,
-    versoFile
-  ].filter(Boolean);
-
   if (checkedCount === 0) {
     return null;
   }
 
   return (
     <Paper withBorder p="xs">
-      <Group justify="space-between">
-        <Text>{displayParts.join(' - ')}</Text>
-        <Badge color="blue" variant="light">
-          {checkedCount} {checkedCount > 1 ? 'articles cochés' : 'article coché'}
-        </Badge>
-      </Group>
+      <Text>
+        {Array.from({ length: checkedCount })
+          .map(() => [
+            sku,
+            color,
+            printFile,
+            versoFile
+          ].filter(Boolean).join(' - '))
+          .join(', ')}
+      </Text>
     </Paper>
   );
 }
