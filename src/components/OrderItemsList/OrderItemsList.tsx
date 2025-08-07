@@ -1,7 +1,6 @@
-import { Stack, Paper, Text, Group, Badge } from '@mantine/core';
+import { Stack, Paper, Text, Group, Badge, Button } from '@mantine/core';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
 interface OrderItemsListProps {
   order: ShopifyOrder;
@@ -79,6 +78,13 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
           index={index}
         />
       ) : null)}
+      <Button 
+        fullWidth 
+        variant="light" 
+        color="blue"
+      >
+        Générer la fiche atelier
+      </Button>
     </Stack>
   );
 }
