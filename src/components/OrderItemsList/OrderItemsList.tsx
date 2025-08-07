@@ -60,12 +60,15 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
     versoFile
   ].filter(Boolean).join(' - ');
 
+  // Toujours appeler onCheckedChange, même si count = 0 ou article annulé
   useEffect(() => {
-    onCheckedChange(`${orderId}-${index}`, checkedCount, itemString);
-  }, [checkedCount, itemString, orderId, index, onCheckedChange]);
+    // Si l'article est annulé, on force count = 0
+    const finalCount = item.isCancelled ? 0 : checkedCount;
+    onCheckedChange(`${orderId}-${index}`, finalCount, itemString);
+  }, [checkedCount, itemString, orderId, index, onCheckedChange, item.isCancelled]);
 
-  // Déplacer le return null après tous les hooks
-  if (checkedCount === 0) {
+  // Ne rien afficher si count = 0 ou article annulé
+  if (checkedCount === 0 || item.isCancelled) {
     return null;
   }
 
@@ -86,7 +89,8 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
 }
 
 export function OrderItemsList({ order }: OrderItemsListProps) {
-  const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
+  // Ne pas filtrer les articles annulés ici, on les gère dans handleGenerateWorkshopSheet
+  const displayedItems = order.lineItems || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
   const [currentString, setCurrentString] = useState<string | null>(null);
   const [priceRules, setPriceRules] = useState<PriceRule[]>([]);
@@ -198,10 +202,15 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
 
-    // Ne prendre que les strings des articles cochés (count > 0)
-    const allStrings = Object.values(checkedItemStrings)
-      .filter(({ count }) => count > 0)
-      .flatMap(({ count, string }) => Array(count).fill(string))
+    // Ne prendre que les strings des articles cochés (count > 0) et non annulés
+    const allStrings = Object.entries(checkedItemStrings)
+      .filter(([key, { count }]) => {
+        // Vérifier si l'article est annulé
+        const [orderId, index] = key.split('-');
+        const item = order.lineItems?.[parseInt(index)];
+        return count > 0 && !item?.isCancelled;
+      })
+      .flatMap(([_, { count, string }]) => Array(count).fill(string))
       .join('\n');
 
     const encodedOrderId = encodeFirestoreId(order.id);
@@ -236,18 +245,16 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
     <Stack gap="xs">
       <Title order={2} mb="md">Résumé d'atelier</Title>
 
-      {/* Liste des articles (cachée) */}
-      <Box style={{ display: 'none' }}>
-        {displayedItems.map((item, index) => (
-          <OrderItem 
-            key={index} 
-            item={item} 
-            orderId={order.id}
-            index={index}
-            onCheckedChange={handleCheckedChange}
-          />
-        ))}
-      </Box>
+      {/* Liste des articles (visible) */}
+      {displayedItems.map((item, index) => (
+        <OrderItem 
+          key={index} 
+          item={item} 
+          orderId={order.id}
+          index={index}
+          onCheckedChange={handleCheckedChange}
+        />
+      ))}
 
       {/* Bouton (visible) */}
       <Button 
@@ -260,16 +267,14 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      {/* String générée (cachée) */}
+      {/* String générée (visible) */}
       {currentString && (
-        <Box style={{ display: 'none' }}>
-          <Stack mt="md">
-            <Text>String générée :</Text>
-            <Paper p="xs" withBorder>
-              {currentString}
-            </Paper>
-          </Stack>
-        </Box>
+        <Stack mt="md">
+          <Text>String générée :</Text>
+          <Paper p="xs" withBorder>
+            {currentString}
+          </Paper>
+        </Stack>
       )}
 
       {/* Règles de prix (visibles) */}

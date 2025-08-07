@@ -122,7 +122,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             className={styles.menu_logo}
             src="/runesdechene.png"
             alt="Runes de Chêne"
-            width={200}
+            width={150}
             height={62}
             priority
           />
