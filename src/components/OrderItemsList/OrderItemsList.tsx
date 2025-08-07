@@ -1,9 +1,9 @@
 import { Stack, Paper, Text, Button } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { db } from '@/firebase/db';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
 
 interface OrderItemsListProps {
@@ -79,6 +79,23 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
 export function OrderItemsList({ order }: OrderItemsListProps) {
   const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
+  const [currentString, setCurrentString] = useState<string | null>(null);
+
+  // Réinitialiser les states quand on change de commande
+  useEffect(() => {
+    setCheckedItemStrings({});
+  }, [order.id]);
+
+  // Charger la string actuelle du document
+  useEffect(() => {
+    const loadCurrentString = async () => {
+      const encodedOrderId = encodeFirestoreId(order.id);
+      const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
+      const docSnap = await getDoc(workshopDoc);
+      setCurrentString(docSnap.exists() ? docSnap.data().string : null);
+    };
+    loadCurrentString();
+  }, [order.id]);
 
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
@@ -97,6 +114,9 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       id: order.id,
       string: allStrings
     }, { merge: true });
+
+    // Mettre à jour l'affichage
+    setCurrentString(allStrings);
   };
 
   if (!order.lineItems?.length) {
@@ -111,12 +131,12 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
           item={item} 
           orderId={order.id}
           index={index}
-          onCheckedChange={(key, count, itemString) => {
+          onCheckedChange={useCallback((key, count, itemString) => {
             setCheckedItemStrings(prev => ({
               ...prev,
               [key]: { count, string: itemString }
             }));
-          }}
+          }, [])}
         />
       ))}
       <Button 
@@ -129,7 +149,11 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-
+      {currentString && (
+        <Paper withBorder p="xs">
+          <Text>{currentString}</Text>
+        </Paper>
+      )}
     </Stack>
   );
 }
