@@ -1,11 +1,10 @@
-import { Stack, Paper, Text, Button, SimpleGrid } from '@mantine/core';
+import { Stack, Paper, Text, Button } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { db } from '@/firebase/db';
-import { collection, deleteDoc, doc, getDocs, increment, query, setDoc, where } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
-import { usePriceRules } from '@/hooks/usePriceRules';
 
 interface OrderItemsListProps {
   order: ShopifyOrder;
@@ -78,50 +77,26 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
 }
 
 export function OrderItemsList({ order }: OrderItemsListProps) {
-  const { rules } = usePriceRules();
   const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
-  const [workshopEntries, setWorkshopEntries] = useState<Array<{ id: string; nombre: number }>>([]);
-
-  const loadWorkshopEntries = async () => {
-    const workshopRef = collection(db, 'order-workshop-detailed');
-    const encodedOrderId = encodeFirestoreId(order.id);
-    const q = query(workshopRef, where('__name__', '>=', encodedOrderId), where('__name__', '<', encodedOrderId + '\uf8ff'));
-    const querySnapshot = await getDocs(q);
-    const entries = querySnapshot.docs.map(doc => ({
-      id: doc.id.replace(`${encodedOrderId}--`, ''),
-      nombre: doc.data().nombre || 0
-    }));
-    setWorkshopEntries(entries);
-  };
-
-  useEffect(() => {
-    loadWorkshopEntries();
-  }, [order.id]);
 
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
 
-    // Remettre à zéro les compteurs existants
-    const workshopRef = collection(db, 'order-workshop-detailed');
-    const encodedOrderId = encodeFirestoreId(order.id);
-    const q = query(workshopRef, where('__name__', '>=', encodedOrderId), where('__name__', '<', encodedOrderId + '\uf8ff'));
-    const querySnapshot = await getDocs(q);
-    for (const doc of querySnapshot.docs) {
-      await setDoc(doc.ref, { id: doc.id, nombre: 0 }, { merge: true });
-    }
+    // Concaténer toutes les strings des articles cochés
+    const allStrings = Object.values(checkedItemStrings)
+      .flatMap(({ count, string }) => Array(count).fill(string))
+      .join('\n');
 
-    // Pour chaque ligne avec des articles cochés
-    for (const [key, { count, string: itemString }] of Object.entries(checkedItemStrings)) {
-      // Scanner les règles de prix
-      for (const rule of rules) {
-        if (rule.searchString && itemString.toLowerCase().includes(rule.searchString.toLowerCase())) {
-          const ruleDocRef = doc(db, 'order-workshop-detailed', `${encodedOrderId}--${encodeFirestoreId(rule.searchString)}`);
-          const docId = `${encodedOrderId}--${encodeFirestoreId(rule.searchString)}`;
-          await setDoc(ruleDocRef, { id: docId, nombre: increment(count) }, { merge: true });
-        }
-      }
-    }
+    // Créer un unique document avec toutes les strings
+    const encodedOrderId = encodeFirestoreId(order.id);
+    const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
+    
+    // Écrit le document en écrasant la valeur précédente
+    await setDoc(workshopDoc, {
+      id: order.id,
+      string: allStrings
+    }, { merge: true });
   };
 
   if (!order.lineItems?.length) {
@@ -154,14 +129,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      <SimpleGrid cols={3}>
-        {workshopEntries.map(entry => (
-          <Paper key={entry.id} withBorder p="xs">
-            <Text size="sm" fw={500}>{entry.id}</Text>
-            <Text size="sm" c="dimmed">{entry.nombre}</Text>
-          </Paper>
-        ))}
-      </SimpleGrid>
+
     </Stack>
   );
 }
