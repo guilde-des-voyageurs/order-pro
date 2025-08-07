@@ -16,6 +16,7 @@ import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { BillingNoteInput } from '@/components/BillingNoteInput/BillingNoteInput';
 import { BatchBalance } from '@/components/BatchBalance';
+import { OrderItemsList } from '@/components/OrderItemsList/OrderItemsList';
 
 // Hooks
 import { calculateItemPrice, PriceRule, usePriceRules } from '@/hooks/usePriceRules';
@@ -298,95 +299,8 @@ export function StockInvoicesPage() {
                 <Paper withBorder p="md">
                   <Stack gap="md">
                     <Title order={3}>Résumé d'atelier</Title>
-                    <Stack gap="xs">
-                      {(() => {
-                        // Grouper par type
-                        const groups = currentOrder.lineItems?.reduce((acc, item) => {
-                            const [color] = (item.variantTitle || '').split(' / ');
-                            const typeImpression = item.variant?.metafields?.find(
-                              m => m.namespace === 'custom' && m.key === 'type_impression'
-                            )?.value;
-
-                            // Clé pour SKU + couleur
-                            const skuColorKey = `${item.sku} - ${color}`;
-                            if (!acc[skuColorKey]) {
-                              acc[skuColorKey] = {
-                                count: 0,
-                                price: calculateItemPrice(skuColorKey, rules)
-                              };
-                            }
-                            acc[skuColorKey].count += item.quantity;
-
-                            // Clé pour type d'impression
-                            if (typeImpression) {
-                              if (!acc[typeImpression]) {
-                                acc[typeImpression] = {
-                                  count: 0,
-                                  price: calculateItemPrice(typeImpression, rules)
-                                };
-                              }
-                              acc[typeImpression].count += item.quantity;
-                            }
-
-                            // Clé pour fichier recto
-                            const fichierRecto = item.variant?.metafields?.find(
-                              m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
-                            )?.value;
-                            if (fichierRecto) {
-                              if (!acc[fichierRecto]) {
-                                acc[fichierRecto] = {
-                                  count: 0,
-                                  price: calculateItemPrice(fichierRecto, rules)
-                                };
-                              }
-                              acc[fichierRecto].count += item.quantity;
-                            }
-
-                            // Clé pour fichier verso
-                            const fichierVerso = item.variant?.metafields?.find(
-                              m => m.namespace === 'custom' && m.key === 'verso_impression'
-                            )?.value;
-                            if (fichierVerso) {
-                              if (!acc[fichierVerso]) {
-                                acc[fichierVerso] = {
-                                  count: 0,
-                                  price: calculateItemPrice(fichierVerso, rules)
-                                };
-                              }
-                              acc[fichierVerso].count += item.quantity;
-                            }
-
-                            return acc;
-                          }, {} as Record<string, { count: number, price: number }>);
-
-                          return groups ? Object.entries(groups).map(([key, data], index) => {
-                            // Trouver les règles appliquées
-                            const appliedRules = rules.filter(rule => 
-                              rule.searchString && key.toLowerCase().includes(rule.searchString.toLowerCase())
-                            );
-                            
-                            return (
-                              <Paper key={index} p="xs" withBorder>
-                                <Group justify="space-between">
-                                  <Text>{key} ({data.count})</Text>
-                                  <Group gap="xs">
-                                    {appliedRules.map((rule, i) => (
-                                      <Text key={i} size="sm" c="dimmed">
-                                        +{rule.price.toFixed(2)}€ HT
-                                      </Text>
-                                    ))}
-                                    {data.price > 0 && (
-                                      <Text fw={500}>
-                                        = {data.price.toFixed(2)}€ HT × {data.count} = {(data.count * data.price).toFixed(2)}€ HT
-                                      </Text>
-                                    )}
-                                  </Group>
-                                </Group>
-                              </Paper>
-                            );
-                          }) : null;
-                      })()}
-                    </Stack>
+                    
+                    {currentOrder && <OrderItemsList order={currentOrder} />}
                     
                     {/* Total */}
                     <Divider my="sm" />
