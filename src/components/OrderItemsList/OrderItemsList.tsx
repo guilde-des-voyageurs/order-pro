@@ -85,13 +85,13 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
 
-    // Supprimer les anciens documents
+    // Remettre à zéro les compteurs existants
     const workshopRef = collection(db, 'order-workshop-detailed');
     const encodedOrderId = encodeFirestoreId(order.id);
-    const q = query(workshopRef, where('id', '>=', encodedOrderId), where('id', '<', encodedOrderId + '\uf8ff'));
+    const q = query(workshopRef, where('__name__', '>=', encodedOrderId), where('__name__', '<', encodedOrderId + '\uf8ff'));
     const querySnapshot = await getDocs(q);
     for (const doc of querySnapshot.docs) {
-      await deleteDoc(doc.ref);
+      await setDoc(doc.ref, { id: doc.id, nombre: 0 }, { merge: true });
     }
 
     // Pour chaque ligne avec des articles cochés
@@ -100,7 +100,8 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       for (const rule of rules) {
         if (rule.searchString && itemString.toLowerCase().includes(rule.searchString.toLowerCase())) {
           const ruleDocRef = doc(db, 'order-workshop-detailed', `${encodedOrderId}--${encodeFirestoreId(rule.searchString)}`);
-          await setDoc(ruleDocRef, { nombre: increment(count) }, { merge: true });
+          const docId = `${encodedOrderId}--${encodeFirestoreId(rule.searchString)}`;
+          await setDoc(ruleDocRef, { id: docId, nombre: increment(count) }, { merge: true });
         }
       }
     }
