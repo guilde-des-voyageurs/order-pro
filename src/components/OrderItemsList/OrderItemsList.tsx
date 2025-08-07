@@ -245,16 +245,18 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
     <Stack gap="xs">
       <Title order={2} mb="md">Résumé d'atelier</Title>
 
-      {/* Liste des articles (visible) */}
-      {displayedItems.map((item, index) => (
-        <OrderItem 
-          key={index} 
-          item={item} 
-          orderId={order.id}
-          index={index}
-          onCheckedChange={handleCheckedChange}
-        />
-      ))}
+      {/* Liste des articles (cachée) */}
+      <Box style={{ display: 'none' }}>
+        {displayedItems.map((item, index) => (
+          <OrderItem 
+            key={index} 
+            item={item} 
+            orderId={order.id}
+            index={index}
+            onCheckedChange={handleCheckedChange}
+          />
+        ))}
+      </Box>
 
       {/* Bouton (visible) */}
       <Button 
@@ -267,12 +269,12 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      {/* String générée (visible) */}
+      {/* String générée (fixe) */}
       {currentString && (
         <Stack mt="md">
           <Text>String générée :</Text>
           <Paper p="xs" withBorder>
-            {currentString}
+            <Text size="12px" c="gray">{currentString}</Text>
           </Paper>
         </Stack>
       )}
