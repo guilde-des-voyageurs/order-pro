@@ -1,4 +1,4 @@
-import { Stack, Paper, Text, Button } from '@mantine/core';
+import { Stack, Paper, Text, Button, SimpleGrid } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
@@ -81,6 +81,23 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const { rules } = usePriceRules();
   const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
+  const [workshopEntries, setWorkshopEntries] = useState<Array<{ id: string; nombre: number }>>([]);
+
+  const loadWorkshopEntries = async () => {
+    const workshopRef = collection(db, 'order-workshop-detailed');
+    const encodedOrderId = encodeFirestoreId(order.id);
+    const q = query(workshopRef, where('__name__', '>=', encodedOrderId), where('__name__', '<', encodedOrderId + '\uf8ff'));
+    const querySnapshot = await getDocs(q);
+    const entries = querySnapshot.docs.map(doc => ({
+      id: doc.id.replace(`${encodedOrderId}--`, ''),
+      nombre: doc.data().nombre || 0
+    }));
+    setWorkshopEntries(entries);
+  };
+
+  useEffect(() => {
+    loadWorkshopEntries();
+  }, [order.id]);
 
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
@@ -132,9 +149,19 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         variant="light" 
         color="blue"
         onClick={handleGenerateWorkshopSheet}
+        mb="md"
       >
         Générer la fiche atelier
       </Button>
+
+      <SimpleGrid cols={3}>
+        {workshopEntries.map(entry => (
+          <Paper key={entry.id} withBorder p="xs">
+            <Text size="sm" fw={500}>{entry.id}</Text>
+            <Text size="sm" c="dimmed">{entry.nombre}</Text>
+          </Paper>
+        ))}
+      </SimpleGrid>
     </Stack>
   );
 }
