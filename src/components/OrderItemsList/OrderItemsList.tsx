@@ -1,14 +1,15 @@
-import { Stack, Paper, Text, Button, SimpleGrid } from '@mantine/core';
+import { Stack, Paper, Text, Button } from '@mantine/core';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { db } from '@/firebase/db';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
 
 interface PriceRule {
-  rule: string;
-  count: number;
+  id: string;
+  searchString: string;
+  count?: number;
 }
 
 interface OrderItemsListProps {
@@ -89,6 +90,52 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const [currentString, setCurrentString] = useState<string | null>(null);
   const [priceRules, setPriceRules] = useState<PriceRule[]>([]);
 
+  // Charger toutes les règles de prix
+  useEffect(() => {
+    const loadPriceRules = async () => {
+      try {
+        console.log('Loading price rules...');
+        const rulesCollection = collection(db, 'price-rules');
+        console.log('Collection ref:', rulesCollection);
+        
+        const rulesSnapshot = await getDocs(rulesCollection);
+        console.log('Found rules:', rulesSnapshot.docs.length);
+        console.log('Collection price-rules :', rulesSnapshot.docs.length, 'documents');
+        const rules = rulesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          // Afficher les données brutes du document
+          console.log('Document price-rules :', {
+            id: doc.id,
+            data: data,
+            searchString: data.searchString,
+            searchStringType: typeof data.searchString,
+            searchStringLength: data.searchString?.length,
+            // Détailler chaque caractère si c'est DTG-CUI
+            ...(data.searchString?.includes('DTG') ? {
+              chars: [...(data.searchString || '')].map(c => ({ char: c, code: c.charCodeAt(0) })),
+              containsDTG: data.searchString?.includes('DTG'),
+              containsCUI: data.searchString?.includes('CUI'),
+              containsDTGCUI: data.searchString?.includes('DTG-CUI')
+            } : {})
+          });
+          if (!data.searchString) {
+            console.warn('Rule missing searchString field:', doc.id);
+          }
+          return {
+            id: doc.id,
+            searchString: data.searchString || ''
+          };
+        });
+        
+        console.log('Final rules:', rules);
+        setPriceRules(rules);
+      } catch (error) {
+        console.error('Error loading price rules:', error);
+      }
+    };
+    loadPriceRules();
+  }, []);
+
   const handleCheckedChange = useCallback((key: string, count: number, itemString: string) => {
     setCheckedItemStrings(prev => ({
       ...prev,
@@ -107,25 +154,41 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       const encodedOrderId = encodeFirestoreId(order.id);
       const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
       const docSnap = await getDoc(workshopDoc);
+      console.log('Document Firestore :', {
+        exists: docSnap.exists(),
+        data: docSnap.exists() ? docSnap.data() : null
+      });
       const newString = docSnap.exists() ? docSnap.data().string : null;
+      console.log('String chargée :', {
+        newString,
+        length: newString?.length,
+        firstChars: newString?.slice(0, 100)
+      });
       setCurrentString(newString);
 
-      // Calculer les règles de prix
-      if (newString) {
-        const rules = newString.split('\n');
-        const ruleCounts: Record<string, number> = {};
-        rules.forEach((rule: string) => {
-          ruleCounts[rule] = (ruleCounts[rule] || 0) + 1;
-        });
+      // Calculer le nombre d'occurrences de chaque règle
+      setPriceRules(prev => prev.map(rule => {
+        if (!rule.searchString || !newString) return { ...rule, count: 0 };
 
-        setPriceRules(
-          Object.entries(ruleCounts)
-            .filter(([_, count]) => count > 0)
-            .map(([rule, count]) => ({ rule, count }))
-        );
-      } else {
-        setPriceRules([]);
-      }
+        // Compter les occurrences
+        const lines = newString.split('\n');
+        const count = lines.filter((line: string) => line.includes(rule.searchString)).length;
+
+        // Debug pour DTG
+        if (rule.searchString.includes('DTG')) {
+          const matchingLines = lines.filter((line: string) => line.includes(rule.searchString));
+          console.log(`Règle '${rule.searchString}' :`, {
+            count,
+            matchingLines
+          });
+          // Afficher chaque ligne qui contient la règle
+          matchingLines.forEach((line: string, index: number) => {
+            console.log(`  Match ${index + 1}:`, line);
+          });
+        }
+
+        return { ...rule, count };
+      }));
     };
     loadCurrentString();
   }, [order.id]);
@@ -143,29 +206,24 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
     const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
     
     // Écrit le document en écrasant la valeur précédente
+    console.log('String à sauvegarder :', {
+      allStrings,
+      length: allStrings.length,
+      firstChars: allStrings.slice(0, 100)
+    });
     await setDoc(workshopDoc, {
       id: order.id,
       string: allStrings
     }, { merge: true });
+    console.log('Document sauvegardé !');
 
     setCurrentString(allStrings);
 
-    // Mettre à jour les règles de prix immédiatement
-    if (allStrings) {
-      const rules = allStrings.split('\n');
-      const ruleCounts: Record<string, number> = {};
-      rules.forEach((rule: string) => {
-        ruleCounts[rule] = (ruleCounts[rule] || 0) + 1;
-      });
-
-      setPriceRules(
-        Object.entries(ruleCounts)
-          .filter(([_, count]) => count > 0)
-          .map(([rule, count]) => ({ rule, count }))
-      );
-    } else {
-      setPriceRules([]);
-    }
+    // Mettre à jour le compteur des règles
+    setPriceRules(prev => prev.map(rule => ({
+      ...rule,
+      count: allStrings ? (allStrings.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length : 0
+    })));
   };
 
   if (!order.lineItems?.length) {
@@ -193,15 +251,24 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
+      {/* Afficher la string globale */}
+      {currentString && (
+        <Paper withBorder p="xs" mt="md">
+          <Text fw={500}>String générée :</Text>
+          <Text>{currentString}</Text>
+        </Paper>
+      )}
+
+      {/* Afficher toutes les règles de prix */}
       {priceRules.length > 0 && (
-        <SimpleGrid cols={3} spacing="xs">
-          {priceRules.map(({ rule, count }) => (
-            <Paper key={rule} withBorder p="xs" radius="md">
-              <Text size="sm" fw={500}>{rule}</Text>
-              <Text size="xs" c="dimmed">Quantité : {count}</Text>
-            </Paper>
+        <Stack mt="md">
+          <Text fw={500}>Règles de prix :</Text>
+          {priceRules.map(rule => (
+            <Text key={rule.id}>
+              <Text span fw={500}>{rule.count || 0}x</Text> {rule.searchString}
+            </Text>
           ))}
-        </SimpleGrid>
+        </Stack>
       )}
     </Stack>
   );
