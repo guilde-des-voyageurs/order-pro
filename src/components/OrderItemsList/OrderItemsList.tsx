@@ -45,17 +45,19 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
       m.namespace === 'custom' && m.key === 'verso_impression'
   )?.value || '';
 
+  // Calculer la string une seule fois
+  const itemString = [
+    sku,
+    color,
+    printFile,
+    versoFile
+  ].filter(Boolean).join(' - ');
+
   useEffect(() => {
-    const itemString = [
-      sku,
-      color,
-      printFile,
-      versoFile
-    ].filter(Boolean).join(' - ');
-
     onCheckedChange(`${orderId}-${index}`, checkedCount, itemString);
-  }, [checkedCount, sku, color, printFile, versoFile, orderId, index, onCheckedChange]);
+  }, [checkedCount, itemString, orderId, index, onCheckedChange]);
 
+  // Déplacer le return null après tous les hooks
   if (checkedCount === 0) {
     return null;
   }
@@ -80,6 +82,13 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
   const [currentString, setCurrentString] = useState<string | null>(null);
+
+  const handleCheckedChange = useCallback((key: string, count: number, itemString: string) => {
+    setCheckedItemStrings(prev => ({
+      ...prev,
+      [key]: { count, string: itemString }
+    }));
+  }, []);
 
   // Réinitialiser les states quand on change de commande
   useEffect(() => {
@@ -131,12 +140,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
           item={item} 
           orderId={order.id}
           index={index}
-          onCheckedChange={useCallback((key, count, itemString) => {
-            setCheckedItemStrings(prev => ({
-              ...prev,
-              [key]: { count, string: itemString }
-            }));
-          }, [])}
+          onCheckedChange={handleCheckedChange}
         />
       ))}
       <Button 
