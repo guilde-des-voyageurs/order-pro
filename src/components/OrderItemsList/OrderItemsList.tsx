@@ -1,10 +1,15 @@
-import { Stack, Paper, Text, Button } from '@mantine/core';
+import { Stack, Paper, Text, Button, SimpleGrid } from '@mantine/core';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { db } from '@/firebase/db';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
+
+interface PriceRule {
+  rule: string;
+  count: number;
+}
 
 interface OrderItemsListProps {
   order: ShopifyOrder;
@@ -82,6 +87,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const displayedItems = order.lineItems?.filter(item => !item.isCancelled) || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
   const [currentString, setCurrentString] = useState<string | null>(null);
+  const [priceRules, setPriceRules] = useState<PriceRule[]>([]);
 
   const handleCheckedChange = useCallback((key: string, count: number, itemString: string) => {
     setCheckedItemStrings(prev => ({
@@ -101,7 +107,25 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       const encodedOrderId = encodeFirestoreId(order.id);
       const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
       const docSnap = await getDoc(workshopDoc);
-      setCurrentString(docSnap.exists() ? docSnap.data().string : null);
+      const newString = docSnap.exists() ? docSnap.data().string : null;
+      setCurrentString(newString);
+
+      // Calculer les règles de prix
+      if (newString) {
+        const rules = newString.split('\n');
+        const ruleCounts: Record<string, number> = {};
+        rules.forEach((rule: string) => {
+          ruleCounts[rule] = (ruleCounts[rule] || 0) + 1;
+        });
+
+        setPriceRules(
+          Object.entries(ruleCounts)
+            .filter(([_, count]) => count > 0)
+            .map(([rule, count]) => ({ rule, count }))
+        );
+      } else {
+        setPriceRules([]);
+      }
     };
     loadCurrentString();
   }, [order.id]);
@@ -109,12 +133,12 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const handleGenerateWorkshopSheet = async () => {
     if (!order.lineItems?.length) return;
 
-    // Concaténer toutes les strings des articles cochés
+    // Ne prendre que les strings des articles cochés (count > 0)
     const allStrings = Object.values(checkedItemStrings)
+      .filter(({ count }) => count > 0)
       .flatMap(({ count, string }) => Array(count).fill(string))
       .join('\n');
 
-    // Créer un unique document avec toutes les strings
     const encodedOrderId = encodeFirestoreId(order.id);
     const workshopDoc = doc(db, 'order-workshop-detailed', encodedOrderId);
     
@@ -124,8 +148,24 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       string: allStrings
     }, { merge: true });
 
-    // Mettre à jour l'affichage
     setCurrentString(allStrings);
+
+    // Mettre à jour les règles de prix immédiatement
+    if (allStrings) {
+      const rules = allStrings.split('\n');
+      const ruleCounts: Record<string, number> = {};
+      rules.forEach((rule: string) => {
+        ruleCounts[rule] = (ruleCounts[rule] || 0) + 1;
+      });
+
+      setPriceRules(
+        Object.entries(ruleCounts)
+          .filter(([_, count]) => count > 0)
+          .map(([rule, count]) => ({ rule, count }))
+      );
+    } else {
+      setPriceRules([]);
+    }
   };
 
   if (!order.lineItems?.length) {
@@ -153,10 +193,15 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         Générer la fiche atelier
       </Button>
 
-      {currentString && (
-        <Paper withBorder p="xs">
-          <Text>{currentString}</Text>
-        </Paper>
+      {priceRules.length > 0 && (
+        <SimpleGrid cols={3} spacing="xs">
+          {priceRules.map(({ rule, count }) => (
+            <Paper key={rule} withBorder p="xs" radius="md">
+              <Text size="sm" fw={500}>{rule}</Text>
+              <Text size="xs" c="dimmed">Quantité : {count}</Text>
+            </Paper>
+          ))}
+        </SimpleGrid>
       )}
     </Stack>
   );
