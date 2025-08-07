@@ -48,15 +48,17 @@ function OrderItem({ item, orderId, index }: OrderItemProps) {
     versoFile
   ].filter(Boolean);
 
+  if (checkedCount === 0) {
+    return null;
+  }
+
   return (
     <Paper withBorder p="xs">
       <Group justify="space-between">
         <Text>{displayParts.join(' - ')}</Text>
-        {checkedCount > 0 && (
-          <Badge color="blue" variant="light">
-            {checkedCount} {checkedCount > 1 ? 'articles cochés' : 'article coché'}
-          </Badge>
-        )}
+        <Badge color="blue" variant="light">
+          {checkedCount} {checkedCount > 1 ? 'articles cochés' : 'article coché'}
+        </Badge>
       </Group>
     </Paper>
   );
@@ -69,7 +71,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
 
   return (
     <Stack gap="xs">
-      {order.lineItems.map((item, index) => (
+      {order.lineItems.filter(item => !item.isCancelled).map((item, index) => (
         <OrderItem 
           key={index} 
           item={item} 
