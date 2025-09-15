@@ -176,22 +176,9 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       setPriceRules(prev => prev.map(rule => {
         if (!rule.searchString || !newString) return { ...rule, count: 0 };
 
-        // Compter les occurrences
-        const lines = newString.split('\n');
-        const count = lines.filter((line: string) => line.includes(rule.searchString)).length;
-
-        // Debug pour DTG
-        if (rule.searchString.includes('DTG')) {
-          const matchingLines = lines.filter((line: string) => line.includes(rule.searchString));
-          console.log(`Règle '${rule.searchString}' :`, {
-            count,
-            matchingLines
-          });
-          // Afficher chaque ligne qui contient la règle
-          matchingLines.forEach((line: string, index: number) => {
-            console.log(`  Match ${index + 1}:`, line);
-          });
-        }
+        // Compter les occurrences avec regex (comme dans handleGenerateWorkshopSheet)
+        // pour tous les termes de manière cohérente
+        const count = (newString.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
 
         return { ...rule, count };
       }));
