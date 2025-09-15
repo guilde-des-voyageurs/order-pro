@@ -1,10 +1,11 @@
-import { Title, Stack, Paper, Text, Button, Box, Grid } from '@mantine/core';
+import { Title, Stack, Paper, Text, Button, Box, Grid, Group } from '@mantine/core';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 import { db } from '@/firebase/db';
-import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
+import { BatchBalance } from '@/components/BatchBalance/BatchBalance';
 
 interface PriceRule {
   id: string;
@@ -94,6 +95,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
   const [currentString, setCurrentString] = useState<string | null>(null);
   const [priceRules, setPriceRules] = useState<PriceRule[]>([]);
+  const [balance, setBalance] = useState<number>(0);
 
   // Charger toutes les règles de prix
   useEffect(() => {
@@ -152,6 +154,20 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   // Réinitialiser les states quand on change de commande
   useEffect(() => {
     setCheckedItemStrings({});
+  }, [order.id]);
+  
+  // Charger la balance depuis Firebase
+  useEffect(() => {
+    const encodedOrderId = encodeFirestoreId(order.id);
+    const unsubscribe = onSnapshot(doc(db, 'BillingNotesBatch', encodedOrderId), (doc) => {
+      if (doc.exists()) {
+        setBalance(doc.data().balance || 0);
+      } else {
+        setBalance(0);
+      }
+    });
+    
+    return () => unsubscribe();
   }, [order.id]);
 
   // Charger la string actuelle du document
@@ -288,12 +304,26 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   </Text>
                 ))}
               {priceRules.some(rule => rule.price && rule.count) && (
-                <Text mt="md" fw={700} size="lg">
-                  Total HT : {priceRules
-                    .filter(rule => (rule.count || 0) > 0)
-                    .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
-                    .toFixed(2)}€
-                </Text>
+                <Stack gap="xs" mt="md">
+                  <Text fw={700} size="lg">
+                    Sous-total HT : {priceRules
+                      .filter(rule => (rule.count || 0) > 0)
+                      .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
+                      .toFixed(2)}€
+                  </Text>
+                  
+                  <Group align="center">
+                    <BatchBalance orderId={order.id} />
+                  </Group>
+                  
+                  <Text fw={700} size="xl" c="blue">
+                    Total HT : {(
+                      priceRules
+                        .filter(rule => (rule.count || 0) > 0)
+                        .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0) + balance
+                    ).toFixed(2)}€
+                  </Text>
+                </Stack>
               )}
             </Paper>
           </Grid.Col>

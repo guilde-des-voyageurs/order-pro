@@ -295,16 +295,7 @@ export function StockInvoicesPage() {
 
             {currentOrder && (
               <Stack gap="md">
-                <Paper withBorder p="md">
-                  <Stack gap="md">
-                    
-                    {currentOrder && <OrderItemsList order={currentOrder} />}
-                    
-                  
-                  </Stack>
-                </Paper>
-
-                {/* Tableau principal */}
+                {/* Bloc avec numéro de commande, suivi des articles, balance, etc. (déplacé vers le haut) */}
                 <Paper withBorder p="md">
                   <Stack gap="md">
                     <Group justify="space-between" align="center">
@@ -312,52 +303,51 @@ export function StockInvoicesPage() {
                         <Text fw={500} size="lg">{currentOrder?.name}</Text>
                         <TextileProgress orderId={encodeFirestoreId(currentOrder?.id || '')} />
                       </Group>
-                      <Group gap="xl">
-                        <BatchBalance orderId={currentOrder?.id || ''} />
-                        <Group>
-                          <Button
-                            variant="light"
-                            leftSection={<IconCalculator size={16} />}
-                            onClick={calculateTotal}
-                          >
-                            Calculer le total
-                          </Button>
-                          <Text fw={700}>
-                            Total : {totalAmount > 0 ? `${totalAmount.toFixed(2)}€` : '-'}
-                          </Text>
-                        </Group>
-                      </Group>
+                      {/* Balance supprimée d'ici car intégrée au Résumé d'atelier */}
                       <BillingNoteInput orderId={currentOrder?.id || ''} />
                     </Group>
-
-                    <Table>
-                      <Table.Thead>
-                        <Table.Tr>
-                          <Table.Th>Textile</Table.Th>
-                          <Table.Th>Article</Table.Th>
-                          <Table.Th>Quantité</Table.Th>
-                          <Table.Th>Prix</Table.Th>
-                          <Table.Th>Calcul</Table.Th>
-                        </Table.Tr>
-                      </Table.Thead>
-                      <Table.Tbody>
-                        {currentOrder?.lineItems?.map((item, index) => (
-                          <LineItemRow
-                            key={index}
-                            item={item}
-                            index={index}
-                            orderId={currentOrder?.id || ''}
-                            rules={rules}
-                            onPriceCalculated={(price) => {
-                              itemPrices.current.set(index, price);
-                            }}
-                          />
-                        ))}
-                      </Table.Tbody>
-
-                    </Table>
                   </Stack>
                 </Paper>
+
+                {/* Résumé d'atelier */}
+                <Paper withBorder p="md">
+                  <Stack gap="md">                    
+                    {currentOrder && <OrderItemsList order={currentOrder} />}
+                  </Stack>
+                </Paper>
+                
+                {/* Calcul des prix en arrière-plan sans utiliser le composant Table */}
+                <div style={{ display: 'none' }}>
+                  {currentOrder?.lineItems?.map((item, index) => {
+                    // Calculer le prix pour chaque article sans afficher de composant
+                    if (!item.isCancelled) {
+                      const sku = item.sku || '';
+                      const [color, size] = (item.variantTitle || '').split(' / ');
+                      
+                      // Fichiers d'impression
+                      const printFile = item.variant?.metafields?.find(
+                        m => m.namespace === 'custom' && m.key === 'fichier_d_impression'
+                      )?.value || '';
+                      const versoFile = item.variant?.metafields?.find(
+                        m => m.namespace === 'custom' && m.key === 'verso_impression'
+                      )?.value || '';
+                      
+                      // Construire la chaîne pour le calcul du prix
+                      const itemString = [
+                        `${sku} - ${color || ''}`,
+                        printFile,
+                        versoFile
+                      ].filter(Boolean).join(' - ');
+                      
+                      // Calculer le prix et le stocker
+                      const price = calculateItemPrice(itemString, rules);
+                      itemPrices.current.set(index, price);
+                    } else {
+                      itemPrices.current.set(index, 0);
+                    }
+                    return null; // Ne rien rendre dans le DOM
+                  })}
+                </div>
               </Stack>
             )}
           </Stack>
