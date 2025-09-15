@@ -1,1 +1,1 @@
-export const APP_VERSION = '0.1.9 - Détails d\'atelier';
+export const APP_VERSION = '0.2 - Facturation simplifiée;
