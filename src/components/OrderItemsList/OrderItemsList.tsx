@@ -193,8 +193,8 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         if (!rule.searchString || !newString) return { ...rule, count: 0 };
 
         // Compter les occurrences avec regex (comme dans handleGenerateWorkshopSheet)
-        // pour tous les termes de manière cohérente
-        const count = (newString.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        // pour tous les termes de manière cohérente, insensible à la casse
+        const count = (newString.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length;
 
         return { ...rule, count };
       }));
@@ -236,7 +236,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
     // Mettre à jour le compteur des règles
     setPriceRules(prev => prev.map(rule => ({
       ...rule,
-      count: allStrings ? (allStrings.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length : 0
+      count: allStrings ? (allStrings.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length : 0
     })));
   };
 
@@ -292,6 +292,19 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
             <Paper p="xs" withBorder>
               {priceRules
                 .filter(rule => (rule.count || 0) > 0)
+                .sort((a, b) => {
+                  // Extraire le type de produit (ex: CREATOR, DRUMMER, etc.)
+                  const productA = a.searchString.split(' ')[0];
+                  const productB = b.searchString.split(' ')[0];
+                  
+                  // D'abord trier par type de produit
+                  if (productA !== productB) {
+                    return productA.localeCompare(productB);
+                  }
+                  
+                  // Ensuite par la chaîne complète
+                  return a.searchString.localeCompare(b.searchString);
+                })
                 .map(rule => (
                   <Text key={rule.id}>
                     {rule.count || 0}x {rule.searchString}
