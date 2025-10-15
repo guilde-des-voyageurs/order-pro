@@ -1,4 +1,5 @@
-import { Title, Stack, Paper, Text, Button, Box, Grid, Group } from '@mantine/core';
+import { Title, Stack, Paper, Text, Button, Box, Grid, Group, Alert } from '@mantine/core';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
@@ -289,8 +290,43 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         {/* Règles de prix (colonne droite) */}
         {priceRules.some(rule => (rule.count || 0) > 0) && (
           <Grid.Col span={{ base: 12, md: 6 }}>
-            <Paper p="xs" withBorder>
-              {priceRules
+            <Stack gap="md">
+              {(() => {
+                // Détecter les termes manquants
+                if (!currentString) return null;
+                
+                const lines = currentString.split('\n').filter(line => line.trim());
+                const uniqueTerms = [...new Set(lines)];
+                const missingTerms: string[] = [];
+                
+                uniqueTerms.forEach(term => {
+                  // Vérifier si ce terme a une règle de prix correspondante
+                  const hasRule = priceRules.some(rule => 
+                    rule.searchString && term.includes(rule.searchString)
+                  );
+                  
+                  if (!hasRule) {
+                    missingTerms.push(term);
+                  }
+                });
+                
+                if (missingTerms.length > 0) {
+                  return (
+                    <Alert icon={<IconAlertTriangle size="1rem" />} color="red" title="Règles de prix manquantes">
+                      <Text size="sm" mb="xs">Les termes suivants n'ont pas de règle de prix définie :</Text>
+                      <Stack gap="xs">
+                        {missingTerms.map((term, i) => (
+                          <Text key={i} size="sm" fw={500}>• {term}</Text>
+                        ))}
+                      </Stack>
+                    </Alert>
+                  );
+                }
+                return null;
+              })()}
+              
+              <Paper p="xs" withBorder>
+                {priceRules
                 .filter(rule => (rule.count || 0) > 0)
                 .sort((a, b) => {
                   // Extraire le type de produit (ex: CREATOR, DRUMMER, etc.)
@@ -372,7 +408,8 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   </Text>
                 </Stack>
               )}
-            </Paper>
+              </Paper>
+            </Stack>
           </Grid.Col>
         )}
       </Grid>

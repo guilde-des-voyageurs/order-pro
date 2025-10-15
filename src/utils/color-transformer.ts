@@ -47,6 +47,9 @@ export const colorMappings: { [key: string]: ColorMapping } = {
   },
   'Noir': {
     internalName: 'Black'
+  },
+  'Mocha': {
+    internalName: 'Chocolat'
   }
 };
 
