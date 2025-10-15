@@ -78,11 +78,11 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         },
         {
           href: '/textile',
-          label: 'Textile',
+          label: 'Textile à commander',
         },
         {
           href: '/facturation-v2',
-          label: 'Facturation V2',
+          label: 'Facturation',
         },
       ],
     },
@@ -91,15 +91,19 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       items: [
         {
           href: '/batch',
-          label: `Stock (${stockOrdersCount})`
+          label: `Batch en cours (${stockOrdersCount})`
         },
         {
           href: '/textile-batch',
-          label: 'Textile Batch'
+          label: 'Textile à commander'
         },
         {
           href: '/stock-invoices',
-          label: 'Facturation Stock',
+          label: 'Facturation',
+        },
+        {
+          href: '/archived-batch',
+          label: 'Batchs archivés',
         },
       ],
     },
