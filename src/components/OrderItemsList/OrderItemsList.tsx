@@ -318,6 +318,40 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                 ))}
               {priceRules.some(rule => rule.price && rule.count) && (
                 <Stack gap="xs" mt="md">
+                  {(() => {
+                    // Termes qui identifient une IMPRESSION (pas un article)
+                    const impressionTerms = ['DTF-CUI', 'DTF-OPA', 'DTF-VR1', 'DTF-VR2', 'DTG-CUI', 'DTG-OPA', 'DTG-VR1', 'DTG-VR2', 'MARQUE-CUI', 'MARQUE-TSHIRT-CUI', 'MARQUE-TSHIRT-VR1', 'MARQUE-VR1'];
+                    
+                    // Compter à partir de la liste affichée (priceRules avec count)
+                    const activeRules = priceRules.filter(rule => (rule.count || 0) > 0);
+                    
+                    let articlesCount = 0;
+                    let impressionsCount = 0;
+                    
+                    activeRules.forEach(rule => {
+                      const count = rule.count || 0;
+                      // Vérifier si le searchString EST un terme d'impression (match exact)
+                      const isImpression = impressionTerms.includes(rule.searchString);
+                      
+                      if (isImpression) {
+                        impressionsCount += count;
+                      } else {
+                        articlesCount += count;
+                      }
+                    });
+                    
+                    return (
+                      <>
+                        <Text fw={600} size="md" c="dimmed">
+                          Articles : {articlesCount}
+                        </Text>
+                        <Text fw={600} size="md" c="dimmed">
+                          Impressions : {impressionsCount}
+                        </Text>
+                      </>
+                    );
+                  })()}
+                  
                   <Text fw={700} size="lg">
                     Sous-total HT : {priceRules
                       .filter(rule => (rule.count || 0) > 0)
