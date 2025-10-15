@@ -89,14 +89,30 @@ export const ordersService = {
   async syncOrders(orders: ShopifyOrder[]): Promise<void> {
     console.log('💾 Préparation de la synchronisation...');
     
-    // Filtrer uniquement #1465 et les commandes annulées
-    const excludedOrders = orders.filter(order => order.name === '#1465');
+    // Tags à exclure de la synchronisation
+    const EXCLUDED_TAGS = ['no-order-pro', 'precommande'];
+    
+    // Filtrer les commandes exclues
+    const excludedOrders = orders.filter(order => 
+      order.name === '#1465' || 
+      order.tags?.some(tag => EXCLUDED_TAGS.includes(tag.toLowerCase()))
+    );
+    
     if (excludedOrders.length > 0) {
-      console.log('❌ Commande exclue :', excludedOrders.map(order => order.name));
+      console.log('❌ Commandes exclues :');
+      excludedOrders.forEach(order => {
+        const excludedTags = order.tags?.filter(tag => EXCLUDED_TAGS.includes(tag.toLowerCase())) || [];
+        const reason = order.name === '#1465' ? 'commande #1465' : `tags: ${excludedTags.join(', ')}`;
+        console.log(`   - ${order.name} (${reason})`);
+      });
     }
     
-    // Synchroniser TOUTES les commandes non annulées (y compris celles déjà expédiées)
-    const ordersToSync = orders.filter(order => !order.cancelledAt && order.name !== '#1465');
+    // Synchroniser TOUTES les commandes non annulées et sans tags exclus (y compris celles déjà expédiées)
+    const ordersToSync = orders.filter(order => 
+      !order.cancelledAt && 
+      order.name !== '#1465' &&
+      !order.tags?.some(tag => EXCLUDED_TAGS.includes(tag.toLowerCase()))
+    );
     
     const fulfilledCount = ordersToSync.filter(o => o.displayFulfillmentStatus?.toLowerCase() === 'fulfilled').length;
     const unfulfilledCount = ordersToSync.length - fulfilledCount;
