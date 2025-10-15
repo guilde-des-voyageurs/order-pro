@@ -88,39 +88,30 @@ export const ordersService = {
    */
   async syncOrders(orders: ShopifyOrder[]): Promise<void> {
     console.log('💾 Préparation de la synchronisation...');
-    // Filtrer les commandes non annulées et exclure #1465
+    
+    // Filtrer uniquement #1465 et les commandes annulées
     const excludedOrders = orders.filter(order => order.name === '#1465');
     if (excludedOrders.length > 0) {
       console.log('❌ Commande exclue :', excludedOrders.map(order => order.name));
     }
-    const activeOrders = orders.filter(order => !order.cancelledAt && order.name !== '#1465');
-    console.log(`🔄 Début de la synchronisation de ${activeOrders.length} commandes actives sur ${orders.length} commandes totales`);
-    console.log('💾 Préparation du batch d’écriture...');
+    
+    // Synchroniser TOUTES les commandes non annulées (y compris celles déjà expédiées)
+    const ordersToSync = orders.filter(order => !order.cancelledAt && order.name !== '#1465');
+    
+    const fulfilledCount = ordersToSync.filter(o => o.displayFulfillmentStatus?.toLowerCase() === 'fulfilled').length;
+    const unfulfilledCount = ordersToSync.length - fulfilledCount;
+    
+    console.log(`🔄 Synchronisation de ${ordersToSync.length} commandes sur ${orders.length} totales`);
+    console.log(`   📦 ${unfulfilledCount} en cours | ✅ ${fulfilledCount} expédiées`);
+    console.log('💾 Préparation du batch d\'écriture...');
     
     const batch = writeBatch(db);
     const ordersRef = collection(db, ORDERS_COLLECTION);
     console.log('💾 Collection cible :', ORDERS_COLLECTION);
 
-    activeOrders.forEach((order) => {
-      const formatDate = (date: string) => {
-        return new Date(date).toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      };
-
-      console.log(`
-📦 Commande ${order.name}:
-- ID: ${order.id}
-- Créée le: ${formatDate(order.createdAt)}
-- Annulée le: ${order.cancelledAt}
-- Statut: ${order.displayFulfillmentStatus}
-- Prix total: ${order.totalPrice} ${order.totalPriceCurrency}
-- Nb articles: ${order.lineItems?.length || 0}
-      `);
+    ordersToSync.forEach((order) => {
+      const statusIcon = order.displayFulfillmentStatus?.toLowerCase() === 'fulfilled' ? '✅' : '📦';
+      console.log(`${statusIcon} ${order.name} | ${order.displayFulfillmentStatus} | ${order.lineItems?.length || 0} articles`);
 
       const sanitizedId = sanitizeShopifyId(order.id);
       const docRef = doc(ordersRef, sanitizedId);
@@ -163,9 +154,7 @@ export const ordersService = {
         synced_at: new Date().toISOString()
       };
 
-      console.log('📝 Données à sauvegarder:', JSON.stringify(rawOrderData, null, 2));
-
-      // Sauvegarder la commande
+      // Sauvegarder la commande (écrase les données existantes pour mettre à jour le statut)
       batch.set(docRef, rawOrderData);
 
       // Initialiser le document textile-progress-v2
