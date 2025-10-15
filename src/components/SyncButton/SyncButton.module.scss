@@ -1,0 +1,15 @@
+.syncButton {
+  background-color: rgb(240, 213, 198);
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 15px;
+  height: 54px;
+  font-weight: bold;
+  color: rgb(170, 84, 34);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: rgb(245, 217, 192);
+    color: rgb(146, 67, 21);
+  }
+}

@@ -121,17 +121,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
-        <div className={styles.menu_header}>
-          <Image
-            className={styles.menu_logo}
-            src="/runesdechene.png"
-            alt="Runes de Chêne"
-            width={150}
-            height={62}
-            priority
-          />
-          <div className={styles.version}>v{APP_VERSION}</div>
-        </div>
         <div className={styles.menu_sync}>
           <SyncButton />
         </div>

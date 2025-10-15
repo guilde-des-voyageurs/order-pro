@@ -13,35 +13,14 @@
     width: $app-menu-width;
     padding-inline: 24px;
     padding-block: 20px;
-    background-color: white;
+    background-color: rgb(253, 251, 250);
+    border-right: 1px solid rgba(60,50,50,0.1);
     display: flex;
     flex-direction: column;
 
-    &_header {
-      display: flex;
-      flex-direction: column;
-      align-items: left;
-      gap: 4px;
-    }
-
-    &_logo {
-      height: 62px;
-      object-fit: contain;
-      margin-bottom: 32px;
-      opacity: 0.9;
-    }
-
-    .version {
-      position: absolute;
-      right: 15px;
-      top: 40px;
-      font-size: 13px;
-      color: #646d6c;
-      margin-top: -8px;
-    }
-
     &_sync {
       margin-bottom: 20px;
+      margin-top: 0;
     }
 
     &_links {
@@ -83,13 +62,13 @@
         transition: all 0.2s ease;
 
         &:hover {
-          background-color: var(--mantine-color-gray-0);
-          color: var(--mantine-color-dark-8);
+          background-color: rgb(241, 228, 217);
+          color: rgb(158, 88, 26);
         }
 
         &.active {
-          background-color: var(--mantine-color-blue-0);
-          color: var(--mantine-color-blue-7);
+          background-color: rgb(241, 228, 217);
+          color: rgb(158, 88, 26);
           font-weight: 600;
         }
       }

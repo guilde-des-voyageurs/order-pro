@@ -8,6 +8,29 @@
   border-bottom: 1px solid var(--mantine-color-gray-2);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
   z-index: 100;
+
+  .rightSection {
+    margin-left: auto;
+  }
+
+  .activeButton {
+    background-color: rgb(240, 213, 198);
+    color: rgb(170, 84, 34);
+    font-weight: 600;
+
+    &:hover {
+      background-color: rgb(245, 217, 192);
+    }
+  }
+
+  .inactiveButton {
+    color: rgb(170, 84, 34);
+
+    &:hover {
+      background-color: rgb(240, 213, 198);
+    }
+  }
 }

@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
 import { fetchOrdersApiAction } from '@/actions/fetch-orders-api-action';
 import { ordersService } from '@/firebase/services/orders';
+import styles from './SyncButton.module.scss';
 
 export function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -35,15 +36,17 @@ export function SyncButton() {
   };
 
   return (
-    <Tooltip label="Synchroniser les commandes">
-      <Button
-        variant="light"
-        onClick={handleSync}
-        loading={isSyncing}
-        leftSection={<IconRefresh size={16} />}
-      >
-        Synchroniser
-      </Button>
-    </Tooltip>
+    <Button
+      className={styles.syncButton}
+      variant="light"
+      onClick={handleSync}
+      loading={isSyncing}
+      leftSection={<IconRefresh size={16} />}
+      fullWidth
+      size="md"
+      loaderProps={{ color: 'rgb(170, 84, 34)' }}
+    >
+      Synchroniser les commandes
+    </Button>
   );
 }
