@@ -49,7 +49,7 @@ interface ShopifyResponse {
           variant: {
             id: string;
             title: string | null;
-            selectedOptions: Array<{
+            selectedOptions?: Array<{
               name: string;
               value: string;
             }> | null;
@@ -230,6 +230,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
 
     return orders;
   } catch (error) {
+    console.error('❌ Erreur lors de la synchronisation:', error);
     throw new Error('Failed to fetch orders from Shopify. Please check your API credentials and try again.');
   }
 };

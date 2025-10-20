@@ -10,6 +10,7 @@ import { TextileProgress } from '@/components/TextileProgress/TextileProgress';
 import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
+import { CleanVariantsButton } from '@/components/CleanVariantsButton/CleanVariantsButton';
 import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
@@ -47,10 +48,16 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <InvoiceCheckbox 
-              orderId={encodeFirestoreId(order.id)} 
-              readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
-            />
+            <Group gap="xs">
+              <InvoiceCheckbox 
+                orderId={encodeFirestoreId(order.id)} 
+                readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
+              />
+              <CleanVariantsButton 
+                orderId={encodeFirestoreId(order.id)}
+                orderName={order.name}
+              />
+            </Group>
           </div>
         </div>
 

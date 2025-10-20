@@ -2,9 +2,25 @@ import { encodeFirestoreId } from './firestore-helpers';
 
 /**
  * Extrait les selectedOptions depuis un lineItem Shopify
+ * Note: selectedOptions n'est pas disponible dans l'API, on parse variantTitle à la place
  */
 export const getSelectedOptions = (item: any): Array<{name: string, value: string}> | undefined => {
-  return item?.variant?.selectedOptions || undefined;
+  // Si selectedOptions existe (cas futur si Shopify le supporte)
+  if (item?.variant?.selectedOptions && item.variant.selectedOptions.length > 0) {
+    return item.variant.selectedOptions;
+  }
+  
+  // Fallback: parser le variantTitle et créer un tableau d'options
+  if (item?.variantTitle) {
+    const parts = item.variantTitle.split(' / ').filter((p: string) => p.trim());
+    // Créer des options génériques avec des noms basés sur la position
+    return parts.map((value: string, index: number) => ({
+      name: index === 0 ? 'Couleur' : index === 1 ? 'Taille' : `Option${index + 1}`,
+      value: value.trim()
+    }));
+  }
+  
+  return undefined;
 };
 
 /**
@@ -12,14 +28,14 @@ export const getSelectedOptions = (item: any): Array<{name: string, value: strin
  */
 export const getColorFromVariant = (item: any): string => {
   const selectedOptions = getSelectedOptions(item);
-  if (selectedOptions) {
+  if (selectedOptions && selectedOptions.length > 0) {
     const colorOption = selectedOptions.find(opt => 
       opt.name.toLowerCase().includes('couleur') || opt.name.toLowerCase().includes('color')
     );
-    return colorOption?.value || 'no-color';
+    return colorOption?.value || selectedOptions[0].value || 'no-color';
   }
-  // Fallback: parser le variantTitle
-  return item.variantTitle?.split(' / ')[0] || 'no-color';
+  // Fallback direct sur variantTitle
+  return item.variantTitle?.split(' / ')[0]?.trim() || 'no-color';
 };
 
 /**
@@ -27,14 +43,14 @@ export const getColorFromVariant = (item: any): string => {
  */
 export const getSizeFromVariant = (item: any): string => {
   const selectedOptions = getSelectedOptions(item);
-  if (selectedOptions) {
+  if (selectedOptions && selectedOptions.length > 1) {
     const sizeOption = selectedOptions.find(opt => 
       opt.name.toLowerCase().includes('taille') || opt.name.toLowerCase().includes('size')
     );
-    return sizeOption?.value || 'no-size';
+    return sizeOption?.value || selectedOptions[1].value || 'no-size';
   }
-  // Fallback: parser le variantTitle
-  return item.variantTitle?.split(' / ')[1] || 'no-size';
+  // Fallback direct sur variantTitle
+  return item.variantTitle?.split(' / ')[1]?.trim() || 'no-size';
 };
 
 export const calculateGlobalVariantIndex = (

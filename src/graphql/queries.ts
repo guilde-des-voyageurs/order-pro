@@ -15,7 +15,7 @@ query {
     first: 50, 
     sortKey: CREATED_AT,
     reverse: true,
-    query: "created_at:>='2025-09-01'"
+    query: "created_at:>='2025-10-01'"
   ) {
     nodes {
       id
@@ -47,10 +47,6 @@ query {
           variant {
             id
             title
-            selectedOptions {
-              name
-              value
-            }
             metafields(first: 20) {
               edges {
                 node {

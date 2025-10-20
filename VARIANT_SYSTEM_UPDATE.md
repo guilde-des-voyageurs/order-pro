@@ -7,7 +7,8 @@ Le système précédent ne supportait que **2 niveaux de variantes** (Couleur / 
 ## ✅ Modifications apportées
 
 ### 1. **Requête GraphQL** (`src/graphql/queries.ts`)
-- ✅ Ajout de `selectedOptions` dans la requête pour récupérer **toutes** les options de variantes
+- ⚠️ `selectedOptions` n'est pas disponible dans l'API Shopify (cause des erreurs)
+- ✅ Solution : Parser le `variantTitle` pour extraire **toutes** les options
 - Permet de supporter N niveaux au lieu de seulement 2
 
 ### 2. **Types TypeScript** (`src/types/shopify.ts`)
@@ -22,13 +23,19 @@ Le système précédent ne supportait que **2 niveaux de variantes** (Couleur / 
 
 #### Nouvelles fonctions helpers:
 ```typescript
-// Extrait les selectedOptions depuis un lineItem
+// Parse le variantTitle et crée un tableau d'options
+// Exemple: "Terra Cotta / XS / Coton" → 
+// [
+//   {name: 'Couleur', value: 'Terra Cotta'},
+//   {name: 'Taille', value: 'XS'},
+//   {name: 'Option3', value: 'Coton'}
+// ]
 getSelectedOptions(item)
 
-// Extrait la couleur (avec fallback sur variantTitle)
+// Extrait la couleur (première option)
 getColorFromVariant(item)
 
-// Extrait la taille (avec fallback sur variantTitle)
+// Extrait la taille (deuxième option)
 getSizeFromVariant(item)
 ```
 
