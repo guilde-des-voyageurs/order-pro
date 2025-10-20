@@ -42,6 +42,9 @@ export const colorMappings: { [key: string]: ColorMapping } = {
   'Prune': {
     internalName: 'Red Brown'
   },
+  'Chocolat': {
+    internalName: 'Mocha'
+  },
   'Bleu Indien': {
     internalName: 'India Ink Grey'
   },
