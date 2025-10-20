@@ -32,6 +32,10 @@ export interface ShopifyOrder {
       id: string;
       title: string;
       sku?: string | null;
+      selectedOptions?: Array<{
+        name: string;
+        value: string;
+      }>;
       metafields: Array<{
         namespace: string;
         key: string;

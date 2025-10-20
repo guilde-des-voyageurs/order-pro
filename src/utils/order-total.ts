@@ -1,6 +1,6 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { generateVariantId } from './variant-helpers';
+import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from './variant-helpers';
 import { encodeFirestoreId } from './firebase-helpers';
 import { HANDLING_FEE } from '@/config/billing';
 import type { Order } from '../types/order';
@@ -53,15 +53,20 @@ export async function calculateOrderTotal(order: Order, rules: PriceRule[]): Pro
       }
 
       let checkedCount = 0;
+      const selectedOptions = getSelectedOptions(item);
+      const color = getColorFromVariant(item);
+      const size = getSizeFromVariant(item);
+      
       const promises = Array.from({ length: item.quantity }, async (_, quantityIndex) => {
         try {
           const variantId = generateVariantId(
             `gid://shopify/Order/${order.id}`,
             item.sku || '',
-            item.variantTitle?.split(' / ')[0] || '',
-            item.variantTitle?.split(' / ')[1] || '',
+            color,
+            size,
             itemIndex,
-            quantityIndex
+            quantityIndex,
+            selectedOptions
           );
 
           const variantRef = doc(db, 'variants-ordered-v2', variantId);

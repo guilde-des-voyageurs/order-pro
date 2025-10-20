@@ -15,6 +15,7 @@ interface VariantCheckboxGroupProps {
   orderId: string;
   productIndex: number;
   disabled?: boolean;
+  selectedOptions?: Array<{name: string, value: string}>;
   lineItems?: Array<{
     sku: string;
     variantTitle?: string;
@@ -30,6 +31,7 @@ export const VariantCheckboxGroup = ({
   quantity,
   productIndex,
   disabled,
+  selectedOptions,
   lineItems = []
 }: VariantCheckboxGroupProps) => {
   const checkedCount = useCheckedVariants({
@@ -62,7 +64,8 @@ export const VariantCheckboxGroup = ({
               color,
               size,
               productIndex,
-              quantityIndex
+              quantityIndex,
+              selectedOptions
             )}
           />
         ))}

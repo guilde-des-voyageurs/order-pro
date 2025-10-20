@@ -93,8 +93,8 @@ export default function FacturationV2BatchPage() {
 
   const formatVariant = (variantTitle?: string) => {
     if (!variantTitle) return '';
-    const [color, size] = variantTitle.split(' / ');
-    return `${color} - ${size}`;
+    // Supporter N niveaux de variantes (couleur, taille, matière, etc.)
+    return variantTitle.split(' / ').join(' - ');
   };
 
   // Trier les commandes par numéro de commande

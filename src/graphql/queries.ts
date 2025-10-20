@@ -47,6 +47,10 @@ query {
           variant {
             id
             title
+            selectedOptions {
+              name
+              value
+            }
             metafields(first: 20) {
               edges {
                 node {

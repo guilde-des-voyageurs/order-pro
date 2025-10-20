@@ -49,6 +49,10 @@ interface ShopifyResponse {
           variant: {
             id: string;
             title: string | null;
+            selectedOptions: Array<{
+              name: string;
+              value: string;
+            }> | null;
             metafields: {
               edges: Array<{
                 node: {
@@ -195,6 +199,7 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
             variant: {
               id: item.variant?.id || '',
               title: item.variant?.title || '',
+              selectedOptions: item.variant?.selectedOptions || [],
               metafields: item.variant?.metafields?.edges.map(edge => ({
                 namespace: edge.node.namespace,
                 key: edge.node.key,

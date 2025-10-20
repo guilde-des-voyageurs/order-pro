@@ -14,7 +14,7 @@ import styles from './DetailedOrdersPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
-import { generateVariantId } from '@/utils/variant-helpers';
+import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
@@ -154,21 +154,25 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                     </Group>
                     <Group gap="xs">
                       {Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+                        const selectedOptions = getSelectedOptions(item);
+                        const color = getColorFromVariant(item);
+                        const size = getSizeFromVariant(item);
                         const variantId = generateVariantId(
                           encodeFirestoreId(order.id),
                           item.sku || '',
-                          item.variantTitle?.split(' / ')[0] || '',
-                          item.variantTitle?.split(' / ')[1] || '',
+                          color,
+                          size,
                           index,
-                          quantityIndex
+                          quantityIndex,
+                          selectedOptions
                         );
                         return (
                           <VariantCheckbox
                             key={variantId}
                             orderId={encodeFirestoreId(order.id)}
                             sku={item.sku || ''}
-                            color={item.variantTitle?.split(' / ')[0] || ''}
-                            size={item.variantTitle?.split(' / ')[1] || ''}
+                            color={color}
+                            size={size}
                             quantity={1}
                             productIndex={index}
                             quantityIndex={quantityIndex}

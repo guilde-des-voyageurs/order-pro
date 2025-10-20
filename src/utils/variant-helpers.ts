@@ -1,5 +1,42 @@
 import { encodeFirestoreId } from './firestore-helpers';
 
+/**
+ * Extrait les selectedOptions depuis un lineItem Shopify
+ */
+export const getSelectedOptions = (item: any): Array<{name: string, value: string}> | undefined => {
+  return item?.variant?.selectedOptions || undefined;
+};
+
+/**
+ * Extrait la couleur depuis selectedOptions ou variantTitle (fallback)
+ */
+export const getColorFromVariant = (item: any): string => {
+  const selectedOptions = getSelectedOptions(item);
+  if (selectedOptions) {
+    const colorOption = selectedOptions.find(opt => 
+      opt.name.toLowerCase().includes('couleur') || opt.name.toLowerCase().includes('color')
+    );
+    return colorOption?.value || 'no-color';
+  }
+  // Fallback: parser le variantTitle
+  return item.variantTitle?.split(' / ')[0] || 'no-color';
+};
+
+/**
+ * Extrait la taille depuis selectedOptions ou variantTitle (fallback)
+ */
+export const getSizeFromVariant = (item: any): string => {
+  const selectedOptions = getSelectedOptions(item);
+  if (selectedOptions) {
+    const sizeOption = selectedOptions.find(opt => 
+      opt.name.toLowerCase().includes('taille') || opt.name.toLowerCase().includes('size')
+    );
+    return sizeOption?.value || 'no-size';
+  }
+  // Fallback: parser le variantTitle
+  return item.variantTitle?.split(' / ')[1] || 'no-size';
+};
+
 export const calculateGlobalVariantIndex = (
   products: Array<{
     sku: string;
@@ -71,14 +108,27 @@ export const generateVariantId = (
   color: string | null, 
   size: string | null,
   productIndex: number,
-  lineItemIndex?: number
+  lineItemIndex?: number,
+  selectedOptions?: Array<{name: string, value: string}>
 ): string => {
   // Vérifier que le SKU n'est pas vide
   if (!sku?.trim()) {
     throw new Error('SKU cannot be empty');
   }
   
-  // Nettoyer les valeurs
+  // Si selectedOptions est fourni, utiliser toutes les options pour générer l'ID
+  if (selectedOptions && selectedOptions.length > 0) {
+    // Trier les options par nom pour garantir un ordre cohérent
+    const sortedOptions = selectedOptions
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(opt => opt.value.trim())
+      .join('--');
+    
+    return `${orderId}--${sku}--${sortedOptions}--${productIndex}--${lineItemIndex ?? 0}`;
+  }
+  
+  // Fallback pour la compatibilité avec l'ancien système (2 niveaux uniquement)
   const cleanColor = color?.trim() || 'no-color';
   const cleanSize = size?.trim() || 'no-size';
   

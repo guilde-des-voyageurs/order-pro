@@ -108,7 +108,7 @@ export function OrderDrawerContent({ order }: OrderDrawerContentProps) {
                             if (index === 0) {
                               return transformColor(variant);
                             }
-                            // Pour les autres parties (taille, etc.)
+                            // Pour les autres parties (taille, matière, etc.)
                             return variant;
                           }).join(' / ')}
                         </Text>

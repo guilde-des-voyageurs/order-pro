@@ -24,7 +24,7 @@ import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
-import { generateVariantId } from '@/utils/variant-helpers';
+import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
@@ -70,12 +70,16 @@ function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[number]) 
 }
 
 function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineItemRowProps & { onPriceCalculated: (price: number) => void }) {
-  const [color, size] = (item.variantTitle || '').split(' / ');
+  // Extraire les options de variantes
+  const selectedOptions = getSelectedOptions(item);
+  const color = getColorFromVariant(item);
+  const size = getSizeFromVariant(item);
+  
   const checkedCount = useCheckedVariants({
     orderId: orderId,
     sku: item.sku || '',
-    color: color || '',
-    size: size || '',
+    color: color,
+    size: size,
     productIndex: index,
     quantity: item.quantity,
     lineItems: [{
@@ -92,13 +96,9 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
   useEffect(() => {
     onPriceCalculated(price * checkedCount);
   }, [checkedCount, price, onPriceCalculated]);
-
+  
   // Séparer l'affichage du calcul
-  const displayString = (() => {
-    const sku = item.sku || '';
-    const [color, size] = (item.variantTitle || '').split(' / ');
-    return `${sku} - ${color || ''} - ${size || ''}`;
-  })();
+  const displayString = `${item.sku || ''} - ${color} - ${size}`;
 
   return (
     <Table.Tr style={{ opacity: item.isCancelled ? 0.5 : 1 }}>
@@ -109,18 +109,19 @@ function LineItemRow({ item, index, orderId, rules, onPriceCalculated }: LineIte
               key={quantityIndex}
               orderId={orderId}
               sku={item.sku || ''}
-              color={color || ''}
-              size={size || ''}
+              color={color}
+              size={size}
               quantity={1}
               productIndex={index}
               quantityIndex={quantityIndex}
               variantId={generateVariantId(
                 encodeFirestoreId(orderId),
                 item.sku || '',
-                color || '',
-                size || '',
+                color,
+                size,
                 index,
-                quantityIndex
+                quantityIndex,
+                selectedOptions
               )}
               disabled={item.isCancelled === true}
             />
