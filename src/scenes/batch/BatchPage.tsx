@@ -11,6 +11,7 @@ import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import { CleanVariantsButton } from '@/components/CleanVariantsButton/CleanVariantsButton';
+import { BatchBillingNote } from '@/components/BatchBillingNote';
 import styles from './BatchPage.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
@@ -48,7 +49,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <Group gap="xs">
+            <Group gap="xs" align="flex-start">
               <InvoiceCheckbox 
                 orderId={encodeFirestoreId(order.id)} 
                 readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
@@ -57,6 +58,9 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 orderId={encodeFirestoreId(order.id)}
                 orderName={order.name}
               />
+              <Box style={{ flex: 1, maxWidth: 400 }}>
+                <BatchBillingNote orderId={encodeFirestoreId(order.id)} />
+              </Box>
             </Group>
           </div>
         </div>

@@ -1,1 +1,1 @@
-export const APP_VERSION = '0.2.1 - Synchro résiliente';
+export const APP_VERSION = '0.2.2 - Multi Niveau de variantes';
