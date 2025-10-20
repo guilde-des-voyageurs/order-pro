@@ -45,6 +45,8 @@ export const colorMappings: { [key: string]: ColorMapping } = {
   'Chocolat': {
     internalName: 'Mocha'
   },
+  // Note: Shopify traduit parfois "Chocolat" en "Mocha" dans les variantTitle
+  // On garde les deux mappings pour assurer la cohérence
   'Bleu Indien': {
     internalName: 'India Ink Grey'
   },
@@ -52,7 +54,7 @@ export const colorMappings: { [key: string]: ColorMapping } = {
     internalName: 'Black'
   },
   'Mocha': {
-    internalName: 'Chocolat'
+    internalName: 'Mocha'
   }
 };
 

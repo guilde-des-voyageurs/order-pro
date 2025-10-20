@@ -71,7 +71,12 @@ export default function TextilePage() {
         }
         
         // Extraire la couleur et la taille
-        const [color, size] = variant.variantTitle?.split(' / ') || ['', ''];
+        const parts = variant.variantTitle?.split(' / ') || ['', ''];
+        // Pour les variantes à 3+ niveaux : dernier = taille, avant-dernier = couleur
+        const size = parts.length > 0 ? parts[parts.length - 1] : '';
+        const rawColor = parts.length > 1 ? parts[parts.length - 2] : parts[0] || '';
+        // Appliquer transformColor pour avoir des noms cohérents (Mocha → Chocolat, etc.)
+        const color = transformColor(rawColor || '');
         
         // Générer l'ID encodé pour la commande
         const encodedOrderId = encodeFirestoreId(variant.orderId);
@@ -105,7 +110,12 @@ export default function TextilePage() {
           existingGroup.totalQuantity += variant.totalQuantity;
         } else {
           // Créer un nouveau groupe
-          const displayName = `${variant.sku} ${variant.variantTitle || ''}`.trim();
+          // Transformer les couleurs dans le variantTitle pour l'affichage
+          const transformedVariantTitle = variant.variantTitle
+            ?.split(' / ')
+            .map((part, index) => index === 0 ? transformColor(part) : part)
+            .join(' - ') || '';
+          const displayName = `${variant.sku} ${transformedVariantTitle}`.trim();
             
           variants.push({
             sku: variant.sku,
@@ -208,7 +218,7 @@ export default function TextilePage() {
                   ))}
                 </Group>
               </Table.Td>
-              <Table.Td>{group.totalQuantity} × {group.sku} - {transformColor(group.color)} - {group.size}</Table.Td>
+              <Table.Td>{group.totalQuantity} × {group.sku} - {group.color} - {group.size}</Table.Td>
               <Table.Td>
                 <div className={styles.orderNumbers}>
                   {group.variants.map(({ variant }) => (

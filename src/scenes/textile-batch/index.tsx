@@ -109,7 +109,12 @@ export default function TextileBatchPage() {
         }
         
         // Extraire la couleur et la taille
-        const [color, size] = variant.variantTitle?.split(' / ') || ['', ''];
+        const parts = variant.variantTitle?.split(' / ') || ['', ''];
+        // Pour les variantes à 3+ niveaux : dernier = taille, avant-dernier = couleur
+        const size = parts.length > 0 ? parts[parts.length - 1] : '';
+        const rawColor = parts.length > 1 ? parts[parts.length - 2] : parts[0] || '';
+        // Appliquer transformColor pour avoir des noms cohérents (Mocha → Chocolat, etc.)
+        const color = transformColor(rawColor || '');
         
         // Générer l'ID encodé pour la commande
         const encodedOrderId = encodeFirestoreId(variant.orderId);
@@ -369,7 +374,7 @@ export default function TextileBatchPage() {
                                     ))}
                                   </Group>
                                 </Table.Td>
-                                <Table.Td>{group.totalQuantity} × {group.sku} - {transformColor(group.color)} - {group.size}</Table.Td>
+                                <Table.Td>{group.totalQuantity} × {group.sku} - {group.color} - {group.size}</Table.Td>
                                 <Table.Td>
                                   <div className={styles.orderNumbers}>
                                     {/* Récupérer tous les tags uniques de toutes les variantes du groupe */}

@@ -1,4 +1,5 @@
 import { encodeFirestoreId } from './firestore-helpers';
+import { transformColor } from './color-transformer';
 
 /**
  * Extrait les selectedOptions depuis un lineItem Shopify
@@ -13,11 +14,26 @@ export const getSelectedOptions = (item: any): Array<{name: string, value: strin
   // Fallback: parser le variantTitle et créer un tableau d'options
   if (item?.variantTitle) {
     const parts = item.variantTitle.split(' / ').filter((p: string) => p.trim());
-    // Créer des options génériques avec des noms basés sur la position
-    return parts.map((value: string, index: number) => ({
-      name: index === 0 ? 'Couleur' : index === 1 ? 'Taille' : `Option${index + 1}`,
-      value: value.trim()
-    }));
+    // Pour les variantes à 3+ niveaux : dernier = taille, avant-dernier = couleur
+    return parts.map((value: string, index: number) => {
+      let name = `Option${index + 1}`;
+      
+      // Dernier élément = Taille
+      if (index === parts.length - 1) {
+        name = 'Taille';
+      }
+      // Avant-dernier élément = Couleur
+      else if (index === parts.length - 2) {
+        name = 'Couleur';
+      }
+      // Premier élément si seulement 1 élément = Couleur
+      else if (parts.length === 1 && index === 0) {
+        name = 'Couleur';
+      }
+      
+      // NE PAS transformer ici - on transforme uniquement à l'affichage
+      return { name, value: value.trim() };
+    });
   }
   
   return undefined;
@@ -25,32 +41,49 @@ export const getSelectedOptions = (item: any): Array<{name: string, value: strin
 
 /**
  * Extrait la couleur depuis selectedOptions ou variantTitle (fallback)
+ * Applique transformColor AU PLUS TÔT pour avoir des noms cohérents dans les IDs
+ * Pour 3+ niveaux : avant-dernier élément = couleur
  */
 export const getColorFromVariant = (item: any): string => {
   const selectedOptions = getSelectedOptions(item);
+  
   if (selectedOptions && selectedOptions.length > 0) {
     const colorOption = selectedOptions.find(opt => 
       opt.name.toLowerCase().includes('couleur') || opt.name.toLowerCase().includes('color')
     );
-    return colorOption?.value || selectedOptions[0].value || 'no-color';
+    const rawColor = colorOption?.value || 'no-color';
+    return transformColor(rawColor);
   }
+  
   // Fallback direct sur variantTitle
-  return item.variantTitle?.split(' / ')[0]?.trim() || 'no-color';
+  const parts = item.variantTitle?.split(' / ') || [];
+  if (parts.length === 0) return 'no-color';
+  
+  // Pour 3+ niveaux : avant-dernier = couleur
+  const rawColor = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+  return transformColor(rawColor?.trim() || 'no-color');
 };
 
 /**
  * Extrait la taille depuis selectedOptions ou variantTitle (fallback)
+ * Pour 3+ niveaux : dernier élément = taille
  */
 export const getSizeFromVariant = (item: any): string => {
   const selectedOptions = getSelectedOptions(item);
-  if (selectedOptions && selectedOptions.length > 1) {
+  
+  if (selectedOptions && selectedOptions.length > 0) {
     const sizeOption = selectedOptions.find(opt => 
       opt.name.toLowerCase().includes('taille') || opt.name.toLowerCase().includes('size')
     );
-    return sizeOption?.value || selectedOptions[1].value || 'no-size';
+    return sizeOption?.value || 'no-size';
   }
+  
   // Fallback direct sur variantTitle
-  return item.variantTitle?.split(' / ')[1]?.trim() || 'no-size';
+  const parts = item.variantTitle?.split(' / ') || [];
+  if (parts.length === 0) return 'no-size';
+  
+  // Dernier élément = taille
+  return parts[parts.length - 1]?.trim() || 'no-size';
 };
 
 export const calculateGlobalVariantIndex = (
@@ -132,19 +165,9 @@ export const generateVariantId = (
     throw new Error('SKU cannot be empty');
   }
   
-  // Si selectedOptions est fourni, utiliser toutes les options pour générer l'ID
-  if (selectedOptions && selectedOptions.length > 0) {
-    // Trier les options par nom pour garantir un ordre cohérent
-    const sortedOptions = selectedOptions
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map(opt => opt.value.trim())
-      .join('--');
-    
-    return `${orderId}--${sku}--${sortedOptions}--${productIndex}--${lineItemIndex ?? 0}`;
-  }
-  
-  // Fallback pour la compatibilité avec l'ancien système (2 niveaux uniquement)
+  // IMPORTANT: On utilise UNIQUEMENT color et size pour l'ID
+  // Les autres options (comme "Hibou" pour l'impression) ne doivent PAS être dans l'ID
+  // car elles ne servent qu'à informer l'imprimeur, pas à identifier la checkbox
   const cleanColor = color?.trim() || 'no-color';
   const cleanSize = size?.trim() || 'no-size';
   
