@@ -114,6 +114,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           href: '/price-rules',
           label: 'Règles de prix',
         },
+        {
+          href: '/color-mappings',
+          label: 'Règles de couleur',
+        },
       ],
     },
   ];
