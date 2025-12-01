@@ -17,9 +17,12 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
-import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
+import { IconMessage, IconAlertTriangle, IconArrowsSort, IconRefresh, IconTrash, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
+import { db } from '@/firebase/db';
+import { doc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { notifications } from '@mantine/notifications';
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -316,7 +319,219 @@ export function ArchivedBatchPage() {
   } = useArchivedBatchPresenter();
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingAll, setIsCheckingAll] = useState(false);
   const currentOrder = orders.find(o => o.id === selectedOrderId);
+
+  const recalculateCheckboxCount = async () => {
+    if (!currentOrder) return;
+
+    setIsRecalculating(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(currentOrder.id);
+      
+      console.log('=== RECALCUL DU COMPTAGE ===');
+      console.log('Order ID:', currentOrder.id);
+      console.log('Encoded ID:', encodedOrderId);
+      
+      // ÉTAPE 1 : Remettre à zéro le comptage
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount: 0,
+        checkedCount: 0,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('Comptage remis à zéro');
+      
+      // ÉTAPE 2 : Récupérer toutes les variantes cochées pour cette commande
+      const variantsQuery = query(
+        collection(db, 'variants-ordered-v2'),
+        where('orderId', '==', encodedOrderId)
+      );
+      
+      const variantsSnapshot = await getDocs(variantsQuery);
+      
+      console.log('Nombre de documents variants trouvés:', variantsSnapshot.size);
+      
+      // Compter les variantes cochées
+      let checkedCount = 0;
+      variantsSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        console.log('Variant:', docSnap.id, 'checked:', data.checked);
+        if (data.checked === true) {
+          checkedCount++;
+        }
+      });
+      
+      console.log('Checkboxes cochées comptées:', checkedCount);
+      
+      // ÉTAPE 3 : Calculer le total (articles non annulés)
+      const totalCount = currentOrder.lineItems?.reduce((sum, item) => {
+        return sum + (item.isCancelled ? 0 : item.quantity);
+      }, 0) || 0;
+      
+      console.log('Total articles (non annulés):', totalCount);
+      
+      // ÉTAPE 4 : Mettre à jour avec les nouvelles valeurs
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount,
+        checkedCount,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('Comptage mis à jour:', `${checkedCount}/${totalCount}`);
+      
+      notifications.show({
+        title: 'Comptage recalculé',
+        message: `${checkedCount}/${totalCount} checkboxes cochées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors du recalcul:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de recalculer le comptage',
+        color: 'red'
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
+  const deleteAllCheckboxes = async () => {
+    if (!currentOrder) return;
+
+    setIsDeleting(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(currentOrder.id);
+      
+      console.log('=== SUPPRESSION DES CHECKBOXES ===');
+      console.log('Order ID:', currentOrder.id);
+      console.log('Encoded ID:', encodedOrderId);
+      
+      // Récupérer toutes les variantes de cette commande
+      const variantsQuery = query(
+        collection(db, 'variants-ordered-v2'),
+        where('orderId', '==', encodedOrderId)
+      );
+      
+      const variantsSnapshot = await getDocs(variantsQuery);
+      
+      console.log('Nombre de checkboxes à supprimer:', variantsSnapshot.size);
+      
+      // Supprimer toutes les variantes
+      const deletePromises = variantsSnapshot.docs.map(docSnap => {
+        return deleteDoc(docSnap.ref);
+      });
+      
+      await Promise.all(deletePromises);
+      
+      // Remettre le comptage à zéro
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount: 0,
+        checkedCount: 0,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('Toutes les checkboxes ont été supprimées');
+      
+      notifications.show({
+        title: 'Checkboxes supprimées',
+        message: `${variantsSnapshot.size} checkboxes ont été supprimées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de supprimer les checkboxes',
+        color: 'red'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const checkAllCheckboxes = async () => {
+    if (!currentOrder) return;
+
+    setIsCheckingAll(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(currentOrder.id);
+      
+      console.log('=== COCHAGE DE TOUTES LES CHECKBOXES ===');
+      console.log('Order ID:', currentOrder.id);
+      
+      let totalChecked = 0;
+      
+      // Pour chaque article non annulé, créer/cocher toutes les checkboxes
+      const promises = currentOrder.lineItems?.flatMap((item, index) => {
+        if (item.isCancelled) return [];
+        
+        const color = getColorFromVariant(item);
+        const size = getSizeFromVariant(item);
+        const selectedOptions = getSelectedOptions(item);
+        
+        // Créer une checkbox pour chaque quantité
+        return Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+          const variantId = generateVariantId(
+            encodedOrderId,
+            item.sku || '',
+            color,
+            size,
+            index,
+            quantityIndex,
+            selectedOptions
+          );
+          
+          totalChecked++;
+          
+          return setDoc(doc(db, 'variants-ordered-v2', variantId), {
+            orderId: encodedOrderId,
+            sku: item.sku || '',
+            color,
+            size,
+            productIndex: index,
+            quantityIndex,
+            checked: true,
+            updatedAt: new Date().toISOString()
+          });
+        });
+      }) || [];
+      
+      await Promise.all(promises);
+      
+      // Calculer le total (articles non annulés)
+      const totalCount = currentOrder.lineItems?.reduce((sum, item) => {
+        return sum + (item.isCancelled ? 0 : item.quantity);
+      }, 0) || 0;
+      
+      // Mettre à jour le comptage
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount,
+        checkedCount: totalChecked,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('Toutes les checkboxes ont été cochées:', totalChecked);
+      
+      notifications.show({
+        title: 'Checkboxes cochées',
+        message: `${totalChecked} checkboxes ont été cochées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors du cochage:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de cocher toutes les checkboxes',
+        color: 'red'
+      });
+    } finally {
+      setIsCheckingAll(false);
+    }
+  };
 
   if (isLoading) {
     return <Loader />;
@@ -380,13 +595,44 @@ export function ArchivedBatchPage() {
             />
 
             {currentOrder && (
-              <div className={styles.ordersGrid}>
-                <OrderRow
-                  order={currentOrder}
-                  isSelected={false}
-                  onSelect={onSelectOrder}
-                />
-              </div>
+              <>
+                <Group justify="flex-end">
+                  <Button
+                    leftSection={<IconTrash size={16} />}
+                    variant="light"
+                    color="red"
+                    onClick={deleteAllCheckboxes}
+                    loading={isDeleting}
+                  >
+                    Supprimer toutes les checkboxes
+                  </Button>
+                  <Button
+                    leftSection={<IconCheck size={16} />}
+                    variant="light"
+                    color="green"
+                    onClick={checkAllCheckboxes}
+                    loading={isCheckingAll}
+                  >
+                    Cocher toutes les cases
+                  </Button>
+                  <Button
+                    leftSection={<IconRefresh size={16} />}
+                    variant="light"
+                    color="blue"
+                    onClick={recalculateCheckboxCount}
+                    loading={isRecalculating}
+                  >
+                    Recalculer le comptage
+                  </Button>
+                </Group>
+                <div className={styles.ordersGrid}>
+                  <OrderRow
+                    order={currentOrder}
+                    isSelected={false}
+                    onSelect={onSelectOrder}
+                  />
+                </div>
+              </>
             )}
           </Stack>
         </Paper>

@@ -4,36 +4,52 @@ import { transformColor } from './color-transformer';
 /**
  * Extrait les selectedOptions depuis un lineItem Shopify
  * Note: selectedOptions n'est pas disponible dans l'API, on parse variantTitle à la place
+ * IMPORTANT : Filtre "Variante de motif" qui ne doit pas être dans les IDs
  */
 export const getSelectedOptions = (item: any): Array<{name: string, value: string}> | undefined => {
   // Si selectedOptions existe (cas futur si Shopify le supporte)
   if (item?.variant?.selectedOptions && item.variant.selectedOptions.length > 0) {
-    return item.variant.selectedOptions;
+    // Filtrer "Variante de motif"
+    return item.variant.selectedOptions.filter((opt: any) => {
+      const name = opt.name.toLowerCase();
+      return !(name.includes('variante') && name.includes('motif'));
+    });
   }
   
   // Fallback: parser le variantTitle et créer un tableau d'options
   if (item?.variantTitle) {
     const parts = item.variantTitle.split(' / ').filter((p: string) => p.trim());
-    // Pour les variantes à 3+ niveaux : dernier = taille, avant-dernier = couleur
-    return parts.map((value: string, index: number) => {
-      let name = `Option${index + 1}`;
-      
-      // Dernier élément = Taille
-      if (index === parts.length - 1) {
-        name = 'Taille';
-      }
-      // Avant-dernier élément = Couleur
-      else if (index === parts.length - 2) {
-        name = 'Couleur';
-      }
-      // Premier élément si seulement 1 élément = Couleur
-      else if (parts.length === 1 && index === 0) {
-        name = 'Couleur';
-      }
-      
-      // NE PAS transformer ici - on transforme uniquement à l'affichage
-      return { name, value: value.trim() };
-    });
+    
+    // Liste des couleurs connues pour identifier quelle partie est la couleur
+    const knownColors = ['Black', 'French Navy', 'Stargazer', 'Vintage white', 'Raw', 'Green Bay', 
+                         'Burgundy', 'Cream', 'Dusk', 'Khaki', 'Heritage Brown', 'Glazed Green', 
+                         'Bottle Green', 'Red Brown', 'Mocha', 'India Ink Grey', 'Desert', 
+                         'Latte', 'Vert ancien', 'Bleu Marine', 'Bleu marine', 'Bordeaux', 'Noir',
+                         'Chocolat', 'Terra Cotta', 'Vert Forêt', 'Vert Antique', 'Prune', 
+                         'Bleu Azur', 'Blanc ancien', 'Ecru', 'Bleu Nuit', 'Crème', 'Nocturne', 'Kaki'];
+    
+    // Liste des tailles connues
+    const knownSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL'];
+    
+    return parts
+      .map((value: string, index: number) => {
+        const trimmedValue = value.trim();
+        let name = `Option${index + 1}`;
+        
+        // Identifier le type d'option
+        if (knownSizes.includes(trimmedValue)) {
+          name = 'Taille';
+        } else if (knownColors.some(color => color.toLowerCase() === trimmedValue.toLowerCase())) {
+          name = 'Couleur';
+        } else {
+          // Si ce n'est ni une taille ni une couleur, c'est probablement "Variante de motif"
+          name = 'Variante de motif';
+        }
+        
+        return { name, value: trimmedValue };
+      })
+      // Filtrer "Variante de motif"
+      .filter((opt: {name: string, value: string}) => opt.name !== 'Variante de motif');
   }
   
   return undefined;
@@ -42,24 +58,48 @@ export const getSelectedOptions = (item: any): Array<{name: string, value: strin
 /**
  * Extrait la couleur depuis selectedOptions ou variantTitle (fallback)
  * Applique transformColor AU PLUS TÔT pour avoir des noms cohérents dans les IDs
+ * IMPORTANT : Ignore "Variante de motif" qui est pour l'impression, pas le textile
  * Pour 3+ niveaux : avant-dernier élément = couleur
  */
 export const getColorFromVariant = (item: any): string => {
   const selectedOptions = getSelectedOptions(item);
   
   if (selectedOptions && selectedOptions.length > 0) {
-    const colorOption = selectedOptions.find(opt => 
-      opt.name.toLowerCase().includes('couleur') || opt.name.toLowerCase().includes('color')
-    );
-    const rawColor = colorOption?.value || 'no-color';
-    return transformColor(rawColor);
+    // Chercher l'option "Couleur" explicitement (en ignorant "Variante de motif")
+    const colorOption = selectedOptions.find(opt => {
+      const name = opt.name.toLowerCase();
+      // Ignorer "Variante de motif"
+      if (name.includes('variante') && name.includes('motif')) {
+        return false;
+      }
+      return name.includes('couleur') || name.includes('color');
+    });
+    if (colorOption) {
+      return transformColor(colorOption.value);
+    }
   }
   
   // Fallback direct sur variantTitle
   const parts = item.variantTitle?.split(' / ') || [];
   if (parts.length === 0) return 'no-color';
   
-  // Pour 3+ niveaux : avant-dernier = couleur
+  // Liste des couleurs connues pour identifier la couleur dans le variantTitle
+  const knownColors = ['Black', 'French Navy', 'Stargazer', 'Vintage white', 'Raw', 'Green Bay', 
+                       'Burgundy', 'Cream', 'Dusk', 'Khaki', 'Heritage Brown', 'Glazed Green', 
+                       'Bottle Green', 'Red Brown', 'Mocha', 'India Ink Grey', 'Desert', 
+                       'Latte', 'Vert ancien', 'Bleu Marine', 'Bleu marine', 'Bordeaux', 'Noir',
+                       'Chocolat', 'Terra Cotta', 'Vert Forêt', 'Vert Antique', 'Prune', 
+                       'Bleu Azur', 'Blanc ancien', 'Ecru', 'Bleu Nuit', 'Crème', 'Nocturne', 'Kaki'];
+  
+  // Chercher quelle partie correspond à une couleur connue
+  for (const part of parts) {
+    const trimmedPart = part.trim();
+    if (knownColors.some(color => color.toLowerCase() === trimmedPart.toLowerCase())) {
+      return transformColor(trimmedPart);
+    }
+  }
+  
+  // Si aucune couleur connue n'est trouvée, utiliser l'avant-dernier élément
   const rawColor = parts.length > 1 ? parts[parts.length - 2] : parts[0];
   return transformColor(rawColor?.trim() || 'no-color');
 };
