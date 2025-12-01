@@ -17,17 +17,26 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
-import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
+import { IconMessage, IconAlertTriangle, IconArrowsSort, IconRefresh, IconTrash, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
+import { db } from '@/firebase/db';
+import { doc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { notifications } from '@mantine/notifications';
 
 interface OrderRowProps {
   order: ShopifyOrder;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  onDeleteAll: (order: ShopifyOrder) => void;
+  onCheckAll: (order: ShopifyOrder) => void;
+  onRecalculate: (order: ShopifyOrder) => void;
+  isDeleting: boolean;
+  isCheckingAll: boolean;
+  isRecalculating: boolean;
 }
 
-function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+function OrderRow({ order, isSelected, onSelect, onDeleteAll, onCheckAll, onRecalculate, isDeleting, isCheckingAll, isRecalculating }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   return (
@@ -49,19 +58,53 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <Group gap="xs" align="flex-start">
-              <InvoiceCheckbox 
-                orderId={encodeFirestoreId(order.id)} 
-                readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
-              />
-              <CleanVariantsButton 
-                orderId={encodeFirestoreId(order.id)}
-                orderName={order.name}
-              />
-              <Box style={{ flex: 1, maxWidth: 400 }}>
-                <BatchBillingNote orderId={encodeFirestoreId(order.id)} />
-              </Box>
-            </Group>
+            <Stack gap="md" style={{ width: '100%' }}>
+              <Group gap="xs" align="flex-start">
+                <InvoiceCheckbox 
+                  orderId={encodeFirestoreId(order.id)} 
+                  readOnly={order.displayFinancialStatus?.toLowerCase() === 'cancelled'} 
+                />
+                <CleanVariantsButton 
+                  orderId={encodeFirestoreId(order.id)}
+                  orderName={order.name}
+                />
+                <Box style={{ flex: 1, maxWidth: 400 }}>
+                  <BatchBillingNote orderId={encodeFirestoreId(order.id)} />
+                </Box>
+              </Group>
+              <Group gap="xs">
+                <Button
+                  leftSection={<IconTrash size={16} />}
+                  variant="light"
+                  color="red"
+                  size="xs"
+                  onClick={() => onDeleteAll(order)}
+                  loading={isDeleting}
+                >
+                  Supprimer toutes les checkboxes
+                </Button>
+                <Button
+                  leftSection={<IconCheck size={16} />}
+                  variant="light"
+                  color="green"
+                  size="xs"
+                  onClick={() => onCheckAll(order)}
+                  loading={isCheckingAll}
+                >
+                  Cocher toutes les cases
+                </Button>
+                <Button
+                  leftSection={<IconRefresh size={16} />}
+                  variant="light"
+                  color="blue"
+                  size="xs"
+                  onClick={() => onRecalculate(order)}
+                  loading={isRecalculating}
+                >
+                  Recalculer le comptage
+                </Button>
+              </Group>
+            </Stack>
           </div>
         </div>
 
@@ -312,6 +355,177 @@ export function BatchPage() {
     toggleOrder 
   } = useBatchPresenter();
 
+  const [selectedOrderForActions, setSelectedOrderForActions] = useState<ShopifyOrder | null>(null);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingAll, setIsCheckingAll] = useState(false);
+
+  const recalculateCheckboxCount = async (order: ShopifyOrder) => {
+    setIsRecalculating(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(order.id);
+      
+      // ÉTAPE 1 : Remettre à zéro le comptage
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount: 0,
+        checkedCount: 0,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // ÉTAPE 2 : Récupérer toutes les variantes cochées
+      const variantsQuery = query(
+        collection(db, 'variants-ordered-v2'),
+        where('orderId', '==', encodedOrderId)
+      );
+      
+      const variantsSnapshot = await getDocs(variantsQuery);
+      
+      let checkedCount = 0;
+      variantsSnapshot.forEach(docSnap => {
+        if (docSnap.data().checked === true) {
+          checkedCount++;
+        }
+      });
+      
+      // ÉTAPE 3 : Calculer le total
+      const totalCount = order.lineItems?.reduce((sum, item) => {
+        return sum + (item.isCancelled ? 0 : item.quantity);
+      }, 0) || 0;
+      
+      // ÉTAPE 4 : Mettre à jour
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount,
+        checkedCount,
+        updatedAt: new Date().toISOString()
+      });
+      
+      notifications.show({
+        title: 'Comptage recalculé',
+        message: `${checkedCount}/${totalCount} checkboxes cochées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors du recalcul:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de recalculer le comptage',
+        color: 'red'
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
+  const deleteAllCheckboxes = async (order: ShopifyOrder) => {
+    setIsDeleting(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(order.id);
+      
+      const variantsQuery = query(
+        collection(db, 'variants-ordered-v2'),
+        where('orderId', '==', encodedOrderId)
+      );
+      
+      const variantsSnapshot = await getDocs(variantsQuery);
+      
+      const deletePromises = variantsSnapshot.docs.map(docSnap => {
+        return deleteDoc(docSnap.ref);
+      });
+      
+      await Promise.all(deletePromises);
+      
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount: 0,
+        checkedCount: 0,
+        updatedAt: new Date().toISOString()
+      });
+      
+      notifications.show({
+        title: 'Checkboxes supprimées',
+        message: `${variantsSnapshot.size} checkboxes ont été supprimées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de supprimer les checkboxes',
+        color: 'red'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const checkAllCheckboxes = async (order: ShopifyOrder) => {
+    setIsCheckingAll(true);
+    try {
+      const encodedOrderId = encodeFirestoreId(order.id);
+      
+      let totalChecked = 0;
+      
+      const promises = order.lineItems?.flatMap((item, index) => {
+        if (item.isCancelled) return [];
+        
+        const color = getColorFromVariant(item);
+        const size = getSizeFromVariant(item);
+        const selectedOptions = getSelectedOptions(item);
+        
+        return Array.from({ length: item.quantity }).map((_, quantityIndex) => {
+          const variantId = generateVariantId(
+            encodedOrderId,
+            item.sku || '',
+            color,
+            size,
+            index,
+            quantityIndex,
+            selectedOptions
+          );
+          
+          totalChecked++;
+          
+          return setDoc(doc(db, 'variants-ordered-v2', variantId), {
+            orderId: encodedOrderId,
+            sku: item.sku || '',
+            color,
+            size,
+            productIndex: index,
+            quantityIndex,
+            checked: true,
+            updatedAt: new Date().toISOString()
+          });
+        });
+      }) || [];
+      
+      await Promise.all(promises);
+      
+      const totalCount = order.lineItems?.reduce((sum, item) => {
+        return sum + (item.isCancelled ? 0 : item.quantity);
+      }, 0) || 0;
+      
+      await setDoc(doc(db, 'textile-progress-v2', encodedOrderId), {
+        totalCount,
+        checkedCount: totalChecked,
+        updatedAt: new Date().toISOString()
+      });
+      
+      notifications.show({
+        title: 'Checkboxes cochées',
+        message: `${totalChecked} checkboxes ont été cochées`,
+        color: 'green'
+      });
+    } catch (error) {
+      console.error('Erreur lors du cochage:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de cocher toutes les checkboxes',
+        color: 'red'
+      });
+    } finally {
+      setIsCheckingAll(false);
+    }
+  };
+
   if (isLoading) {
     return <Loader />;
   }
@@ -370,6 +584,12 @@ export function BatchPage() {
         type="pending"
         isReversed={isReversed}
         toggleOrder={toggleOrder}
+        onDeleteAll={deleteAllCheckboxes}
+        onCheckAll={checkAllCheckboxes}
+        onRecalculate={recalculateCheckboxCount}
+        isDeleting={isDeleting}
+        isCheckingAll={isCheckingAll}
+        isRecalculating={isRecalculating}
       />
 
       <OrderDrawer
@@ -388,7 +608,13 @@ function OrdersSection({
   onSelect, 
   type,
   isReversed,
-  toggleOrder 
+  toggleOrder,
+  onDeleteAll,
+  onCheckAll,
+  onRecalculate,
+  isDeleting,
+  isCheckingAll,
+  isRecalculating
 }: { 
   title: string;
   orders: ShopifyOrder[];
@@ -397,6 +623,12 @@ function OrdersSection({
   type: string;
   isReversed: boolean;
   toggleOrder: () => void;
+  onDeleteAll: (order: ShopifyOrder) => void;
+  onCheckAll: (order: ShopifyOrder) => void;
+  onRecalculate: (order: ShopifyOrder) => void;
+  isDeleting: boolean;
+  isCheckingAll: boolean;
+  isRecalculating: boolean;
 }) {
   return (
     <div className={styles.section}>
@@ -431,6 +663,12 @@ function OrdersSection({
               order={order}
               isSelected={selectedOrder?.id === order.id}
               onSelect={onSelect}
+              onDeleteAll={onDeleteAll}
+              onCheckAll={onCheckAll}
+              onRecalculate={onRecalculate}
+              isDeleting={isDeleting}
+              isCheckingAll={isCheckingAll}
+              isRecalculating={isRecalculating}
             />
           ))}
         </div>
