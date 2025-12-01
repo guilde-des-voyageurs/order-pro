@@ -7,6 +7,7 @@ import { db } from '@/firebase/db';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
 import { BatchBalance } from '@/components/BatchBalance/BatchBalance';
+import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 interface PriceRule {
   id: string;
@@ -27,7 +28,9 @@ interface OrderItemProps {
 
 function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & { onCheckedChange: (key: string, count: number, itemString: string) => void }) {
   const sku = item.sku || '';
-  const [color, size] = (item.variantTitle || '').split(' / ');
+  // Utiliser les helpers pour extraction correcte avec transformation de couleur
+  const color = getColorFromVariant(item);
+  const size = getSizeFromVariant(item);
   
   const checkedCount = useCheckedVariants({
     orderId: orderId,

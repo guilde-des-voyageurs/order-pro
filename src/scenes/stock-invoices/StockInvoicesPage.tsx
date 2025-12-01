@@ -25,6 +25,7 @@ import { useCheckedVariants } from '@/hooks/useCheckedVariants';
 // Utils
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
+import { transformColor } from '@/utils/color-transformer';
 
 // Types
 import type { ShopifyOrder } from '@/types/shopify';
@@ -47,9 +48,9 @@ interface OrderOptionType {
 
 // Helpers
 function formatItemString(item: NonNullable<ShopifyOrder['lineItems']>[number]) {
-  // SKU et couleur
+  // SKU et couleur (utiliser les helpers pour extraction correcte)
   const sku = item.sku || '';
-  const [color] = (item.variantTitle || '').split(' / ');
+  const color = getColorFromVariant(item);
   
   // Fichiers d'impression
   const printFile = item.variant?.metafields?.find(
@@ -323,7 +324,9 @@ export function StockInvoicesPage() {
                     // Calculer le prix pour chaque article sans afficher de composant
                     if (!item.isCancelled) {
                       const sku = item.sku || '';
-                      const [color, size] = (item.variantTitle || '').split(' / ');
+                      // Utiliser les helpers pour extraction correcte avec transformation de couleur
+                      const color = getColorFromVariant(item);
+                      const size = getSizeFromVariant(item);
                       
                       // Fichiers d'impression
                       const printFile = item.variant?.metafields?.find(
