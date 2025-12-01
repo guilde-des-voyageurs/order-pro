@@ -399,26 +399,27 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
               {priceRules.some(rule => rule.price && rule.count) && (
                 <Stack gap="xs" mt="md">
                   {(() => {
-                    // Compter à partir de la string générée (nombre de lignes)
-                    if (!currentString) return null;
-                    
-                    const lines = currentString.split('\n').filter(line => line.trim());
-                    
-                    // Debug: afficher les infos de comptage
-                    console.log('=== DEBUG COMPTAGE ===');
-                    console.log('String brute:', currentString);
-                    console.log('Nombre de lignes:', lines.length);
-                    console.log('Lignes:', lines);
+                    // Compter à partir des checkboxes cochées (checkedItemStrings)
+                    // au lieu de la string Firebase qui peut être obsolète
                     
                     // Termes qui identifient une IMPRESSION dans une ligne
                     const impressionTerms = ['DTF-CUI', 'DTF-OPA', 'DTF-VR1', 'DTF-VR2', 'DTG-CUI', 'DTG-OPA', 'DTG-VR1', 'DTG-VR2', 'MARQUE-CUI', 'MARQUE-TSHIRT-CUI', 'MARQUE-TSHIRT-VR1', 'MARQUE-VR1'];
                     
-                    // Nombre total d'articles = nombre de lignes
-                    const articlesCount = lines.length;
+                    // Générer la string virtuelle basée sur les checkboxes actuelles
+                    const virtualLines = Object.entries(checkedItemStrings)
+                      .filter(([key, { count }]) => {
+                        const [orderId, index] = key.split('-');
+                        const item = order.lineItems?.[parseInt(index)];
+                        return count > 0 && !item?.isCancelled;
+                      })
+                      .flatMap(([_, { count, string }]) => Array(count).fill(string));
+                    
+                    // Nombre total d'articles = nombre de lignes virtuelles
+                    const articlesCount = virtualLines.length;
                     
                     // Compter le nombre total d'impressions dans toutes les lignes
                     let impressionsCount = 0;
-                    lines.forEach(line => {
+                    virtualLines.forEach(line => {
                       // Compter combien de termes d'impression sont présents dans cette ligne
                       impressionTerms.forEach(term => {
                         if (line.includes(term)) {
@@ -427,8 +428,9 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                       });
                     });
                     
-                    console.log('Articles comptés:', articlesCount);
-                    console.log('Impressions comptées:', impressionsCount);
+                    console.log('=== COMPTAGE EN TEMPS RÉEL ===');
+                    console.log('Articles cochés:', articlesCount);
+                    console.log('Impressions:', impressionsCount);
                     
                     return (
                       <>
