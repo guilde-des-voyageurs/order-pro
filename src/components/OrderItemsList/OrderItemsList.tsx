@@ -295,33 +295,74 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="md">
               {(() => {
-                // Détecter les termes manquants
+                // Détecter les termes qui n'ont aucune règle de prix correspondante
                 if (!currentString) return null;
                 
                 const lines = currentString.split('\n').filter(line => line.trim());
-                const uniqueTerms = [...new Set(lines)];
-                const missingTerms: string[] = [];
+                const missingTerms = new Set<string>();
                 
-                uniqueTerms.forEach(term => {
-                  // Vérifier si ce terme a une règle de prix correspondante
-                  const hasRule = priceRules.some(rule => 
-                    rule.searchString && term.includes(rule.searchString)
-                  );
+                // Liste des couleurs connues
+                const knownColors = ['Black', 'French Navy', 'Stargazer', 'Vintage white', 'Raw', 'Green Bay', 
+                                    'Burgundy', 'Cream', 'Dusk', 'Khaki', 'Heritage Brown', 'Glazed Green', 
+                                    'Bottle Green', 'Red Brown', 'Mocha', 'India Ink Grey', 'Desert', 
+                                    'Glazed Green', 'Latte', 'Vert ancien'];
+                
+                // Termes d'impression connus
+                const impressionTerms = ['DTF-CUI', 'DTF-OPA', 'DTF-VR1', 'DTF-VR2', 'DTG-CUI', 'DTG-OPA', 
+                                        'DTG-VR1', 'DTG-VR2', 'MARQUE-CUI', 'MARQUE-TSHIRT-CUI', 
+                                        'MARQUE-TSHIRT-VR1', 'MARQUE-VR1'];
+                
+                // Analyser chaque ligne
+                lines.forEach(line => {
+                  const parts = line.split(' - ').map(p => p.trim()).filter(p => p);
                   
-                  if (!hasRule) {
-                    missingTerms.push(term);
+                  // Trouver le SKU + Couleur (les 2 premiers éléments non-impression)
+                  const nonImpressionParts = parts.filter(p => !impressionTerms.includes(p));
+                  
+                  if (nonImpressionParts.length >= 2) {
+                    // Combiner SKU + Couleur
+                    const skuColor = `${nonImpressionParts[0]} - ${nonImpressionParts[1]}`;
+                    
+                    // Vérifier si cette combinaison a une règle
+                    const hasSkuColorRule = priceRules.some(rule => 
+                      rule.searchString && rule.searchString === skuColor
+                    );
+                    
+                    if (!hasSkuColorRule) {
+                      missingTerms.add(skuColor);
+                    }
                   }
+                  
+                  // Vérifier chaque terme d'impression
+                  parts.forEach(part => {
+                    if (impressionTerms.includes(part)) {
+                      const hasImpressionRule = priceRules.some(rule => 
+                        rule.searchString && rule.searchString === part
+                      );
+                      
+                      if (!hasImpressionRule) {
+                        missingTerms.add(part);
+                      }
+                    }
+                  });
                 });
                 
-                if (missingTerms.length > 0) {
+                if (missingTerms.size > 0) {
                   return (
-                    <Alert icon={<IconAlertTriangle size="1rem" />} color="red" title="Règles de prix manquantes">
-                      <Text size="sm" mb="xs">Les termes suivants n'ont pas de règle de prix définie :</Text>
+                    <Alert icon={<IconAlertTriangle size="1rem" />} color="red" title="⚠️ Règles de prix manquantes" mb="md">
+                      <Text size="sm" mb="xs" fw={500}>
+                        Les termes suivants n'ont pas de règle de prix définie :
+                      </Text>
                       <Stack gap="xs">
-                        {missingTerms.map((term, i) => (
-                          <Text key={i} size="sm" fw={500}>• {term}</Text>
+                        {Array.from(missingTerms).sort().map((term, i) => (
+                          <Text key={i} size="sm" c="red" fw={500}>
+                            • {term}
+                          </Text>
                         ))}
                       </Stack>
+                      <Text size="xs" c="dimmed" mt="sm">
+                        💡 Ajoutez ces règles dans la collection "price-rules" de Firebase
+                      </Text>
                     </Alert>
                   );
                 }
