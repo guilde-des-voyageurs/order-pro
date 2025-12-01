@@ -8,6 +8,7 @@ import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from 'firebase/f
 import { encodeFirestoreId } from '@/utils/firestore';
 import { BatchBalance } from '@/components/BatchBalance/BatchBalance';
 import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
+import { reverseTransformColor } from '@/utils/color-transformer';
 
 interface PriceRule {
   id: string;
@@ -29,13 +30,13 @@ interface OrderItemProps {
 function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & { onCheckedChange: (key: string, count: number, itemString: string) => void }) {
   const sku = item.sku || '';
   // Utiliser les helpers pour extraction correcte avec transformation de couleur
-  const color = getColorFromVariant(item);
+  const colorEnglish = getColorFromVariant(item);
   const size = getSizeFromVariant(item);
   
   const checkedCount = useCheckedVariants({
     orderId: orderId,
     sku: sku,
-    color: color || '',
+    color: colorEnglish || '',
     size: size || '',
     productIndex: index,
     quantity: item.quantity,
@@ -57,10 +58,13 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
       m.namespace === 'custom' && m.key === 'verso_impression'
   )?.value || '';
 
-  // Calculer la string une seule fois
+  // Transformer la couleur anglaise en français pour la string de facturation
+  const colorFrench = reverseTransformColor(colorEnglish);
+
+  // Calculer la string une seule fois (avec couleur en français)
   const itemString = [
     sku,
-    color,
+    colorFrench,
     printFile,
     versoFile
   ].filter(Boolean).join(' - ');
@@ -83,7 +87,7 @@ function OrderItem({ item, orderId, index, onCheckedChange }: OrderItemProps & {
         {Array.from({ length: checkedCount })
           .map(() => [
             sku,
-            color,
+            colorFrench,
             printFile,
             versoFile
           ].filter(Boolean).join(' - '))
@@ -323,9 +327,9 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                     // Combiner SKU + Couleur
                     const skuColor = `${nonImpressionParts[0]} - ${nonImpressionParts[1]}`;
                     
-                    // Vérifier si cette combinaison a une règle
+                    // Vérifier si cette combinaison a une règle (insensible à la casse)
                     const hasSkuColorRule = priceRules.some(rule => 
-                      rule.searchString && rule.searchString === skuColor
+                      rule.searchString && rule.searchString.toLowerCase() === skuColor.toLowerCase()
                     );
                     
                     if (!hasSkuColorRule) {
@@ -333,11 +337,11 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                     }
                   }
                   
-                  // Vérifier chaque terme d'impression
+                  // Vérifier chaque terme d'impression (insensible à la casse)
                   parts.forEach(part => {
                     if (impressionTerms.includes(part)) {
                       const hasImpressionRule = priceRules.some(rule => 
-                        rule.searchString && rule.searchString === part
+                        rule.searchString && rule.searchString.toLowerCase() === part.toLowerCase()
                       );
                       
                       if (!hasImpressionRule) {

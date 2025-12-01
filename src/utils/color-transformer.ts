@@ -98,3 +98,25 @@ export function transformColor(color: string): string {
   // Si aucune correspondance n'est trouvée, retourner la couleur originale
   return cleanColor;
 }
+
+/**
+ * Transforme le nom anglais d'une couleur vers son nom français
+ * Utilisé pour la génération des strings de facturation (règles en français)
+ * @param englishColor - Le nom anglais de la couleur
+ * @returns Le nom français correspondant
+ */
+export function reverseTransformColor(englishColor: string): string {
+  if (!englishColor) return '';
+  
+  // Chercher la correspondance inverse (anglais → français)
+  const foundEntry = Object.entries(colorMappings).find(([_, mapping]) => 
+    mapping.internalName.toLowerCase() === englishColor.toLowerCase()
+  );
+  
+  if (foundEntry) {
+    return foundEntry[0]; // Retourner le nom français
+  }
+  
+  // Si pas de correspondance, retourner la couleur telle quelle
+  return englishColor;
+}
