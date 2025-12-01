@@ -284,7 +284,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
             <Stack>
               <Text>String générée :</Text>
               <Paper p="xs" withBorder>
-                <Text size="12px" c="gray">{currentString}</Text>
+                <Text size="12px" c="gray" style={{ whiteSpace: 'pre-wrap' }}>{currentString}</Text>
               </Paper>
             </Stack>
           </Grid.Col>
@@ -358,26 +358,36 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
               {priceRules.some(rule => rule.price && rule.count) && (
                 <Stack gap="xs" mt="md">
                   {(() => {
-                    // Termes qui identifient une IMPRESSION (pas un article)
+                    // Compter à partir de la string générée (nombre de lignes)
+                    if (!currentString) return null;
+                    
+                    const lines = currentString.split('\n').filter(line => line.trim());
+                    
+                    // Debug: afficher les infos de comptage
+                    console.log('=== DEBUG COMPTAGE ===');
+                    console.log('String brute:', currentString);
+                    console.log('Nombre de lignes:', lines.length);
+                    console.log('Lignes:', lines);
+                    
+                    // Termes qui identifient une IMPRESSION dans une ligne
                     const impressionTerms = ['DTF-CUI', 'DTF-OPA', 'DTF-VR1', 'DTF-VR2', 'DTG-CUI', 'DTG-OPA', 'DTG-VR1', 'DTG-VR2', 'MARQUE-CUI', 'MARQUE-TSHIRT-CUI', 'MARQUE-TSHIRT-VR1', 'MARQUE-VR1'];
                     
-                    // Compter à partir de la liste affichée (priceRules avec count)
-                    const activeRules = priceRules.filter(rule => (rule.count || 0) > 0);
+                    // Nombre total d'articles = nombre de lignes
+                    const articlesCount = lines.length;
                     
-                    let articlesCount = 0;
+                    // Compter le nombre total d'impressions dans toutes les lignes
                     let impressionsCount = 0;
-                    
-                    activeRules.forEach(rule => {
-                      const count = rule.count || 0;
-                      // Vérifier si le searchString EST un terme d'impression (match exact)
-                      const isImpression = impressionTerms.includes(rule.searchString);
-                      
-                      if (isImpression) {
-                        impressionsCount += count;
-                      } else {
-                        articlesCount += count;
-                      }
+                    lines.forEach(line => {
+                      // Compter combien de termes d'impression sont présents dans cette ligne
+                      impressionTerms.forEach(term => {
+                        if (line.includes(term)) {
+                          impressionsCount++;
+                        }
+                      });
                     });
+                    
+                    console.log('Articles comptés:', articlesCount);
+                    console.log('Impressions comptées:', impressionsCount);
                     
                     return (
                       <>
