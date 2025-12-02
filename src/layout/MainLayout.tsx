@@ -84,6 +84,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           href: '/facturation-v2',
           label: 'Facturation',
         },
+        {
+          href: '/archived-orders',
+          label: 'Commandes archivées',
+        },
       ],
     },
     {
