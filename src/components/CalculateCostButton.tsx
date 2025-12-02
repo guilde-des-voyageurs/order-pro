@@ -4,7 +4,7 @@ import { doc, setDoc, collection, query, where, getDocs, getDoc } from 'firebase
 import { db } from '@/firebase/db';
 import { HANDLING_FEE } from '@/config/billing';
 import { calculateItemPrice } from '@/hooks/usePriceRules';
-import { generateVariantId } from '@/utils/variant-helpers';
+import { generateVariantId, getColorFromVariant, getSizeFromVariant, getSelectedOptions } from '@/utils/variant-helpers';
 import type { PriceRule } from '@/hooks/usePriceRules';
 
 interface CalculateCostButtonProps {
@@ -14,9 +14,14 @@ interface CalculateCostButtonProps {
     variantTitle?: string;
     quantity: number;
     variant?: {
+      id?: string;
       metafields?: Array<{
         namespace: string;
         key: string;
+        value: string;
+      }>;
+      selectedOptions?: Array<{
+        name: string;
         value: string;
       }>;
     };
@@ -43,17 +48,20 @@ export function CalculateCostButton({ orderId, lineItems, rules }: CalculateCost
       // Calculer le coût pour chaque ligne
       for (let index = 0; index < validLineItems.length; index++) {
         const item = validLineItems[index];
-        const [color, size] = (item.variantTitle || '').split(' / ');
+        const color = getColorFromVariant(item);
+        const size = getSizeFromVariant(item);
+        const selectedOptions = getSelectedOptions(item);
         
         // Générer les IDs pour toutes les variantes de cette ligne
         const variantIds = Array.from({ length: item.quantity }).map((_, quantityIndex) => {
           return generateVariantId(
             orderId,
             item.sku || '',
-            color || '',
-            size || '',
+            color,
+            size,
             index,
-            quantityIndex
+            quantityIndex,
+            selectedOptions
           );
         });
 

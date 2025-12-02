@@ -2,6 +2,7 @@
 
 import { Text } from '@mantine/core';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
+import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 interface OrderCheckboxSummaryProps {
   orderId: string;
@@ -17,13 +18,14 @@ export function OrderCheckboxSummary({ orderId, lineItems }: OrderCheckboxSummar
   let totalQuantity = 0;
 
   lineItems.forEach((item, index) => {
-    const [color, size] = (item.variantTitle || '').split(' / ');
+    const color = getColorFromVariant(item);
+    const size = getSizeFromVariant(item);
     
     const checkedCount = useCheckedVariants({
       orderId,
       sku: item.sku || '',
-      color: color || '',
-      size: size || '',
+      color: color,
+      size: size,
       productIndex: index,
       quantity: item.quantity,
       lineItems

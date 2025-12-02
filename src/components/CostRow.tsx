@@ -4,6 +4,7 @@ import { calculateItemPrice } from '@/hooks/usePriceRules';
 import { formatItemString } from '@/utils/order-total';
 import type { PriceRule } from '@/hooks/usePriceRules';
 import { doc, getFirestore, getDoc } from 'firebase/firestore';
+import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 interface CostRowProps {
   orderId: string;
@@ -25,13 +26,14 @@ interface CostRowProps {
 
 export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   if (!item.sku) return null;
-  const [color, size] = (item.variantTitle || '').split(' / ');
+  const color = getColorFromVariant(item);
+  const size = getSizeFromVariant(item);
 
   const checkedCount = useCheckedVariants({
     orderId,
     sku: item.sku,
-    color: color || '',
-    size: size || '',
+    color: color,
+    size: size,
     quantity: item.quantity,
     productIndex: index,
     lineItems: [item]
