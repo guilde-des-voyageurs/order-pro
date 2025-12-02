@@ -23,6 +23,7 @@ import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
 import { OrderBalanceCell } from '@/components/OrderBalanceCell';
 import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
 import { useDragScroll } from '@/hooks/useDragScroll';
+import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 interface Order {
   id: string;
@@ -178,16 +179,18 @@ export default function FacturationV2Page() {
                         <Table.Td style={{ width: 'auto', whiteSpace: 'nowrap', padding: '0.5rem', textAlign: 'left' }}>
                           <Stack gap="xs" align="flex-start">
                             {order.lineItems.map((item, index) => {
-                              const [color, size] = (item.variantTitle || '').split(' / ');
+                              const color = getColorFromVariant(item);
+                              const size = getSizeFromVariant(item);
                               return (
                                 <Group key={index} gap="xs" wrap="nowrap" align="center" style={{ width: '100%' }}>
                                   <VariantCheckboxGroup
                                     orderId={encodeFirestoreId(order.id)}
                                     sku={item.sku || ''}
-                                    color={color || ''}
-                                    size={size || ''}
+                                    color={color}
+                                    size={size}
                                     quantity={item.quantity}
                                     productIndex={index}
+                                    variantTitle={item.variantTitle}
                                     lineItems={order.lineItems.map(item => ({
                                       sku: item.sku || '',
                                       variantTitle: item.variantTitle,
