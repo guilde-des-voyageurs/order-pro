@@ -15,9 +15,12 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
-import { IconMessage, IconArrowsSort } from '@tabler/icons-react';
+import { IconMessage, IconArrowsSort, IconRefresh } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
+import { db } from '@/firebase/db';
+import { collection, query, where, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { notifications } from '@mantine/notifications';
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -28,6 +31,105 @@ interface OrderRowProps {
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
+  const [isPurging, setIsPurging] = useState(false);
+
+  const handlePurgeAndRecalculate = async () => {
+    const orderId = encodeFirestoreId(order.id);
+    
+    setIsPurging(true);
+    
+    try {
+      // 1. Récupérer l'état actuel des checkboxes (avant suppression)
+      const variantsRef = collection(db, 'variants-ordered-v2');
+      const q = query(variantsRef, where('orderId', '==', orderId));
+      const snapshot = await getDocs(q);
+      
+      // Créer un Set des anciennes checkboxes cochées (par SKU-couleur-taille)
+      const checkedVariants = new Set<string>();
+      snapshot.docs.forEach(docSnapshot => {
+        const data = docSnapshot.data();
+        if (data.checked) {
+          checkedVariants.add(`${data.sku}--${data.color}--${data.size}`);
+        }
+      });
+      
+      // 2. Supprimer tous les anciens documents
+      const deletePromises = snapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
+      await Promise.all(deletePromises);
+      
+      // 3. Calculer le nombre total d'items valides (non annulés)
+      const totalCount = order.lineItems?.reduce((acc, item) => {
+        if (item.isCancelled) return acc;
+        return acc + item.quantity;
+      }, 0) || 0;
+      
+      // 4. Recréer les documents avec les BONS IDs en préservant l'état coché
+      const createPromises: Promise<void>[] = [];
+      let checkedCount = 0;
+      
+      order.lineItems?.forEach((item, index) => {
+        if (item.isCancelled) return; // Ignorer les items annulés
+        
+        const color = getColorFromVariant(item);
+        const size = getSizeFromVariant(item);
+        const selectedOptions = getSelectedOptions(item);
+        const variantKey = `${item.sku}--${color}--${size}`;
+        
+        for (let quantityIndex = 0; quantityIndex < item.quantity; quantityIndex++) {
+          const variantId = generateVariantId(
+            orderId,
+            item.sku || '',
+            color,
+            size,
+            index,
+            quantityIndex,
+            selectedOptions
+          );
+          
+          // Vérifier si cette variante était cochée avant
+          const wasChecked = checkedVariants.has(variantKey);
+          if (wasChecked) checkedCount++;
+          
+          const variantDoc = {
+            checked: wasChecked,
+            sku: item.sku || '',
+            color: color,
+            size: size,
+            originalId: order.id,
+            updatedAt: new Date().toISOString(),
+            orderId: orderId
+          };
+          
+          createPromises.push(setDoc(doc(db, 'variants-ordered-v2', variantId), variantDoc));
+        }
+      });
+      
+      await Promise.all(createPromises);
+      
+      // 5. Mettre à jour le document textile-progress-v2 avec le décompte recalculé
+      const progressRef = doc(db, 'textile-progress-v2', orderId);
+      await setDoc(progressRef, {
+        checkedCount,
+        totalCount,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+      notifications.show({
+        title: 'Décompte purgé et recalculé',
+        message: `${order.name}: ${checkedCount}/${totalCount}`,
+        color: 'green',
+      });
+    } catch (error) {
+      console.error('Erreur lors de la purge:', error);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de purger et recalculer le décompte',
+        color: 'red',
+      });
+    } finally {
+      setIsPurging(false);
+    }
+  };
 
   return (
     <Paper className={styles.orderRow} withBorder>
@@ -44,6 +146,16 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                 isFulfilled={order.displayFulfillmentStatus === 'FULFILLED'} 
               />
               <TextileProgress orderId={encodeFirestoreId(order.id)} />
+              <Button
+                size="xs"
+                variant="light"
+                color="orange"
+                leftSection={<IconRefresh size={14} />}
+                onClick={handlePurgeAndRecalculate}
+                loading={isPurging}
+              >
+                Purger et recalculer
+              </Button>
             </div>
           </div>
 
