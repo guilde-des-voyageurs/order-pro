@@ -2,6 +2,8 @@
 
 import { Title, Text, Loader, Table, Button, Group, Stack, Paper, Badge, Image, Checkbox, Alert, Modal, ActionIcon, Box, Tooltip } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
+import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
 import { useDetailedOrdersPagePresenter } from './DetailedOrdersPage.presenter';
 import { clsx } from 'clsx';
 import { OrderDrawer } from '@/components/OrderDrawer/OrderDrawer';
@@ -15,9 +17,10 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
-import { IconMessage, IconAlertTriangle, IconArrowsSort } from '@tabler/icons-react';
+import { IconMessage, IconAlertTriangle, IconArrowsSort, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
+import { ordersService } from '@/firebase/services/orders';
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -28,6 +31,43 @@ interface OrderRowProps {
 function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
+  const [isMarkingAsFulfilled, setIsMarkingAsFulfilled] = useState(false);
+
+  const handleMarkAsFulfilled = () => {
+    modals.openConfirmModal({
+      title: 'Marquer comme expédié',
+      children: (
+        <Text size="sm">
+          Êtes-vous sûr de vouloir marquer la commande <strong>{order.name}</strong> comme expédiée ?
+          <br /><br />
+          Cette action changera son statut à "FULFILLED" et la fera disparaître de cette page.
+        </Text>
+      ),
+      labels: { confirm: 'Marquer comme expédié', cancel: 'Annuler' },
+      confirmProps: { color: 'green' },
+      onConfirm: async () => {
+        setIsMarkingAsFulfilled(true);
+        try {
+          await ordersService.markOrderAsFulfilled(order.id);
+          notifications.show({
+            title: 'Succès',
+            message: `La commande ${order.name} a été marquée comme expédiée`,
+            color: 'green',
+          });
+        } catch (error) {
+          console.error('Erreur lors du marquage:', error);
+          notifications.show({
+            title: 'Erreur',
+            message: 'Impossible de marquer la commande comme expédiée',
+            color: 'red',
+          });
+        } finally {
+          setIsMarkingAsFulfilled(false);
+        }
+      },
+    });
+  };
+
   return (
     <Paper className={styles.orderRow} withBorder>
       <Stack gap="md">
@@ -47,7 +87,19 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
           </div>
 
           <div className={styles.orderDetails}>
-            <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
+            <Group gap="xs">
+              <InvoiceCheckbox orderId={encodeFirestoreId(order.id)} readOnly />
+              <Button
+                size="xs"
+                variant="light"
+                color="green"
+                leftSection={<IconCheck size={14} />}
+                onClick={handleMarkAsFulfilled}
+                loading={isMarkingAsFulfilled}
+              >
+                Marquer comme expédié
+              </Button>
+            </Group>
           </div>
         </div>
 

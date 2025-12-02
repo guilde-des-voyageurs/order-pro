@@ -2,7 +2,7 @@
 
 import { createAdminApiClient } from '@shopify/admin-api-client';
 import type { ShopifyOrder } from '@/types/shopify';
-import { TEST_QUERY, ORDERS_QUERY } from '@/graphql/queries';
+import { TEST_QUERY, ORDERS_QUERY, ORDERS_QUERY_PAGINATED } from '@/graphql/queries';
 import { getDefaultSku } from '@/utils/variant-helpers';
 
 if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
@@ -19,6 +19,10 @@ const shopifyClient = createAdminApiClient({
 
 interface ShopifyResponse {
   orders: {
+    pageInfo: {
+      hasNextPage: boolean;
+      endCursor: string | null;
+    };
     nodes: Array<{
       id: string;
       name: string;
@@ -97,46 +101,49 @@ interface ShopifyResponse {
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
   try {
-    console.log('📡 Test de connexion à l’API Shopify...');
-    // Test la connexion avant de faire la requête
+    console.log('Test de connexion a API Shopify...');
     await shopifyClient.request(TEST_QUERY);
-    console.log('✅ Connexion établie');
+    console.log('Connexion etablie');
     
-    console.log('📥 Récupération des commandes...');
-    // Faire la requête principale
-    const result = await shopifyClient.request<ShopifyResponse>(ORDERS_QUERY);
-    console.log('✅ Requête réussie');
+    console.log('📥 Récupération des commandes avec pagination...');
     
-    if (!result?.data?.orders?.nodes) {
-      console.log('❌ Aucune commande reçue de Shopify');
-      return [];
-    }
-
-    console.log(`💶 Nombre total de commandes reçues : ${result.data.orders.nodes.length}`);
-    console.log('💶 Première commande reçue :', {
-      name: result.data.orders.nodes[0]?.name,
-      status: result.data.orders.nodes[0]?.displayFinancialStatus
-    });
-
-    // Log des 2 dernières commandes (sauf #1465)
-    const lastTwoOrders = (result?.data?.orders?.nodes || [])
-      .slice(-2)
-      .filter(order => order.name !== '#1465');
-    console.log('💶 Données des 2 dernières commandes :', lastTwoOrders.map(order => ({
-      name: order.name,
-      tags: order.tags
-    })));
-
-    if (!result?.data?.orders?.nodes) {
-      return [];
-    }
-
+    let allOrders: ShopifyOrder[] = [];
+    let hasNextPage = true;
+    let cursor: string | null = null;
+    let pageNumber = 1;
     
-    // Transformer les données pour correspondre à notre type
-    const orders = result.data.orders.nodes
+    // Boucle de pagination
+    while (hasNextPage) {
+      console.log(`📄 Page ${pageNumber}...`);
+      
+      // Faire la requête (première page ou page suivante)
+      const query: string = cursor ? ORDERS_QUERY_PAGINATED(cursor) : ORDERS_QUERY;
+      const result: { data?: ShopifyResponse } = await shopifyClient.request<ShopifyResponse>(query);
+      
+      if (!result?.data?.orders?.nodes) {
+        console.log('❌ Aucune commande reçue de Shopify');
+        break;
+      }
+
+      console.log(`✅ Page ${pageNumber} : ${result.data.orders.nodes.length} commandes`);
+      
+      // Log des 2 dernières commandes de la première page (sauf #1465)
+      const lastTwoOrders = pageNumber === 1 
+        ? result.data.orders.nodes.slice(-2).filter(order => order.name !== '#1465')
+        : [];
+      
+      if (pageNumber === 1 && lastTwoOrders.length > 0) {
+        console.log('💶 Données des 2 dernières commandes :', lastTwoOrders.map(order => ({
+          name: order.name,
+          tags: order.tags
+        })));
+      }
+      
+      // Transformer les données pour correspondre à notre type
+      const orders = result.data.orders.nodes
       .map(order => {
-        // Ne logger que les 2 dernières commandes
-        if (lastTwoOrders.find(o => o.id === order.id)) {
+        // Ne logger que les 2 dernières commandes de la première page
+        if (pageNumber === 1 && lastTwoOrders.find(o => o.id === order.id)) {
           console.log(`📌 Détails de la commande ${order.name}:`, {
             tags: order.tags,
             lineItems: order.lineItems.nodes.map(item => ({
@@ -210,8 +217,8 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
           }))
         } as ShopifyOrder;
 
-        // Ne logger que les 2 dernières commandes
-        if (lastTwoOrders.find(o => o.id === order.id)) {
+        // Ne logger que les 2 dernières commandes de la première page
+        if (pageNumber === 1 && lastTwoOrders.find(o => o.id === order.id)) {
           console.log(`💾 Commande transformée ${order.name}:`, {
             tags: transformedOrder.tags,
             lineItems: transformedOrder.lineItems?.map(item => ({
@@ -228,7 +235,22 @@ export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
       })
       .filter((order): order is ShopifyOrder => order !== null);
 
-    return orders;
+      // Ajouter les commandes de cette page au tableau global
+      allOrders = allOrders.concat(orders);
+      
+      // Vérifier s'il y a une page suivante
+      hasNextPage = result.data.orders.pageInfo.hasNextPage;
+      cursor = result.data.orders.pageInfo.endCursor;
+      
+      if (hasNextPage && cursor) {
+        console.log(`➡️  Il y a d'autres commandes, récupération de la page suivante...`);
+        pageNumber++;
+      } else {
+        console.log(`✅ Toutes les commandes ont été récupérées (${allOrders.length} au total)`);
+      }
+    }
+
+    return allOrders;
   } catch (error) {
     console.error('❌ Erreur lors de la synchronisation:', error);
     throw new Error('Failed to fetch orders from Shopify. Please check your API credentials and try again.');

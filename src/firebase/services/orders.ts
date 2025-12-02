@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch, doc, query, where, setDoc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, query, where, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../db';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
@@ -193,6 +193,27 @@ export const ordersService = {
       console.log('✅ Synchronisation terminée avec succès');
     } catch (error) {
       console.error('❌ Erreur lors de la synchronisation:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Marque manuellement une commande comme traitée (FULFILLED)
+   * Utile quand Shopify ne communique plus le statut correctement
+   * @param orderId - L'ID Shopify complet de la commande (gid://shopify/Order/XXX)
+   */
+  async markOrderAsFulfilled(orderId: string): Promise<void> {
+    try {
+      const sanitizedId = sanitizeShopifyId(orderId);
+      const orderRef = doc(db, ORDERS_COLLECTION, sanitizedId);
+      
+      await updateDoc(orderRef, {
+        displayFulfillmentStatus: 'FULFILLED'
+      });
+      
+      console.log(`✅ Commande ${sanitizedId} marquée comme traitée`);
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour du statut:', error);
       throw error;
     }
   }
