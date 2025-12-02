@@ -31,6 +31,7 @@ interface Order {
   displayFinancialStatus?: string;
   tags?: string[];
   lineItems: Array<{
+    title: string;
     quantity: number;
     sku: string;
     variantTitle?: string;
@@ -174,12 +175,12 @@ export default function FacturationV2Page() {
                       <Table.Tr key={order.id}>
                         <Table.Td>{format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })}</Table.Td>
                         <Table.Td>{order.name}</Table.Td>
-                        <Table.Td style={{ width: 'auto', whiteSpace: 'nowrap', padding: '0.5rem' }}>
-                          <Stack gap="xs">
+                        <Table.Td style={{ width: 'auto', whiteSpace: 'nowrap', padding: '0.5rem', textAlign: 'left' }}>
+                          <Stack gap="xs" align="flex-start">
                             {order.lineItems.map((item, index) => {
                               const [color, size] = (item.variantTitle || '').split(' / ');
                               return (
-                                <Group key={index} gap="xs" wrap="nowrap" align="center">
+                                <Group key={index} gap="xs" wrap="nowrap" align="center" style={{ width: '100%' }}>
                                   <VariantCheckboxGroup
                                     orderId={encodeFirestoreId(order.id)}
                                     sku={item.sku || ''}
@@ -193,8 +194,8 @@ export default function FacturationV2Page() {
                                       quantity: item.quantity
                                     }))}  
                                   />
-                                  <Text size="sm" style={{ margin: 0 }}>
-                                    {item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}
+                                  <Text size="sm" style={{ margin: 0, fontSize: '0.7rem', textAlign: 'left' }}>
+                                    {item.quantity}x {item.sku} - {formatVariant(item.variantTitle)} ({item.title})
                                   </Text>
                                 </Group>
                               );
