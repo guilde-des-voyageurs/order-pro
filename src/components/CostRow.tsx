@@ -72,7 +72,7 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   }
 
   return (
-    <Text size="sm">
+    <Text size="sm" style={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
       {checkedCount}x (
         {parts.join(' +\n        ')} = {(totalPrice * checkedCount).toFixed(2)}€
       )

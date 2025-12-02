@@ -1,1 +1,1 @@
-export const APP_VERSION = '0.2.2 - Multi Niveau de variantes';
+export const APP_VERSION = '0.2.5 - Synchro résiliente + facturation V3';

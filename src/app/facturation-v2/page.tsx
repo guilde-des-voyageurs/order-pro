@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { VariantCheckboxGroup } from '@/components/VariantCheckboxGroup';
+import { OrderCheckboxSummary } from '@/components/OrderCheckboxSummary';
 import styles from './facturation-v2.module.scss';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { InvoiceCheckbox } from '@/components/InvoiceCheckbox/InvoiceCheckbox';
@@ -21,6 +22,7 @@ import { MonthlyInvoiceButton } from '@/components/MonthlyInvoiceButton';
 import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
 import { OrderBalanceCell } from '@/components/OrderBalanceCell';
 import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
+import { useDragScroll } from '@/hooks/useDragScroll';
 
 interface Order {
   id: string;
@@ -51,6 +53,7 @@ export default function FacturationV2Page() {
   });
   const { rules } = usePriceRules();
   const { balance, updateBalance } = useMonthlyBalance(selectedMonth);
+  const scrollRef = useDragScroll<HTMLDivElement>();
 
   useEffect(() => {
     // Créer la requête pour les commandes
@@ -131,7 +134,7 @@ export default function FacturationV2Page() {
           onChange={(value) => updateBalance(typeof value === 'string' ? parseFloat(value) : value || 0)}
         />
       </Group>
-      <Paper p="md" radius="sm" className={styles.tableContainer}>
+      <div className={styles.tableContainer}>
         {Object.entries(ordersByMonth)
           .filter(([monthKey]) => monthKey === selectedMonth)
           .map(([monthKey, monthOrders]) => {
@@ -142,7 +145,7 @@ export default function FacturationV2Page() {
             });
 
             return (
-              <Paper key={monthKey} mb="md">
+              <Paper key={monthKey} mb="md" style={{ overflow: 'visible' }}>
                 <Group justify="space-between" mb="md">
                   <Box>
                     <Title order={3} mb="sm">{monthTitle}</Title>
@@ -150,12 +153,15 @@ export default function FacturationV2Page() {
                   </Box>
                   <MonthlyInvoiceButton orders={monthOrders} monthId={selectedMonth} />
                 </Group>
-                <Table striped highlightOnHover>
-                  <Table.Thead>
+                <div ref={scrollRef} style={{ maxWidth: '80vw', overflowX: 'auto' }}>
+                <Table.ScrollContainer minWidth={800} type="native">
+                  <Table striped highlightOnHover style={{ width: 'auto', tableLayout: 'auto' }}>
+                    <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Date</Table.Th>
                       <Table.Th>Commande</Table.Th>
                       <Table.Th>Contenu</Table.Th>
+                      <Table.Th>Décompte</Table.Th>
                       <Table.Th>Coût</Table.Th>
                       <Table.Th>Manutention</Table.Th>
                       <Table.Th>Balance (€ HT)</Table.Th>
@@ -168,15 +174,12 @@ export default function FacturationV2Page() {
                       <Table.Tr key={order.id}>
                         <Table.Td>{format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: fr })}</Table.Td>
                         <Table.Td>{order.name}</Table.Td>
-                        <Table.Td>
+                        <Table.Td style={{ width: 'auto', whiteSpace: 'nowrap', padding: '0.5rem' }}>
                           <Stack gap="xs">
                             {order.lineItems.map((item, index) => {
                               const [color, size] = (item.variantTitle || '').split(' / ');
                               return (
-                                <Group key={index} gap="md" wrap="nowrap" align="center">
-                                  <Group gap="xs" wrap="nowrap">
-                                    <Text size="sm">{item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}</Text>
-                                  </Group>
+                                <Group key={index} gap="xs" wrap="nowrap" align="center">
                                   <VariantCheckboxGroup
                                     orderId={encodeFirestoreId(order.id)}
                                     sku={item.sku || ''}
@@ -190,12 +193,25 @@ export default function FacturationV2Page() {
                                       quantity: item.quantity
                                     }))}  
                                   />
+                                  <Text size="sm" style={{ margin: 0 }}>
+                                    {item.quantity}x {item.sku} - {formatVariant(item.variantTitle)}
+                                  </Text>
                                 </Group>
                               );
                             })}
                           </Stack>
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td style={{ width: 'auto', padding: '0.5rem', textAlign: 'center' }}>
+                          <OrderCheckboxSummary
+                            orderId={encodeFirestoreId(order.id)}
+                            lineItems={order.lineItems.map(item => ({
+                              sku: item.sku || '',
+                              variantTitle: item.variantTitle,
+                              quantity: item.quantity
+                            }))}
+                          />
+                        </Table.Td>
+                        <Table.Td style={{ maxWidth: '200px', whiteSpace: 'normal', wordWrap: 'break-word', fontSize: '0.7rem' }}>
                           <Stack gap="xs">
                             {order.lineItems.map((item, index) => (
                               <CostRow
@@ -214,7 +230,7 @@ export default function FacturationV2Page() {
                             lineItems={order.lineItems}
                           />
                         </Table.Td>
-                        <Table.Td>
+                        <Table.Td style={{ maxWidth: '80px' }}>
                           <OrderBalanceCell orderId={order.id} />
                         </Table.Td>
                         <Table.Td>
@@ -234,10 +250,12 @@ export default function FacturationV2Page() {
                     ))}
                   </Table.Tbody>
                 </Table>
+                </Table.ScrollContainer>
+                </div>
               </Paper>
             );
           })}
-      </Paper>
+      </div>
     </div>
   );
 }

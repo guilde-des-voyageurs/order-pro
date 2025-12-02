@@ -46,33 +46,28 @@ export const VariantCheckboxGroup = ({
 
   return (
     <Group gap={4} wrap="nowrap" className={styles.container}>
-      <Group gap={4} wrap="nowrap">
-        {Array.from({ length: quantity }).map((_, quantityIndex) => (
-          <VariantCheckbox
-            key={`${orderId}-${productIndex}-${quantityIndex}`}
-            orderId={orderId}
-            sku={sku}
-            color={color}
-            size={size}
-            quantity={1}
-            productIndex={productIndex}
-            quantityIndex={quantityIndex}
-            disabled={disabled}
-            variantId={generateVariantId(
-              orderId,
-              sku,
-              color,
-              size,
-              productIndex,
-              quantityIndex,
-              selectedOptions
-            )}
-          />
-        ))}
-      </Group>
-      <Text size="xs" c="dimmed" fw={500}>
-        {checkedCount}/{quantity}
-      </Text>
+      {Array.from({ length: quantity }).map((_, quantityIndex) => (
+        <VariantCheckbox
+          key={`${orderId}-${productIndex}-${quantityIndex}`}
+          orderId={orderId}
+          sku={sku}
+          color={color}
+          size={size}
+          quantity={1}
+          productIndex={productIndex}
+          quantityIndex={quantityIndex}
+          disabled={disabled}
+          variantId={generateVariantId(
+            orderId,
+            sku,
+            color,
+            size,
+            productIndex,
+            quantityIndex,
+            selectedOptions
+          )}
+        />
+      ))}
     </Group>
   );
 };
