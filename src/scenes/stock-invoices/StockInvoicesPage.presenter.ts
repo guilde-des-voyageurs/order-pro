@@ -52,11 +52,6 @@ export function useStockInvoicesPresenter() {
         return false;
       }
 
-      // Ne pas inclure les commandes remboursées
-      if (order.displayFinancialStatus?.toLowerCase() === 'refunded') {
-        return false;
-      }
-
       return true;
     });
   }, [orders]);

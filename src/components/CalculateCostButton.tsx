@@ -5,6 +5,7 @@ import { db } from '@/firebase/db';
 import { HANDLING_FEE } from '@/config/billing';
 import { calculateItemPrice } from '@/hooks/usePriceRules';
 import { generateVariantId, getColorFromVariant, getSizeFromVariant, getSelectedOptions } from '@/utils/variant-helpers';
+import { reverseTransformColor } from '@/utils/color-transformer';
 import type { PriceRule } from '@/hooks/usePriceRules';
 
 interface CalculateCostButtonProps {
@@ -48,16 +49,19 @@ export function CalculateCostButton({ orderId, lineItems, rules }: CalculateCost
       // Calculer le coût pour chaque ligne
       for (let index = 0; index < validLineItems.length; index++) {
         const item = validLineItems[index];
-        const color = getColorFromVariant(item);
+        const rawColor = getColorFromVariant(item);
+        // Convertir la couleur en français pour correspondre aux règles de facturation
+        const color = reverseTransformColor(rawColor);
         const size = getSizeFromVariant(item);
         const selectedOptions = getSelectedOptions(item);
         
         // Générer les IDs pour toutes les variantes de cette ligne
+        // ATTENTION : On utilise rawColor (originale) pour les IDs Firebase
         const variantIds = Array.from({ length: item.quantity }).map((_, quantityIndex) => {
           return generateVariantId(
             orderId,
             item.sku || '',
-            color,
+            rawColor,
             size,
             index,
             quantityIndex,
@@ -78,7 +82,7 @@ export function CalculateCostButton({ orderId, lineItems, rules }: CalculateCost
           hasCheckedVariants = true;
           let itemCost = 0;
 
-          // Prix de base (SKU + couleur)
+          // Prix de base (SKU + couleur en français)
           const baseItemString = `${item.sku} - ${color}`;
           const basePrice = calculateItemPrice(baseItemString, rules);
           itemCost += basePrice;

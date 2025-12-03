@@ -5,6 +5,7 @@ import { formatItemString } from '@/utils/order-total';
 import type { PriceRule } from '@/hooks/usePriceRules';
 import { doc, getFirestore, getDoc } from 'firebase/firestore';
 import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
+import { reverseTransformColor } from '@/utils/color-transformer';
 
 interface CostRowProps {
   orderId: string;
@@ -26,13 +27,15 @@ interface CostRowProps {
 
 export function CostRow({ orderId, item, index, rules }: CostRowProps) {
   if (!item.sku) return null;
-  const color = getColorFromVariant(item);
+  const rawColor = getColorFromVariant(item);
+  // Convertir la couleur en français pour correspondre aux règles de facturation
+  const color = reverseTransformColor(rawColor);
   const size = getSizeFromVariant(item);
 
   const checkedCount = useCheckedVariants({
     orderId,
     sku: item.sku,
-    color: color,
+    color: rawColor, // On garde la couleur originale pour le matching Firebase
     size: size,
     quantity: item.quantity,
     productIndex: index,
@@ -47,6 +50,7 @@ export function CostRow({ orderId, item, index, rules }: CostRowProps) {
 
   // SKU + Couleur
   if (item.sku && item.variantTitle) {
+    // Utiliser la couleur en français pour le calcul du prix et l'affichage
     const baseItemString = `${item.sku} - ${color}`;
     const basePrice = calculateItemPrice(baseItemString, rules);
     totalPrice += basePrice;
