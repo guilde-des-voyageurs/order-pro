@@ -5,17 +5,26 @@ import type { ShopifyOrder } from '@/types/shopify';
 import { TEST_QUERY, ORDERS_QUERY, ORDERS_QUERY_PAGINATED } from '@/graphql/queries';
 import { getDefaultSku } from '@/utils/variant-helpers';
 
-if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
-  throw new Error('Missing Shopify credentials in environment variables');
-}
+const getShopifyCredentials = () => {
+  if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
+    throw new Error('Missing Shopify credentials in environment variables');
+  }
+  return {
+    url: process.env.SHOPIFY_URL,
+    token: process.env.SHOPIFY_TOKEN,
+  };
+};
 
 const ACCEPTED_LOCATION_ID = '88278073611';
 
-const shopifyClient = createAdminApiClient({
-  storeDomain: process.env.SHOPIFY_URL,
-  apiVersion: '2024-10',
-  accessToken: process.env.SHOPIFY_TOKEN,
-});
+const getShopifyClient = () => {
+  const { url, token } = getShopifyCredentials();
+  return createAdminApiClient({
+    storeDomain: url,
+    apiVersion: '2024-10',
+    accessToken: token,
+  });
+};
 
 interface ShopifyResponse {
   orders: {
@@ -100,6 +109,7 @@ interface ShopifyResponse {
 }
 
 export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
+  const shopifyClient = getShopifyClient();
   try {
     console.log('Test de connexion a API Shopify...');
     await shopifyClient.request(TEST_QUERY);
