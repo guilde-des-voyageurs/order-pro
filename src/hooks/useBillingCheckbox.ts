@@ -3,6 +3,8 @@ import { db } from '@/firebase/config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 
+/* test */
+
 export const useBillingCheckbox = (orderId: string) => {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
