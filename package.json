@@ -1,0 +1,45 @@
+{
+  "name": "order-pro",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@firebase/auth": "^1.8.2",
+    "@mantine/core": "^7.15.1",
+    "@mantine/hooks": "^7.15.1",
+    "@mantine/modals": "^7.15.1",
+    "@mantine/notifications": "^7.15.1",
+    "@mantine/nprogress": "^7.15.1",
+    "@shopify/admin-api-client": "^1.0.4",
+    "@tabler/icons-react": "^3.26.0",
+    "@tanstack/react-query": "^5.62.7",
+    "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^11.2.0",
+    "next": "15.1.0",
+    "postcss": "^8.4.49",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-preset-env": "^10.1.2",
+    "postcss-preset-mantine": "^1.17.0",
+    "postcss-simple-vars": "^7.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-firebase-hooks": "^5.1.1",
+    "sass-embedded": "^1.83.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prettier": "^3.4.2",
+    "sass": "^1.83.0",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@9.14.2+sha512.6e2baf77d06b9362294152c851c4f278ede37ab1eba3a55fda317a4a17b209f4dbb973fb250a77abc463a341fcb1f17f17cfa24091c4eb319cda0d9b84278387"
+}

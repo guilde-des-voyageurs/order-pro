@@ -1,0 +1,145 @@
+.main_content {
+  padding: 2rem;
+
+  > * + * {
+    margin-top: 2rem;
+  }
+}
+
+.ordersGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.orderRow {
+  padding: 1rem;
+  
+  &.invoiced {
+    border: 2px solid var(--mantine-color-green-6);
+  }
+}
+
+.orderInfo {
+  display: grid;
+  gap: 1rem;
+  
+  .orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .orderTitle {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      
+
+      > div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        
+      }
+    }
+
+    .orderWaiting {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+  }
+
+  .orderDetails {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: stretch;
+
+    > * {
+      flex: 1;
+    }
+  }
+
+  .productList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .productItem {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .productContent {
+      display: flex;
+      gap: 1rem;
+      height: 100%;
+    }
+
+
+
+    .productInfo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+  }
+}
+
+.orderItems {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.productList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.productMetadata {
+  display: none;
+}
+
+.productItem {
+  border: none;
+  background: #f1f1f1;
+  border-radius: 20px;
+  &.cancelled {
+    opacity: 0.5;
+  }
+
+  .productContent {
+    display: flex;
+    gap: var(--mantine-spacing-md);
+    position: relative;
+    align-items: center;
+
+    .productQuantity {
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-weight: 500;
+    }
+
+
+
+    .productInfo {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .variantCheckboxes {
+    margin-top: 0.5rem;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 4px;
+  }
+}

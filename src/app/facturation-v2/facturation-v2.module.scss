@@ -1,0 +1,112 @@
+.container {
+  padding: 1.5rem;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tableContainer {
+  overflow-x: auto !important;
+  overflow-y: visible;
+  width: 100%;
+  display: block;
+  padding-bottom: 1rem;
+  
+  // Améliorer la visibilité de la scrollbar
+  &::-webkit-scrollbar {
+    height: 14px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #e9ecef;
+    border-radius: 8px;
+    margin: 0 1rem;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #868e96;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    
+    &:hover {
+      background: #495057;
+    }
+  }
+  
+  // Pour Firefox
+  scrollbar-width: thin;
+  scrollbar-color: #868e96 #e9ecef;
+  
+  table {
+    min-width: 100%;
+    width: max-content;
+    table-layout: auto;
+  }
+  
+  td:not(:last-child) {
+    white-space: nowrap;
+  }
+
+  td:last-child {
+    min-width: 40px;
+  }
+  
+  th {
+    white-space: nowrap;
+    background: white;
+  }
+}
+
+.tableWrapper {
+  overflow-x: auto !important;
+  overflow-y: visible;
+  width: 100%;
+  display: block;
+  
+  // Scrollbar visible et stylisée
+  &::-webkit-scrollbar {
+    height: 16px;
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 8px;
+    border: 3px solid #f1f3f5;
+    
+    &:hover {
+      background: #868e96;
+    }
+    
+    &:active {
+      background: #495057;
+    }
+  }
+  
+  // Pour Firefox
+  scrollbar-width: auto;
+  scrollbar-color: #adb5bd #f1f3f5;
+  
+  table {
+    width: auto;
+    min-width: 100%;
+    table-layout: auto;
+    
+    th, td {
+      white-space: nowrap;
+      padding: 0.5rem 1rem;
+      
+      &:nth-child(3) {
+        // Colonne Contenu - peut wrapper
+        white-space: normal;
+        min-width: 250px;
+        max-width: 400px;
+      }
+    }
+  }
+}

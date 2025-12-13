@@ -1,0 +1,1 @@
+export { CleanVariantsButton } from './CleanVariantsButton';

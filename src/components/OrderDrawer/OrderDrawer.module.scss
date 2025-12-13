@@ -1,0 +1,38 @@
+.product_item {
+  gap: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8f8f8;
+  min-height: 80px;
+
+  &.cancelled {
+    opacity: 0.5;
+    background-color: var(--mantine-color-gray-2);
+  }
+}
+
+.product_info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.drawer {
+  color: #333;
+  :global(.mantine-Drawer-header) {
+    min-height: 45px;
+    padding-block: 0 !important;
+
+    h2 {
+      font-weight: bold;
+      color: #555;
+    }
+  }
+}
+
+.drawer_title
+{
+  color: #4e4c3f;
+}
