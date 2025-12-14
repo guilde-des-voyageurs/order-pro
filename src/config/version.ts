@@ -1,1 +1,1 @@
-export const APP_VERSION = '0.2.5 - Synchro résiliente + facturation V3';
+export const APP_VERSION = '0.2.6 - Correctif bug textile';
