@@ -1,1 +1,1 @@
-export const APP_VERSION = '0.2.5 - Synchro résiliente + facturation V3';
+export const APP_VERSION = '0.2.7 - Correctif global de facturation';

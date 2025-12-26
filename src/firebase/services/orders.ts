@@ -1,4 +1,4 @@
-import { collection, getDocs, writeBatch, doc, query, where, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, query, where, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../db';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import type { ShopifyOrder } from '@/types/shopify';
@@ -90,7 +90,7 @@ export const ordersService = {
     console.log('💾 Préparation de la synchronisation...');
     
     // Tags à exclure de la synchronisation
-    const EXCLUDED_TAGS = ['no-order-pro', 'precommande'];
+    const EXCLUDED_TAGS = ['no-order-pro', 'precommande', 'invisible-orderpro'];
     
     // Filtrer les commandes exclues
     const excludedOrders = orders.filter(order => 
@@ -191,9 +191,79 @@ export const ordersService = {
     try {
       await batch.commit();
       console.log('✅ Synchronisation terminée avec succès');
+      
+      // Supprimer les commandes avec tags exclus qui existent déjà dans Firebase
+      await this.deleteExcludedOrders(orders, EXCLUDED_TAGS);
     } catch (error) {
       console.error('❌ Erreur lors de la synchronisation:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Supprime les commandes avec des tags exclus qui existent dans Firebase
+   * @param orders - Les commandes récupérées de Shopify
+   * @param excludedTags - Les tags qui excluent une commande
+   */
+  async deleteExcludedOrders(orders: ShopifyOrder[], excludedTags: string[]): Promise<void> {
+    // Trouver les commandes avec des tags exclus
+    const ordersToDelete = orders.filter(order => 
+      order.tags?.some(tag => excludedTags.includes(tag.toLowerCase()))
+    );
+    
+    if (ordersToDelete.length === 0) {
+      return;
+    }
+    
+    console.log(`🗑️  Vérification de ${ordersToDelete.length} commande(s) avec tags exclus...`);
+    
+    const ordersRef = collection(db, ORDERS_COLLECTION);
+    let deletedCount = 0;
+    
+    for (const order of ordersToDelete) {
+      try {
+        const sanitizedId = sanitizeShopifyId(order.id);
+        const docRef = doc(ordersRef, sanitizedId);
+        const encodedOrderId = encodeFirestoreId(order.id);
+        
+        // Vérifier si le document existe avant de le supprimer
+        const existingDocs = await getDocs(query(ordersRef, where('id', '==', order.id)));
+        
+        if (!existingDocs.empty) {
+          // Supprimer la commande de orders-v2
+          await deleteDoc(docRef);
+          
+          // Supprimer le document de progression textile
+          const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
+          await deleteDoc(progressRef);
+          
+          // Supprimer les variantes associées
+          const variantsRef = collection(db, 'variants-ordered-v2');
+          const variantsSnap = await getDocs(query(
+            variantsRef,
+            where('orderId', '==', encodedOrderId)
+          ));
+          
+          const variantBatch = writeBatch(db);
+          variantsSnap.forEach(variantDoc => {
+            variantBatch.delete(variantDoc.ref);
+          });
+          
+          if (!variantsSnap.empty) {
+            await variantBatch.commit();
+          }
+          
+          const excludedTagsFound = order.tags?.filter(tag => excludedTags.includes(tag.toLowerCase())) || [];
+          console.log(`   🗑️  ${order.name} supprimée (tags: ${excludedTagsFound.join(', ')})`);
+          deletedCount++;
+        }
+      } catch (error) {
+        console.error(`❌ Erreur lors de la suppression de ${order.name}:`, error);
+      }
+    }
+    
+    if (deletedCount > 0) {
+      console.log(`✅ ${deletedCount} commande(s) supprimée(s) de Firebase`);
     }
   },
 
