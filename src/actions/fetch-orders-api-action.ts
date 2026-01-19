@@ -15,6 +15,8 @@ const getShopifyCredentials = () => {
   };
 };
 
+
+
 const ACCEPTED_LOCATION_ID = '88278073611';
 
 const getShopifyClient = () => {
