@@ -1,10 +1,15 @@
+// ===========================================
+// MODAL DÉTAIL PRODUIT - Styles personnalisables
+// ===========================================
+
+// Overlay (fond semi-transparent)
 .overlay {
   position: absolute;
-  top: 0;
+  top: 50px;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(151, 80, 80, 0.5);
   z-index: 50;
   display: flex;
   align-items: flex-start;
@@ -13,6 +18,7 @@
   overflow: auto;
 }
 
+// Panel principal (la modal elle-même)
 .panel {
   background-color: white;
   border-radius: 12px;
@@ -24,6 +30,7 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
+// Header avec bouton retour et titre
 .header {
   display: flex;
   align-items: center;
@@ -33,12 +40,24 @@
   flex-shrink: 0;
 }
 
+.headerTitle {
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--mantine-color-dark-7);
+}
+
+.backButton {
+  // Style du bouton retour
+}
+
+// Zone de contenu scrollable
 .content {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
 }
 
+// Section info produit (image + détails)
 .productInfo {
   display: flex;
   gap: 24px;
@@ -49,6 +68,7 @@
   }
 }
 
+// Section image
 .imageSection {
   flex-shrink: 0;
   width: 250px;
@@ -61,19 +81,164 @@
   }
 }
 
+.productImage {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 .noImage {
   height: 250px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-dimmed);
 }
 
+// Section informations
 .infoSection {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
+.productTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--mantine-color-dark-8);
+  margin: 0;
+}
+
+.productHandle {
+  font-size: 14px;
+  color: var(--mantine-color-dimmed);
+}
+
+// Stock total
+.stockTotal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stockLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.stockBadge {
+  // Style du badge de stock
+}
+
+// Répartition par taille
+.sizeBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sizeBreakdownTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mantine-color-dark-6);
+}
+
+.sizeBreakdownBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sizeBadge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--mantine-color-gray-3);
+  background-color: white;
+
+  &.inStock {
+    color: var(--mantine-color-dark-6);
+  }
+
+  &.outOfStock {
+    color: var(--mantine-color-red-6);
+    border-color: var(--mantine-color-red-3);
+    background-color: var(--mantine-color-red-0);
+  }
+}
+
+// Section variantes (tableau)
 .variantsSection {
   border-top: 1px solid var(--mantine-color-gray-2);
   padding-top: 20px;
+}
+
+.variantsTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mantine-color-dark-6);
+  margin-bottom: 12px;
+}
+
+.variantsTable {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--mantine-color-gray-2);
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--mantine-color-dimmed);
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  td {
+    font-size: 14px;
+  }
+
+  tr:hover {
+    background-color: var(--mantine-color-gray-0);
+  }
+}
+
+.variantName {
+  font-weight: 500;
+}
+
+.variantSku {
+  color: var(--mantine-color-dimmed);
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.variantQuantity {
+  text-align: right;
+}
+
+.quantityBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.inStock {
+    background-color: var(--mantine-color-green-0);
+    color: var(--mantine-color-green-7);
+  }
+
+  &.outOfStock {
+    background-color: var(--mantine-color-red-0);
+    color: var(--mantine-color-red-7);
+  }
 }
