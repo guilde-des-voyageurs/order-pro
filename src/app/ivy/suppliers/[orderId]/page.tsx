@@ -38,7 +38,7 @@ interface OrderItem {
 interface SupplierOrder {
   id: string;
   order_number: string;
-  status: 'draft' | 'in_progress' | 'completed';
+  status: 'draft' | 'requested' | 'produced' | 'completed';
   note: string | null;
   subtotal: number;
   balance_adjustment: number;
@@ -394,10 +394,17 @@ export default function OrderDetailPage() {
     }
   };
 
-  // Fermer le batch
-  const closeBatch = async () => {
+  // Changer le statut de la commande
+  const changeStatus = async (newStatus: 'draft' | 'requested' | 'produced' | 'completed') => {
     if (!currentShop || !order) return;
-    if (!confirm('Êtes-vous sûr de vouloir fermer ce batch ? Cette action est irréversible.')) return;
+    
+    // Confirmation spéciale pour le statut "completed"
+    if (newStatus === 'completed') {
+      const validatedCount = items.filter(i => i.is_validated).length;
+      if (!confirm(`Terminer cette commande ?\n\n${validatedCount} article(s) validé(s) seront ajoutés au stock et synchronisés vers Shopify.\n\nCette action est irréversible.`)) {
+        return;
+      }
+    }
     
     setSaving(true);
     try {
@@ -407,23 +414,38 @@ export default function OrderDetailPage() {
         body: JSON.stringify({
           id: order.id,
           shopId: currentShop.id,
-          status: 'completed',
+          status: newStatus,
+          locationId: currentLocation?.id,
         }),
       });
       
       if (response.ok) {
+        const statusLabels: Record<string, string> = {
+          draft: 'Brouillon',
+          requested: 'Demandée',
+          produced: 'Produite',
+          completed: 'Terminée',
+        };
+        
         notifications.show({
           title: 'Succès',
-          message: 'Batch fermé avec succès',
+          message: `Commande passée en "${statusLabels[newStatus]}"`,
           color: 'green',
         });
-        router.push('/ivy/suppliers');
+        
+        if (newStatus === 'completed') {
+          router.push('/ivy/suppliers');
+        } else {
+          fetchOrder();
+        }
+      } else {
+        throw new Error('Failed to update status');
       }
     } catch (err) {
-      console.error('Error closing batch:', err);
+      console.error('Error changing status:', err);
       notifications.show({
         title: 'Erreur',
-        message: 'Impossible de fermer le batch',
+        message: 'Impossible de changer le statut',
         color: 'red',
       });
     } finally {
@@ -431,21 +453,35 @@ export default function OrderDetailPage() {
     }
   };
 
-  // Grouper les articles par préfixe SKU
+  // Grouper les articles par préfixe SKU, puis par variante identique
   const groupedItems = useMemo(() => {
-    const groups: Record<string, OrderItem[]> = {};
+    const groups: Record<string, Array<{ key: string; items: OrderItem[] }>> = {};
     
     items.forEach(item => {
       const prefix = item.sku?.match(/^([A-Za-z]+)/)?.[1]?.toUpperCase() || 'AUTRES';
       if (!groups[prefix]) {
         groups[prefix] = [];
       }
-      groups[prefix].push(item);
+      
+      // Clé unique pour regrouper les variantes identiques
+      const variantKey = `${item.variant_id || ''}_${item.sku || ''}_${item.variant_title || ''}`;
+      
+      // Chercher si ce groupe de variantes existe déjà
+      let variantGroup = groups[prefix].find(g => g.key === variantKey);
+      if (!variantGroup) {
+        variantGroup = { key: variantKey, items: [] };
+        groups[prefix].push(variantGroup);
+      }
+      variantGroup.items.push(item);
     });
     
     // Trier chaque groupe par SKU
     Object.keys(groups).forEach(key => {
-      groups[key].sort((a, b) => (a.sku || '').localeCompare(b.sku || ''));
+      groups[key].sort((a, b) => {
+        const skuA = a.items[0]?.sku || '';
+        const skuB = b.items[0]?.sku || '';
+        return skuA.localeCompare(skuB);
+      });
     });
     
     return groups;
@@ -497,49 +533,101 @@ export default function OrderDetailPage() {
           </Button>
           <Title order={2}>{order.order_number}</Title>
           <Badge 
-            color={isCompleted ? 'green' : order.status === 'in_progress' ? 'blue' : 'gray'}
+            color={
+              order.status === 'completed' ? 'green' : 
+              order.status === 'produced' ? 'teal' : 
+              order.status === 'requested' ? 'blue' : 'gray'
+            }
             size="lg"
           >
-            {isCompleted ? 'Terminée' : order.status === 'in_progress' ? 'En cours' : 'Brouillon'}
+            {order.status === 'completed' ? 'Terminée' : 
+             order.status === 'produced' ? 'Produite' : 
+             order.status === 'requested' ? 'Demandée' : 'Brouillon'}
           </Badge>
         </Group>
         
-        {!isCompleted && (
-          <Group>
-            <Button
-              variant="light"
-              leftSection={<IconPlus size={18} />}
-              onClick={handleOpenAddModal}
-            >
-              Ajouter des articles
-            </Button>
-            <Button
-              variant="light"
-              color="orange"
-              leftSection={<IconRefresh size={18} />}
-              onClick={recalculatePrices}
-              loading={saving}
-              disabled={items.length === 0}
-            >
-              Recalculer les prix
-            </Button>
-            <Button
-              leftSection={<IconDeviceFloppy size={18} />}
-              onClick={saveOrder}
-              loading={saving}
-            >
-              Sauvegarder
-            </Button>
-            <Button
-              color="green"
-              leftSection={<IconLock size={18} />}
-              onClick={closeBatch}
-              disabled={items.length === 0}
-            >
-              Fermer le batch
-            </Button>
-          </Group>
-        )}
+        <Group>
+          {/* Actions selon le statut */}
+          {order.status === 'draft' && (
+            <>
+              <Button
+                variant="light"
+                leftSection={<IconPlus size={18} />}
+                onClick={handleOpenAddModal}
+              >
+                Ajouter des articles
+              </Button>
+              <Button
+                variant="light"
+                color="orange"
+                leftSection={<IconRefresh size={18} />}
+                onClick={recalculatePrices}
+                loading={saving}
+                disabled={items.length === 0}
+              >
+                Recalculer les prix
+              </Button>
+              <Button
+                leftSection={<IconDeviceFloppy size={18} />}
+                onClick={saveOrder}
+                loading={saving}
+              >
+                Sauvegarder
+              </Button>
+              <Button
+                color="blue"
+                leftSection={<IconCheck size={18} />}
+                onClick={() => changeStatus('requested')}
+                disabled={items.length === 0}
+                loading={saving}
+              >
+                Passer en Demandée
+              </Button>
+            </>
+          )}
+          
+          {order.status === 'requested' && (
+            <>
+              <Button
+                variant="light"
+                color="gray"
+                onClick={() => changeStatus('draft')}
+                loading={saving}
+              >
+                Repasser en Brouillon
+              </Button>
+              <Button
+                color="teal"
+                leftSection={<IconCheck size={18} />}
+                onClick={() => changeStatus('produced')}
+                loading={saving}
+              >
+                Marquer comme Produite
+              </Button>
+            </>
+          )}
+          
+          {order.status === 'produced' && (
+            <>
+              <Button
+                variant="light"
+                color="gray"
+                onClick={() => changeStatus('requested')}
+                loading={saving}
+              >
+                Repasser en Demandée
+              </Button>
+              <Button
+                color="green"
+                leftSection={<IconLock size={18} />}
+                onClick={() => changeStatus('completed')}
+                loading={saving}
+              >
+                Terminer et ajouter au stock
+              </Button>
+            </>
+          )}
+        </Group>
       </Group>
 
       {/* Progression */}
@@ -567,59 +655,79 @@ export default function OrderDetailPage() {
 
       {/* Articles groupés par SKU */}
       {Object.keys(groupedItems).length > 0 ? (
-        Object.entries(groupedItems).map(([prefix, groupItems]) => (
+        Object.entries(groupedItems).map(([prefix, variantGroups]) => (
           <Paper key={prefix} withBorder radius="md" mb="lg">
             <div className={styles.groupHeader}>
               <Group>
                 <IconPackage size={20} />
                 <Text fw={600}>{prefix}</Text>
-                <Badge variant="light">{groupItems.length} article(s)</Badge>
+                <Badge variant="light">{variantGroups.reduce((sum, g) => sum + g.items.length, 0)} article(s)</Badge>
               </Group>
             </div>
             <Table striped>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th style={{ width: 50 }}>Validé</Table.Th>
+                  <Table.Th>Validé</Table.Th>
                   <Table.Th>Produit</Table.Th>
                   <Table.Th>SKU</Table.Th>
                   <Table.Th>Variante</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Qté</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Coût unit.</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>Total</Table.Th>
+                  <Table.Th style={{ textAlign: 'right' }}>Total validé</Table.Th>
                   {!isCompleted && <Table.Th style={{ width: 50 }}></Table.Th>}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {groupItems.map((item) => (
-                  <Table.Tr key={item.id} className={item.is_validated ? styles.validatedRow : ''}>
-                    <Table.Td>
-                      <Checkbox
-                        checked={item.is_validated}
-                        onChange={(e) => toggleValidation(item.id, e.currentTarget.checked)}
-                        disabled={isCompleted}
-                      />
-                    </Table.Td>
-                    <Table.Td>{item.product_title}</Table.Td>
-                    <Table.Td>
-                      <Badge variant="light" color="gray">{item.sku || '-'}</Badge>
-                    </Table.Td>
-                    <Table.Td>{item.variant_title || '-'}</Table.Td>
-                    <Table.Td style={{ textAlign: 'right' }}>{item.quantity}</Table.Td>
-                    <Table.Td style={{ textAlign: 'right' }}>{item.unit_price.toFixed(2)} €</Table.Td>
-                    <Table.Td style={{ textAlign: 'right', fontWeight: 600 }}>{item.line_total.toFixed(2)} €</Table.Td>
-                    {!isCompleted && (
+                {variantGroups.map((variantGroup) => {
+                  const firstItem = variantGroup.items[0];
+                  const validatedCount = variantGroup.items.filter(i => i.is_validated).length;
+                  const validatedTotal = variantGroup.items.filter(i => i.is_validated).reduce((sum, i) => sum + i.line_total, 0);
+                  const allValidated = validatedCount === variantGroup.items.length;
+                  const someValidated = validatedCount > 0 && !allValidated;
+                  
+                  return (
+                    <Table.Tr key={variantGroup.key} className={allValidated ? styles.validatedRow : ''}>
                       <Table.Td>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          onClick={() => deleteItem(item.id)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
+                        <Group gap={4}>
+                          {variantGroup.items.map((item, idx) => (
+                            <Checkbox
+                              key={item.id}
+                              checked={item.is_validated}
+                              onChange={(e) => toggleValidation(item.id, e.currentTarget.checked)}
+                              disabled={isCompleted}
+                              size="sm"
+                            />
+                          ))}
+                        </Group>
                       </Table.Td>
-                    )}
-                  </Table.Tr>
-                ))}
+                      <Table.Td>{firstItem.product_title}</Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="gray">{firstItem.sku || '-'}</Badge>
+                      </Table.Td>
+                      <Table.Td>{firstItem.variant_title || '-'}</Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>
+                        <Text size="sm" c={someValidated ? 'orange' : undefined}>
+                          {validatedCount}/{variantGroup.items.length}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>{firstItem.unit_price.toFixed(2)} €</Table.Td>
+                      <Table.Td style={{ textAlign: 'right', fontWeight: 600 }}>{validatedTotal.toFixed(2)} €</Table.Td>
+                      {!isCompleted && (
+                        <Table.Td>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            onClick={() => {
+                              variantGroup.items.forEach(item => deleteItem(item.id));
+                            }}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Table.Td>
+                      )}
+                    </Table.Tr>
+                  );
+                })}
               </Table.Tbody>
             </Table>
           </Paper>

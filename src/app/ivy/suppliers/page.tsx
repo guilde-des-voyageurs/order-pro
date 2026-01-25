@@ -12,7 +12,7 @@ import styles from './suppliers.module.scss';
 interface SupplierOrder {
   id: string;
   order_number: string;
-  status: 'draft' | 'in_progress' | 'completed';
+  status: 'draft' | 'requested' | 'produced' | 'completed';
   note: string | null;
   subtotal: number;
   balance_adjustment: number;
@@ -29,7 +29,7 @@ export default function SuppliersPage() {
   const { currentShop } = useShop();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<SupplierOrder[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>('in_progress');
+  const [activeTab, setActiveTab] = useState<string | null>('active');
   const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [newOrderNote, setNewOrderNote] = useState('');
   const [creating, setCreating] = useState(false);
@@ -123,8 +123,8 @@ export default function SuppliersPage() {
   };
 
   const filteredOrders = orders.filter(order => {
-    if (activeTab === 'in_progress') {
-      return order.status === 'draft' || order.status === 'in_progress';
+    if (activeTab === 'active') {
+      return order.status !== 'completed';
     }
     return order.status === 'completed';
   });
@@ -143,8 +143,10 @@ export default function SuppliersPage() {
     switch (status) {
       case 'draft':
         return <Badge color="gray" leftSection={<IconClock size={12} />}>Brouillon</Badge>;
-      case 'in_progress':
-        return <Badge color="blue" leftSection={<IconPackage size={12} />}>En cours</Badge>;
+      case 'requested':
+        return <Badge color="blue" leftSection={<IconPackage size={12} />}>Demandée</Badge>;
+      case 'produced':
+        return <Badge color="teal" leftSection={<IconCheck size={12} />}>Produite</Badge>;
       case 'completed':
         return <Badge color="green" leftSection={<IconCheck size={12} />}>Terminée</Badge>;
       default:
@@ -174,7 +176,7 @@ export default function SuppliersPage() {
 
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List mb="lg">
-          <Tabs.Tab value="in_progress" leftSection={<IconPackage size={16} />}>
+          <Tabs.Tab value="active" leftSection={<IconPackage size={16} />}>
             En cours ({orders.filter(o => o.status !== 'completed').length})
           </Tabs.Tab>
           <Tabs.Tab value="completed" leftSection={<IconCheck size={16} />}>
@@ -182,7 +184,7 @@ export default function SuppliersPage() {
           </Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="in_progress">
+        <Tabs.Panel value="active">
           <OrdersTable 
             orders={filteredOrders} 
             onView={(id) => router.push(`/ivy/suppliers/${id}`)}

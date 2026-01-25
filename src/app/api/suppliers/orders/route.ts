@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, shopId, status, note, balance_adjustment } = body;
+    const { id, shopId, status, note, balance_adjustment, locationId } = body;
 
     if (!id || !shopId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -136,6 +136,11 @@ export async function PUT(request: NextRequest) {
       updateData.total_ttc = totalTtc;
     }
 
+    // Si on passe en "completed", ajouter les articles validés au stock
+    if (status === 'completed') {
+      await addValidatedItemsToStock(id, shopId, locationId);
+    }
+
     const { data: order, error } = await supabase
       .from('supplier_orders')
       .update(updateData)
@@ -153,6 +158,133 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
+  }
+}
+
+// Ajouter les articles validés au stock local et synchroniser vers Shopify
+async function addValidatedItemsToStock(orderId: string, shopId: string, locationId?: string) {
+  try {
+    // Récupérer les articles validés de la commande
+    const { data: validatedItems } = await supabase
+      .from('supplier_order_items')
+      .select('variant_id, quantity')
+      .eq('order_id', orderId)
+      .eq('is_validated', true);
+
+    if (!validatedItems || validatedItems.length === 0) {
+      console.log('No validated items to add to stock');
+      return;
+    }
+
+    // Grouper par variant_id et compter les quantités
+    const variantQuantities: Record<string, number> = {};
+    validatedItems.forEach(item => {
+      if (item.variant_id) {
+        variantQuantities[item.variant_id] = (variantQuantities[item.variant_id] || 0) + item.quantity;
+      }
+    });
+
+    console.log('Adding to stock:', variantQuantities);
+
+    // Récupérer les infos du shop pour l'API Shopify
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('shopify_url, shopify_token')
+      .eq('id', shopId)
+      .single();
+
+    if (!shop) {
+      console.error('Shop not found');
+      return;
+    }
+
+    // Récupérer les inventory_item_ids des variantes
+    const variantIds = Object.keys(variantQuantities);
+    const { data: variants } = await supabase
+      .from('product_variants')
+      .select('id, inventory_item_id')
+      .in('id', variantIds);
+
+    if (!variants) {
+      console.error('Variants not found');
+      return;
+    }
+
+    // Déterminer le location_id à utiliser
+    let shopifyLocationId = locationId;
+    if (!shopifyLocationId) {
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('shopify_id')
+        .eq('shop_id', shopId)
+        .eq('active', true)
+        .limit(1);
+      
+      shopifyLocationId = locations?.[0]?.shopify_id;
+    }
+
+    if (!shopifyLocationId) {
+      console.error('No location found for stock update');
+      return;
+    }
+
+    // Mettre à jour le stock local et Shopify pour chaque variante
+    for (const variant of variants) {
+      const quantityToAdd = variantQuantities[variant.id];
+      
+      if (!variant.inventory_item_id || !quantityToAdd) continue;
+
+      // 1. Mettre à jour le stock local dans Supabase
+      const { data: currentLevel } = await supabase
+        .from('inventory_levels')
+        .select('quantity')
+        .eq('variant_id', variant.id)
+        .eq('location_id', shopifyLocationId)
+        .single();
+
+      const newQuantity = (currentLevel?.quantity || 0) + quantityToAdd;
+
+      await supabase
+        .from('inventory_levels')
+        .upsert({
+          variant_id: variant.id,
+          location_id: shopifyLocationId,
+          quantity: newQuantity,
+          synced_at: new Date().toISOString(),
+        }, { onConflict: 'variant_id,location_id' });
+
+      // 2. Synchroniser vers Shopify via l'API
+      try {
+        const adjustResponse = await fetch(
+          `https://${shop.shopify_url}/admin/api/2024-01/inventory_levels/adjust.json`,
+          {
+            method: 'POST',
+            headers: {
+              'X-Shopify-Access-Token': shop.shopify_token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              location_id: parseInt(shopifyLocationId),
+              inventory_item_id: parseInt(variant.inventory_item_id),
+              available_adjustment: quantityToAdd,
+            }),
+          }
+        );
+
+        if (adjustResponse.ok) {
+          console.log(`Stock updated for variant ${variant.id}: +${quantityToAdd}`);
+        } else {
+          const errorData = await adjustResponse.json();
+          console.error(`Failed to update Shopify stock for variant ${variant.id}:`, errorData);
+        }
+      } catch (shopifyError) {
+        console.error(`Shopify API error for variant ${variant.id}:`, shopifyError);
+      }
+    }
+
+    console.log('Stock update completed');
+  } catch (error) {
+    console.error('Error adding items to stock:', error);
   }
 }
 
