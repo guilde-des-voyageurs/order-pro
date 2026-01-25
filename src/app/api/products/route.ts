@@ -43,6 +43,28 @@ export async function GET(request: Request) {
       `)
       .eq('shop_id', shopId)
       .eq('status', 'active');
+    
+    // Essayer de récupérer les noms d'options (colonnes optionnelles)
+    let optionNamesMap: Record<string, { option1_name?: string; option2_name?: string; option3_name?: string }> = {};
+    try {
+      const { data: optionNamesData } = await supabase
+        .from('products')
+        .select('shopify_id, option1_name, option2_name, option3_name')
+        .eq('shop_id', shopId);
+      
+      if (optionNamesData) {
+        optionNamesData.forEach((p: any) => {
+          optionNamesMap[p.shopify_id] = {
+            option1_name: p.option1_name,
+            option2_name: p.option2_name,
+            option3_name: p.option3_name,
+          };
+        });
+      }
+    } catch (e) {
+      // Les colonnes n'existent pas encore, on continue sans
+      console.log('Option names columns not available yet');
+    }
 
     if (productsError) {
       console.error('Error fetching products from Supabase:', productsError);
@@ -63,6 +85,9 @@ export async function GET(request: Request) {
 
     // Transformer les données pour le frontend
     const products = productsData.map((product: any) => {
+      // Récupérer les noms d'options pour ce produit
+      const optionNames = optionNamesMap[product.shopify_id] || {};
+      
       const variants = product.variants.map((variant: any) => {
         // Trouver le niveau d'inventaire pour l'emplacement sélectionné
         let quantity = 0;
@@ -89,9 +114,9 @@ export async function GET(request: Request) {
           quantity,
           size,
           options: [
-            variant.option1 && { name: 'Option 1', value: variant.option1 },
-            variant.option2 && { name: 'Option 2', value: variant.option2 },
-            variant.option3 && { name: 'Option 3', value: variant.option3 },
+            variant.option1 && { name: optionNames?.option1_name || 'Option 1', value: variant.option1 },
+            variant.option2 && { name: optionNames?.option2_name || 'Option 2', value: variant.option2 },
+            variant.option3 && { name: optionNames?.option3_name || 'Option 3', value: variant.option3 },
           ].filter(Boolean),
         };
       });

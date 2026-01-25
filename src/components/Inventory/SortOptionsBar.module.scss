@@ -1,0 +1,36 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chipsContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chipWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.priorityBadge {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  background-color: var(--mantine-color-blue-6);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 8px;
+  line-height: 1;
+}

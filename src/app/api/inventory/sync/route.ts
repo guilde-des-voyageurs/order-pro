@@ -106,6 +106,9 @@ export async function POST(request: Request) {
       handle: product.handle,
       image_url: product.image?.src || product.images?.[0]?.src || null,
       status: product.status,
+      option1_name: product.options?.[0]?.name || null,
+      option2_name: product.options?.[1]?.name || null,
+      option3_name: product.options?.[2]?.name || null,
       synced_at: new Date().toISOString(),
     }));
 

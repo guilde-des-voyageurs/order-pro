@@ -149,6 +149,17 @@
   font-weight: 500;
 }
 
+.option3Badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mantine-color-gray-7);
+  background-color: var(--mantine-color-gray-1);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 12px;
+}
+
 .variantSku {
   color: var(--mantine-color-dimmed);
   font-family: monospace;
@@ -191,4 +202,9 @@
 
 .saveButton {
   // Style du bouton sauvegarder
+}
+
+// Sélecteur de tri
+.sortControl {
+  // Style du sélecteur de tri
 }

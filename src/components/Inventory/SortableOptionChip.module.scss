@@ -1,0 +1,41 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: var(--mantine-color-gray-1);
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 20px;
+  cursor: grab;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mantine-color-gray-7);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: var(--mantine-color-gray-2);
+    border-color: var(--mantine-color-gray-4);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.dragging {
+  opacity: 0.8;
+  background-color: var(--mantine-color-blue-1);
+  border-color: var(--mantine-color-blue-4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.gripIcon {
+  color: var(--mantine-color-gray-5);
+  flex-shrink: 0;
+}
+
+.label {
+  white-space: nowrap;
+}

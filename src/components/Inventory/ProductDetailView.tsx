@@ -5,6 +5,7 @@ import { Button, Title, Text, Badge, Group, Stack, Table, Image, NumberInput, Ac
 import { IconArrowLeft, IconPhoto, IconPlus, IconMinus, IconDeviceFloppy } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { ProductData } from './ProductCard';
+import { SortOptionsBar } from './SortOptionsBar';
 import styles from './ProductDetailView.module.scss';
 
 interface ProductDetailViewProps {
@@ -26,6 +27,40 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
     return initial;
   });
   const [saving, setSaving] = useState(false);
+
+  // Détecter dynamiquement les options du produit
+  const productOptions = useMemo(() => {
+    const optionNames: string[] = [];
+    // Parcourir les variantes pour trouver les noms d'options uniques
+    for (const variant of product.variants) {
+      if (variant.options) {
+        for (const opt of variant.options) {
+          if (opt.name && !optionNames.includes(opt.name)) {
+            optionNames.push(opt.name);
+          }
+        }
+      }
+    }
+    return optionNames;
+  }, [product.variants]);
+
+  // Déterminer l'ordre de tri par défaut (Taille en premier si présente)
+  const defaultSortOrder = useMemo(() => {
+    const sizeOptionIndex = productOptions.findIndex(opt => 
+      opt.toLowerCase().includes('taille') || 
+      opt.toLowerCase().includes('size')
+    );
+    if (sizeOptionIndex > 0) {
+      // Mettre la taille en premier
+      const reordered = [...productOptions];
+      const [sizeOpt] = reordered.splice(sizeOptionIndex, 1);
+      reordered.unshift(sizeOpt);
+      return reordered;
+    }
+    return productOptions;
+  }, [productOptions]);
+
+  const [sortOrder, setSortOrder] = useState<string[]>(defaultSortOrder);
 
   // Vérifier si des modifications ont été faites
   const hasChanges = useMemo(() => {
@@ -144,16 +179,60 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
     }
   };
 
-  // Trier les variantes par taille
-  const sortedVariants = [...product.variants].sort((a, b) => {
-    const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL'];
-    const aIndex = sizeOrder.indexOf(a.size || '');
-    const bIndex = sizeOrder.indexOf(b.size || '');
-    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    return (a.title || '').localeCompare(b.title || '');
-  });
+  // Ordre des tailles (XXXS à 5XL)
+  const sizeOrder = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL'];
+
+  // Extraire la valeur d'une option par son nom
+  const getOptionValue = (variant: typeof product.variants[0], optionName: string) => {
+    if (variant.options) {
+      const opt = variant.options.find(o => o.name === optionName);
+      return opt?.value || '';
+    }
+    return '';
+  };
+
+  // Vérifier si une option est une taille
+  const isSizeOption = (optionName: string) => {
+    return optionName.toLowerCase().includes('taille') || optionName.toLowerCase().includes('size');
+  };
+
+  // Comparer deux valeurs (avec tri spécial pour les tailles)
+  const compareValues = (a: string, b: string, optionName: string) => {
+    if (isSizeOption(optionName)) {
+      const aIndex = sizeOrder.indexOf(a);
+      const bIndex = sizeOrder.indexOf(b);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+    }
+    return a.localeCompare(b, 'fr');
+  };
+
+  // Formater le nom de la variante selon l'ordre de tri
+  const getVariantDisplayName = (variant: typeof product.variants[0]) => {
+    if (sortOrder.length === 0) return variant.title || 'Default';
+    
+    // Construire le nom avec les valeurs des options dans l'ordre de tri
+    const parts = sortOrder
+      .map(optName => getOptionValue(variant, optName))
+      .filter(val => val !== '');
+    
+    return parts.length > 0 ? parts.join(' / ') : (variant.title || 'Default');
+  };
+
+  // Trier les variantes selon l'ordre de priorité défini
+  const sortedVariants = useMemo(() => {
+    return [...product.variants].sort((a, b) => {
+      // Parcourir les options dans l'ordre de priorité
+      for (const optName of sortOrder) {
+        const aVal = getOptionValue(a, optName);
+        const bVal = getOptionValue(b, optName);
+        const compare = compareValues(aVal, bVal, optName);
+        if (compare !== 0) return compare;
+      }
+      return 0;
+    });
+  }, [product.variants, sortOrder]);
 
   return (
     <div className={styles.container}>
@@ -254,9 +333,15 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
 
         {/* Tableau des variantes */}
         <div className={styles.variantsSection}>
-          <Text size="sm" fw={600} mb="md" className={styles.variantsTitle}>
-            Détail des variantes ({sortedVariants.length})
-          </Text>
+          <Group justify="space-between" align="center" mb="md">
+            <Text size="sm" fw={600} className={styles.variantsTitle}>
+              Détail des variantes ({sortedVariants.length})
+            </Text>
+<SortOptionsBar
+              options={sortOrder}
+              onReorder={setSortOrder}
+            />
+          </Group>
           
           <Table striped highlightOnHover className={styles.variantsTable}>
             <Table.Thead>
@@ -270,7 +355,7 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
               {sortedVariants.map((variant) => (
                 <Table.Tr key={variant.id}>
                   <Table.Td className={styles.variantName}>
-                    {variant.title || 'Default'}
+                    {getVariantDisplayName(variant)}
                   </Table.Td>
                   <Table.Td className={styles.variantSku}>
                     {variant.sku || '-'}
