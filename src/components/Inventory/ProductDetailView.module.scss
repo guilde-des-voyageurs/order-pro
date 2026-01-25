@@ -159,16 +159,36 @@
   text-align: right;
 }
 
-.quantityBadge {
-  &.inStock {
-    color: var(--mantine-color-green-6);
-    border-color: var(--mantine-color-green-6);
-    background: transparent;
-  }
+// Contrôles de quantité
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
-  &.outOfStock {
-    color: var(--mantine-color-gray-6);
-    border-color: var(--mantine-color-gray-6);
-    background: transparent;
+.quantityButton {
+  // Boutons +/-
+}
+
+.quantityInput {
+  width: 60px;
+  
+  input {
+    text-align: center;
+    font-weight: 600;
   }
+}
+
+.changeBadge {
+  min-width: 40px;
+  text-align: center;
+}
+
+// Bouton sauvegarder dans le header
+.saveButtonContainer {
+  margin-left: auto;
+}
+
+.saveButton {
+  // Style du bouton sauvegarder
 }

@@ -287,6 +287,15 @@ export default function InventoryPage() {
           product={selectedProduct} 
           onBack={handleBackToList}
           locationName={currentLocation?.name}
+          shopId={currentShop?.id}
+          locationId={currentLocation?.id}
+          onProductUpdated={(updatedProduct) => {
+            // Mettre à jour le produit dans la liste
+            setProducts(prev => prev.map(p => 
+              p.id === updatedProduct.id ? updatedProduct : p
+            ));
+            setSelectedProduct(updatedProduct);
+          }}
         />
 
         {/* Modal de confirmation pour la synchronisation */}

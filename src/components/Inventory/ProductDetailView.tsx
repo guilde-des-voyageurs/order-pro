@@ -1,7 +1,9 @@
 'use client';
 
-import { Button, Title, Text, Badge, Group, Stack, Table, Image } from '@mantine/core';
-import { IconArrowLeft, IconPhoto } from '@tabler/icons-react';
+import { useState, useMemo } from 'react';
+import { Button, Title, Text, Badge, Group, Stack, Table, Image, NumberInput, ActionIcon, Loader } from '@mantine/core';
+import { IconArrowLeft, IconPhoto, IconPlus, IconMinus, IconDeviceFloppy } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 import { ProductData } from './ProductCard';
 import styles from './ProductDetailView.module.scss';
 
@@ -9,9 +11,139 @@ interface ProductDetailViewProps {
   product: ProductData;
   onBack: () => void;
   locationName?: string;
+  shopId?: string;
+  locationId?: string;
+  onProductUpdated?: (updatedProduct: ProductData) => void;
 }
 
-export function ProductDetailView({ product, onBack, locationName }: ProductDetailViewProps) {
+export function ProductDetailView({ product, onBack, locationName, shopId, locationId, onProductUpdated }: ProductDetailViewProps) {
+  // État local pour les quantités modifiées
+  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    product.variants.forEach(v => {
+      initial[v.id] = v.quantity;
+    });
+    return initial;
+  });
+  const [saving, setSaving] = useState(false);
+
+  // Vérifier si des modifications ont été faites
+  const hasChanges = useMemo(() => {
+    return product.variants.some(v => quantities[v.id] !== v.quantity);
+  }, [product.variants, quantities]);
+
+  // Calculer le nouveau total
+  const newTotalQuantity = useMemo(() => {
+    return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
+  }, [quantities]);
+
+  // Modifier la quantité d'une variante
+  const handleQuantityChange = (variantId: string, value: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [variantId]: Math.max(0, value),
+    }));
+  };
+
+  // Incrémenter
+  const handleIncrement = (variantId: string) => {
+    setQuantities(prev => ({
+      ...prev,
+      [variantId]: (prev[variantId] || 0) + 1,
+    }));
+  };
+
+  // Décrémenter
+  const handleDecrement = (variantId: string) => {
+    setQuantities(prev => ({
+      ...prev,
+      [variantId]: Math.max(0, (prev[variantId] || 0) - 1),
+    }));
+  };
+
+  // Sauvegarder les modifications
+  const handleSave = async () => {
+    if (!shopId || !locationId) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Shop ou emplacement non défini',
+        color: 'red',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Préparer les modifications (seulement les variantes modifiées)
+      const changes = product.variants
+        .filter(v => quantities[v.id] !== v.quantity)
+        .map(v => ({
+          variantId: v.id,
+          quantity: quantities[v.id],
+        }));
+
+      if (changes.length === 0) {
+        notifications.show({
+          title: 'Aucune modification',
+          message: 'Aucun stock n\'a été modifié',
+          color: 'orange',
+        });
+        return;
+      }
+
+      const response = await fetch('/api/inventory/update-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId,
+          locationId,
+          productId: product.id,
+          changes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la mise à jour');
+      }
+
+      notifications.show({
+        title: 'Stock mis à jour',
+        message: `${changes.length} variante${changes.length > 1 ? 's' : ''} mise${changes.length > 1 ? 's' : ''} à jour`,
+        color: 'green',
+      });
+
+      // Mettre à jour le produit parent si callback fourni
+      if (onProductUpdated) {
+        const updatedProduct: ProductData = {
+          ...product,
+          totalQuantity: newTotalQuantity,
+          variants: product.variants.map(v => ({
+            ...v,
+            quantity: quantities[v.id],
+          })),
+          sizeBreakdown: product.variants.reduce((acc, v) => {
+            if (v.size) {
+              acc[v.size] = quantities[v.id];
+            }
+            return acc;
+          }, {} as Record<string, number>),
+        };
+        onProductUpdated(updatedProduct);
+      }
+    } catch (err: any) {
+      console.error('Error saving:', err);
+      notifications.show({
+        title: 'Erreur de sauvegarde',
+        message: err.message || 'Une erreur est survenue',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Trier les variantes par taille
   const sortedVariants = [...product.variants].sort((a, b) => {
     const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL'];
@@ -61,7 +193,19 @@ export function ProductDetailView({ product, onBack, locationName }: ProductDeta
             {product.handle}
           </Text>
         )}
-            
+
+        {/* Bouton Sauvegarder */}
+        <div className={styles.saveButtonContainer}>
+          <Button
+            color="green"
+            leftSection={saving ? <Loader size={16} color="white" /> : <IconDeviceFloppy size={18} />}
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            className={styles.saveButton}
+          >
+            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+          </Button>
+        </div>
       </div>
 
       {/* Contenu principal */}
@@ -79,11 +223,12 @@ export function ProductDetailView({ product, onBack, locationName }: ProductDeta
               </Text>
               <Badge
                 size="xl"
-                color={product.totalQuantity > 0 ? 'green' : 'red'}
+                color={newTotalQuantity > 0 ? 'green' : 'red'}
                 variant="light"
                 className={styles.stockBadge}
               >
-                {product.totalQuantity} unité{product.totalQuantity > 1 ? 's' : ''}
+                {newTotalQuantity} unité{newTotalQuantity > 1 ? 's' : ''}
+                {hasChanges && ` (${newTotalQuantity - product.totalQuantity >= 0 ? '+' : ''}${newTotalQuantity - product.totalQuantity})`}
               </Badge>
             </div>
 
@@ -131,13 +276,45 @@ export function ProductDetailView({ product, onBack, locationName }: ProductDeta
                     {variant.sku || '-'}
                   </Table.Td>
                   <Table.Td className={styles.variantQuantity}>
-                    <Badge
-                      color={variant.quantity > 0 ? 'green' : 'red'}
-                      variant="light"
-                      className={`${styles.quantityBadge} ${variant.quantity > 0 ? styles.inStock : styles.outOfStock}`}
-                    >
-                      {variant.quantity}
-                    </Badge>
+                    <Group gap="xs" justify="flex-end" className={styles.quantityControls}>
+                      {quantities[variant.id] !== variant.quantity && (
+                        <Badge
+                          size="xs"
+                          color={quantities[variant.id] > variant.quantity ? 'green' : 'red'}
+                          variant="light"
+                          className={styles.changeBadge}
+                        >
+                          {quantities[variant.id] > variant.quantity ? '+' : ''}{quantities[variant.id] - variant.quantity}
+                        </Badge>
+                      )}
+                      <ActionIcon
+                        variant="light"
+                        color="red"
+                        size="sm"
+                        onClick={() => handleDecrement(variant.id)}
+                        disabled={quantities[variant.id] <= 0}
+                        className={styles.quantityButton}
+                      >
+                        <IconMinus size={14} />
+                      </ActionIcon>
+                      <NumberInput
+                        value={quantities[variant.id]}
+                        onChange={(val) => handleQuantityChange(variant.id, typeof val === 'number' ? val : 0)}
+                        min={0}
+                        hideControls
+                        className={styles.quantityInput}
+                        styles={{ input: { width: 60, textAlign: 'center' } }}
+                      />
+                      <ActionIcon
+                        variant="light"
+                        color="green"
+                        size="sm"
+                        onClick={() => handleIncrement(variant.id)}
+                        className={styles.quantityButton}
+                      >
+                        <IconPlus size={14} />
+                      </ActionIcon>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))}
