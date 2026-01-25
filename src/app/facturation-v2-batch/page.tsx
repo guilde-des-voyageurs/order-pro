@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Title, Paper, Stack, Table, Text, Group, Box, Select, Button } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
 import { BatchCalculator } from '@/components/BatchCalculator/BatchCalculator';
 import { CostRow } from '@/components/CostRow';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -16,6 +15,7 @@ import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { BatchBillingNote } from '@/components/BatchBillingNote';
 import { BatchBalance } from '@/components/BatchBalance';
 import { LineItemBalance } from '@/components/LineItemBalance/LineItemBalance';
+import { usePriceRules } from '@/hooks/usePriceRules';
 
 interface Order {
   id: string;

@@ -7,9 +7,9 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useBillingNotes } from '@/hooks/useBillingNotes';
 import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
 import { HANDLING_FEE } from '@/config/billing';
-import { calculateItemPrice, usePriceRules } from '@/hooks/usePriceRules';
 import { generateVariantId, getColorFromVariant, getSizeFromVariant, getSelectedOptions } from '@/utils/variant-helpers';
 import { reverseTransformColor } from '@/utils/color-transformer';
+import { usePriceRules, calculateItemPrice } from '@/hooks/usePriceRules';
 
 interface MonthlyInvoiceButtonProps {
   orders: Array<{

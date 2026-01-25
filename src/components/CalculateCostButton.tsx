@@ -3,10 +3,9 @@ import { useState } from 'react';
 import { doc, setDoc, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/db';
 import { HANDLING_FEE } from '@/config/billing';
-import { calculateItemPrice } from '@/hooks/usePriceRules';
 import { generateVariantId, getColorFromVariant, getSizeFromVariant, getSelectedOptions } from '@/utils/variant-helpers';
 import { reverseTransformColor } from '@/utils/color-transformer';
-import type { PriceRule } from '@/hooks/usePriceRules';
+import { PriceRule, calculateItemPrice } from '@/hooks/usePriceRules';
 
 interface CalculateCostButtonProps {
   orderId: string;

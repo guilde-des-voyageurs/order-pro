@@ -204,15 +204,15 @@ export async function POST(request: Request) {
         }
       }
 
-      // Mettre à jour par batch de 100
-      for (let i = 0; i < costUpdates.length; i += 100) {
-        const batch = costUpdates.slice(i, i + 100);
-        for (const update of batch) {
-          await supabase
+      // Mettre à jour en parallèle par batch de 50
+      for (let i = 0; i < costUpdates.length; i += 50) {
+        const batch = costUpdates.slice(i, i + 50);
+        await Promise.all(batch.map(update => 
+          supabase
             .from('product_variants')
             .update({ cost: update.cost })
-            .eq('shopify_id', update.shopify_id);
-        }
+            .eq('shopify_id', update.shopify_id)
+        ));
       }
 
       console.log(`Updated ${costUpdates.length} variant costs`);

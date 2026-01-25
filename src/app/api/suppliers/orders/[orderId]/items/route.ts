@@ -31,21 +31,26 @@ export async function POST(
       variantCostMap[v.id] = v.cost || 0;
     });
 
-    // Préparer les articles à insérer (utilise le coût Shopify)
-    const itemsToInsert = items.map((item: any) => {
+    // Préparer les articles à insérer (UNE LIGNE PAR UNITÉ pour suivi individuel)
+    const itemsToInsert: any[] = [];
+    for (const item of items) {
       const unitPrice = variantCostMap[item.variant_id] || 0;
+      const quantity = item.quantity || 1;
       
-      return {
-        order_id: orderId,
-        variant_id: item.variant_id,
-        product_title: item.product_title,
-        variant_title: item.variant_title,
-        sku: item.sku,
-        quantity: item.quantity,
-        unit_price: unitPrice,
-        line_total: unitPrice * item.quantity,
-      };
-    });
+      // Créer une ligne par unité
+      for (let i = 0; i < quantity; i++) {
+        itemsToInsert.push({
+          order_id: orderId,
+          variant_id: item.variant_id,
+          product_title: item.product_title,
+          variant_title: item.variant_title,
+          sku: item.sku,
+          quantity: 1, // Toujours 1 par ligne
+          unit_price: unitPrice,
+          line_total: unitPrice, // = unitPrice * 1
+        });
+      }
+    }
 
     const { data: insertedItems, error } = await supabase
       .from('supplier_order_items')
@@ -190,7 +195,8 @@ export async function PUT(
     }
 
     // Mettre à jour les totaux de la commande si nécessaire
-    if (quantity !== undefined || unit_price !== undefined) {
+    // Inclure is_validated car le total ne compte que les items cochés
+    if (quantity !== undefined || unit_price !== undefined || is_validated !== undefined) {
       await updateOrderTotals(orderId, shopId);
     }
 
@@ -236,13 +242,14 @@ export async function DELETE(
 }
 
 async function updateOrderTotals(orderId: string, shopId: string) {
-  // Calculer le sous-total
+  // Calculer le sous-total (UNIQUEMENT les items validés/cochés)
   const { data: items } = await supabase
     .from('supplier_order_items')
-    .select('line_total')
+    .select('line_total, is_validated')
     .eq('order_id', orderId);
 
-  const subtotal = items?.reduce((sum, item) => sum + (item.line_total || 0), 0) || 0;
+  // Ne compter que les items validés dans le total
+  const subtotal = items?.filter(item => item.is_validated).reduce((sum, item) => sum + (item.line_total || 0), 0) || 0;
 
   // Récupérer la balance actuelle
   const { data: order } = await supabase

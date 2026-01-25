@@ -1,11 +1,10 @@
 import { Text } from '@mantine/core';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
-import { calculateItemPrice } from '@/hooks/usePriceRules';
 import { formatItemString } from '@/utils/order-total';
-import type { PriceRule } from '@/hooks/usePriceRules';
 import { doc, getFirestore, getDoc } from 'firebase/firestore';
 import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 import { reverseTransformColor } from '@/utils/color-transformer';
+import { PriceRule, calculateItemPrice } from '@/hooks/usePriceRules';
 
 interface CostRowProps {
   orderId: string;

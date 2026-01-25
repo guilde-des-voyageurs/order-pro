@@ -5,7 +5,6 @@ import { Title, Paper, Stack, Table, Text, Group, Box, Select, NumberInput } fro
 import { CalculateCostButton } from '@/components/CalculateCostButton';
 import { OrderTotalCell } from '@/components/OrderTotalCell';
 import { HandlingFeeCell } from '@/components/HandlingFeeCell';
-import { usePriceRules } from '@/hooks/usePriceRules';
 import { CostRow } from '@/components/CostRow';
 import { HANDLING_FEE } from '@/config/billing';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -23,6 +22,7 @@ import { useMonthlyBalance } from '@/hooks/useMonthlyBalance';
 import { OrderBalanceCell } from '@/components/OrderBalanceCell';
 import { MonthlyBillingNote } from '@/components/MonthlyBillingNote';
 import { useDragScroll } from '@/hooks/useDragScroll';
+import { usePriceRules } from '@/hooks/usePriceRules';
 import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 
 interface Order {

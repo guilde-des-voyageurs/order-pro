@@ -451,15 +451,17 @@ export default function OrderDetailPage() {
     return groups;
   }, [items]);
 
-  // Calculer les totaux
+  // Calculer les totaux (UNIQUEMENT les items cochés)
   const totals = useMemo(() => {
-    const subtotal = items.reduce((sum, item) => sum + item.line_total, 0);
+    // Sous-total = somme des items validés uniquement
+    const validatedItems = items.filter(i => i.is_validated);
+    const subtotal = validatedItems.reduce((sum, item) => sum + item.line_total, 0);
     const totalHt = subtotal + balanceAdjustment;
     const totalTtc = totalHt * 1.2;
-    const validatedCount = items.filter(i => i.is_validated).length;
+    const validatedCount = validatedItems.length;
     const progress = items.length > 0 ? (validatedCount / items.length) * 100 : 0;
     
-    return { subtotal, totalHt, totalTtc, validatedCount, progress };
+    return { subtotal, totalHt, totalTtc, validatedCount, progress, totalItems: items.length };
   }, [items, balanceAdjustment]);
 
   if (loading) {
