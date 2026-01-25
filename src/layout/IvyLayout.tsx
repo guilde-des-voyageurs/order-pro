@@ -1,32 +1,17 @@
 'use client';
 
 import styles from './IvyLayout.module.scss';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/firebase/config';
-import { Button } from '@mantine/core';
-import { IconLogout } from '@tabler/icons-react';
-import Image from 'next/image';
-import { APP_VERSION } from '@/config/version';
+import { IconHome, IconPackage, IconTruck, IconChartBar } from '@tabler/icons-react';
 
 interface IvyLayoutProps {
   children: React.ReactNode;
 }
 
 export const IvyLayout = ({ children }: IvyLayoutProps) => {
-  const router = useRouter();
   const pathname = usePathname();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  };
 
   const menuCategories = [
     {
@@ -34,7 +19,23 @@ export const IvyLayout = ({ children }: IvyLayoutProps) => {
       items: [
         {
           href: '/ivy',
-          label: 'Accueil',
+          label: 'Tableau de bord',
+          icon: IconHome,
+        },
+        {
+          href: '/ivy/inventory',
+          label: 'Inventaire',
+          icon: IconPackage,
+        },
+        {
+          href: '/ivy/suppliers',
+          label: 'Fournisseurs',
+          icon: IconTruck,
+        },
+        {
+          href: '/ivy/analytics',
+          label: 'Statistiques',
+          icon: IconChartBar,
         },
       ],
     },
@@ -48,32 +49,26 @@ export const IvyLayout = ({ children }: IvyLayoutProps) => {
             <li key={category.title} className={styles.menu_category}>
               <div className={styles.menu_category_title}>{category.title}</div>
               <ul>
-                {category.items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={clsx({
-                        [styles.active]: pathname === item.href,
-                      })}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+                {category.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={clsx({
+                          [styles.active]: pathname === item.href,
+                        })}
+                      >
+                        <Icon size={16} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </li>
           ))}
         </ul>
-        <div className={styles.menu_footer}>
-          <Button 
-            variant="subtle" 
-            color="gray" 
-            leftSection={<IconLogout size={16} />}
-            onClick={handleLogout}
-          >
-            Déconnexion
-          </Button>
-        </div>
       </div>
       <div className={styles.content}>{children}</div>
     </div>

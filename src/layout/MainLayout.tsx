@@ -5,14 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { SyncButton } from '@/components/SyncButton/SyncButton';
-import { useAuth } from '@/context/AuthContext';
 import { useShop } from '@/context/ShopContext';
-import { Button } from '@mantine/core';
-import { IconLogout } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase/client';
-import { APP_VERSION } from '@/config/version';
-import { ShopSelector } from '@/components/ShopSelector';
 
 interface MenuItem {
   href: string;
@@ -26,7 +21,6 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { signOut } = useAuth();
   const { currentShop, hasShops, loading: shopLoading } = useShop();
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [stockOrdersCount, setStockOrdersCount] = useState(0);
@@ -72,15 +66,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       supabase.removeChannel(channel);
     };
   }, [currentShop]);
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      router.push('/login');
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  };
 
   // Rediriger vers onboarding si pas de boutique (seulement après le chargement)
   useEffect(() => {
@@ -151,9 +136,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
-        <div className={styles.menu_header}>
-          <ShopSelector />
-        </div>
         <div className={styles.menu_sync}>
           <SyncButton />
         </div>
@@ -178,16 +160,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             </li>
           ))}
         </ul>
-        <div className={styles.menu_footer}>
-          <Button 
-            variant="subtle" 
-            color="gray" 
-            leftSection={<IconLogout size={16} />}
-            onClick={handleLogout}
-          >
-            Déconnexion
-          </Button>
-        </div>
       </div>
       <div className={styles.content}>{children}</div>
     </div>

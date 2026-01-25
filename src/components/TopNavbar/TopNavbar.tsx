@@ -1,17 +1,30 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Button, Group, Text } from '@mantine/core';
+import { Button, Group, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { IconLogout } from '@tabler/icons-react';
 import Image from 'next/image';
 import { APP_VERSION } from '@/config/version';
+import { ShopSelector } from '@/components/ShopSelector';
+import { useAuth } from '@/context/AuthContext';
 import styles from './TopNavbar.module.scss';
 
 export function TopNavbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { signOut } = useAuth();
   
   const isIvy = pathname.startsWith('/ivy');
   const isAtelier = !isIvy && pathname !== '/';
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
 
   return (
     <div className={styles.topNavbar}>
@@ -46,7 +59,20 @@ export function TopNavbar() {
         </Group>
       </Group>
       
-      <Text size="sm" c="dimmed">v{APP_VERSION}</Text>
+      <Group gap="md">
+        <ShopSelector />
+        <Text size="sm" c="dimmed">v{APP_VERSION}</Text>
+        <Tooltip label="Déconnexion">
+          <ActionIcon 
+            variant="subtle" 
+            color="gray" 
+            size="lg"
+            onClick={handleLogout}
+          >
+            <IconLogout size={20} />
+          </ActionIcon>
+        </Tooltip>
+      </Group>
     </div>
   );
 }
