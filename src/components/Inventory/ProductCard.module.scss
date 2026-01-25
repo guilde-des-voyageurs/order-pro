@@ -1,0 +1,30 @@
+.card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.imageContainer {
+  position: relative;
+  background-color: var(--mantine-color-gray-1);
+}
+
+.noImage {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--mantine-color-gray-1);
+}
+
+.quantityBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-weight: 700;
+}

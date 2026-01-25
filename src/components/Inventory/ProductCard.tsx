@@ -1,0 +1,79 @@
+'use client';
+
+import { Paper, Image, Text, Badge, Group, Stack } from '@mantine/core';
+import styles from './ProductCard.module.scss';
+
+export interface ProductData {
+  id: string;
+  title: string;
+  handle: string;
+  image: string | null;
+  imageAlt: string;
+  totalQuantity: number;
+  sizeBreakdown: Record<string, number>;
+  variants: Array<{
+    id: string;
+    title: string;
+    sku: string;
+    quantity: number;
+    size: string | null;
+    options: Array<{ name: string; value: string }>;
+  }>;
+}
+
+interface ProductCardProps {
+  product: ProductData;
+  onClick: () => void;
+}
+
+export function ProductCard({ product, onClick }: ProductCardProps) {
+  // Formater le breakdown des tailles
+  const sizeText = Object.entries(product.sizeBreakdown)
+    .filter(([_, qty]) => qty > 0)
+    .map(([size, qty]) => `${qty} ${size}`)
+    .join(', ');
+
+  return (
+    <Paper 
+      className={styles.card} 
+      withBorder 
+      radius="md" 
+      onClick={onClick}
+      p={0}
+    >
+      <div className={styles.imageContainer}>
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.imageAlt}
+            h={180}
+            fit="cover"
+          />
+        ) : (
+          <div className={styles.noImage}>
+            <Text c="dimmed" size="sm">Pas d'image</Text>
+          </div>
+        )}
+        <Badge 
+          className={styles.quantityBadge}
+          size="lg"
+          color={product.totalQuantity > 0 ? 'green' : 'red'}
+          variant="filled"
+        >
+          {product.totalQuantity}
+        </Badge>
+      </div>
+      
+      <Stack gap={4} p="sm">
+        <Text fw={600} size="sm" lineClamp={2}>
+          {product.title}
+        </Text>
+        {sizeText && (
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {sizeText}
+          </Text>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
