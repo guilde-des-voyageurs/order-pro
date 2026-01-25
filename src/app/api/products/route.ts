@@ -16,104 +16,83 @@ export async function GET(request: Request) {
 
     const supabase = createServerClient();
 
-    // Récupérer les informations de la boutique
-    const { data: shop, error: shopError } = await supabase
-      .from('shops')
-      .select('shopify_url, shopify_token')
-      .eq('id', shopId)
-      .single();
+    // Récupérer les produits depuis Supabase (cache local)
+    const { data: productsData, error: productsError } = await supabase
+      .from('products')
+      .select(`
+        id,
+        shopify_id,
+        title,
+        handle,
+        image_url,
+        status,
+        synced_at,
+        variants:product_variants(
+          id,
+          shopify_id,
+          title,
+          sku,
+          option1,
+          option2,
+          option3,
+          inventory_levels(
+            quantity,
+            location_id
+          )
+        )
+      `)
+      .eq('shop_id', shopId)
+      .eq('status', 'active');
 
-    if (shopError || !shop) {
+    if (productsError) {
+      console.error('Error fetching products from Supabase:', productsError);
       return NextResponse.json(
-        { error: 'Shop not found' },
-        { status: 404 }
-      );
-    }
-
-    // Utiliser l'API REST pour les produits (moins coûteux que GraphQL pour cette opération)
-    const productsResponse = await fetch(
-      `https://${shop.shopify_url}/admin/api/2024-01/products.json?status=active&limit=250`,
-      {
-        headers: {
-          'X-Shopify-Access-Token': shop.shopify_token,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!productsResponse.ok) {
-      console.error('Shopify Products API error:', await productsResponse.text());
-      return NextResponse.json(
-        { error: 'Failed to fetch products from Shopify' },
+        { error: 'Failed to fetch products' },
         { status: 500 }
       );
     }
 
-    const productsData = await productsResponse.json();
-
-    // Récupérer les niveaux d'inventaire pour l'emplacement spécifié
-    let inventoryLevels: Record<string, number> = {};
-    
-    if (locationId) {
-      // Collecter tous les inventory_item_ids
-      const inventoryItemIds: number[] = [];
-      for (const product of productsData.products) {
-        for (const variant of product.variants) {
-          if (variant.inventory_item_id) {
-            inventoryItemIds.push(variant.inventory_item_id);
-          }
-        }
-      }
-
-      // Récupérer les niveaux d'inventaire par lots de 50
-      for (let i = 0; i < inventoryItemIds.length; i += 50) {
-        const batch = inventoryItemIds.slice(i, i + 50);
-        const inventoryResponse = await fetch(
-          `https://${shop.shopify_url}/admin/api/2024-01/inventory_levels.json?inventory_item_ids=${batch.join(',')}&location_ids=${locationId}`,
-          {
-            headers: {
-              'X-Shopify-Access-Token': shop.shopify_token,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (inventoryResponse.ok) {
-          const inventoryData = await inventoryResponse.json();
-          for (const level of inventoryData.inventory_levels) {
-            inventoryLevels[level.inventory_item_id] = level.available || 0;
-          }
-        }
-      }
+    // Si pas de produits, retourner un tableau vide avec un flag indiquant qu'il faut synchroniser
+    if (!productsData || productsData.length === 0) {
+      return NextResponse.json({ 
+        products: [], 
+        needsSync: true,
+        message: 'Aucun produit en cache. Veuillez synchroniser depuis Shopify.'
+      });
     }
 
-    // Transformer les données REST en format attendu
-    const products = productsData.products.map((product: any) => {
-      // Calculer l'inventaire par variante
+    // Transformer les données pour le frontend
+    const products = productsData.map((product: any) => {
       const variants = product.variants.map((variant: any) => {
-        // Utiliser l'inventaire de l'emplacement si disponible, sinon utiliser inventory_quantity
-        const quantity = locationId 
-          ? (inventoryLevels[variant.inventory_item_id] ?? 0)
-          : (variant.inventory_quantity ?? 0);
+        // Trouver le niveau d'inventaire pour l'emplacement sélectionné
+        let quantity = 0;
+        if (locationId) {
+          const level = variant.inventory_levels?.find(
+            (l: any) => l.location_id === locationId
+          );
+          quantity = level?.quantity || 0;
+        } else {
+          // Additionner tous les emplacements
+          quantity = variant.inventory_levels?.reduce(
+            (sum: number, l: any) => sum + (l.quantity || 0), 0
+          ) || 0;
+        }
 
-        // Extraire la taille des options
-        const sizeOptionIndex = product.options?.findIndex(
-          (opt: any) => opt.name.toLowerCase() === 'taille' || opt.name.toLowerCase() === 'size'
-        );
-        const size = sizeOptionIndex !== undefined && sizeOptionIndex >= 0 
-          ? variant[`option${sizeOptionIndex + 1}`] 
-          : null;
+        // Déterminer la taille (option1 est généralement la taille)
+        const size = variant.option1;
 
         return {
-          id: `gid://shopify/ProductVariant/${variant.id}`,
+          id: `gid://shopify/ProductVariant/${variant.shopify_id}`,
+          supabaseId: variant.id,
           title: variant.title,
           sku: variant.sku,
           quantity,
           size,
-          options: product.options?.map((opt: any, idx: number) => ({
-            name: opt.name,
-            value: variant[`option${idx + 1}`],
-          })) || [],
+          options: [
+            variant.option1 && { name: 'Option 1', value: variant.option1 },
+            variant.option2 && { name: 'Option 2', value: variant.option2 },
+            variant.option3 && { name: 'Option 3', value: variant.option3 },
+          ].filter(Boolean),
         };
       });
 
@@ -129,19 +108,21 @@ export async function GET(request: Request) {
       });
 
       return {
-        id: `gid://shopify/Product/${product.id}`,
+        id: `gid://shopify/Product/${product.shopify_id}`,
+        supabaseId: product.id,
         title: product.title,
         handle: product.handle,
         status: product.status?.toUpperCase() || 'ACTIVE',
-        image: product.image?.src || product.images?.[0]?.src || null,
-        imageAlt: product.image?.alt || product.title,
+        image: product.image_url,
+        imageAlt: product.title,
         totalQuantity,
         sizeBreakdown,
         variants,
+        syncedAt: product.synced_at,
       };
     });
 
-    return NextResponse.json({ products });
+    return NextResponse.json({ products, needsSync: false });
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
