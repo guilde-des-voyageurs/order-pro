@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Title, Text, Paper, Stack, Tabs, Table, TextInput, NumberInput, Button, Group, ActionIcon, Badge, ColorSwatch, Modal, Select, Switch, Loader, Center } from '@mantine/core';
-import { IconPlus, IconTrash, IconEdit, IconCheck, IconX, IconPalette, IconCurrencyEuro } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconEdit, IconCheck, IconX, IconPalette, IconCurrencyEuro, IconTag } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
@@ -26,6 +26,14 @@ interface PricingRule {
   is_active: boolean;
 }
 
+interface MetafieldRule {
+  id?: string;
+  metafield_key: string;
+  display_name?: string;
+  is_active: boolean;
+  display_order: number;
+}
+
 export default function SettingsPage() {
   const { currentShop } = useShop();
   const [loading, setLoading] = useState(true);
@@ -41,9 +49,15 @@ export default function SettingsPage() {
   const [editingPricing, setEditingPricing] = useState<PricingRule | null>(null);
   const [pricingModalOpened, { open: openPricingModal, close: closePricingModal }] = useDisclosure(false);
   
+  // Règles de métachamps
+  const [metafieldRules, setMetafieldRules] = useState<MetafieldRule[]>([]);
+  const [editingMetafield, setEditingMetafield] = useState<MetafieldRule | null>(null);
+  const [metafieldModalOpened, { open: openMetafieldModal, close: closeMetafieldModal }] = useDisclosure(false);
+  
   // Recherche
   const [colorSearch, setColorSearch] = useState('');
   const [pricingSearch, setPricingSearch] = useState('');
+  const [metafieldSearch, setMetafieldSearch] = useState('');
 
   // Charger les règles depuis Supabase
   const fetchRules = useCallback(async () => {
@@ -56,6 +70,7 @@ export default function SettingsPage() {
         const data = await response.json();
         setColorRules(data.colorRules || []);
         setPricingRules(data.pricingRules || []);
+        setMetafieldRules(data.metafieldRules || []);
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
@@ -178,6 +193,61 @@ export default function SettingsPage() {
     }
   };
 
+  // Sauvegarder une règle de métachamp
+  const saveMetafieldRule = async (rule: MetafieldRule) => {
+    if (!currentShop) return;
+    
+    setSaving(true);
+    try {
+      const response = await fetch('/api/settings/metafields', {
+        method: rule.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: currentShop.id, ...rule }),
+      });
+      
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: 'Métachamp sauvegardé',
+          color: 'green',
+        });
+        closeMetafieldModal();
+        fetchRules();
+      }
+    } catch (err) {
+      console.error('Error saving metafield rule:', err);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de sauvegarder le métachamp',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Supprimer une règle de métachamp
+  const deleteMetafieldRule = async (id: string) => {
+    if (!currentShop) return;
+    
+    try {
+      const response = await fetch(`/api/settings/metafields?id=${id}&shopId=${currentShop.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: 'Métachamp supprimé',
+          color: 'green',
+        });
+        fetchRules();
+      }
+    } catch (err) {
+      console.error('Error deleting metafield rule:', err);
+    }
+  };
+
   if (loading) {
     return (
       <Center h={400}>
@@ -197,6 +267,9 @@ export default function SettingsPage() {
           </Tabs.Tab>
           <Tabs.Tab value="pricing" leftSection={<IconCurrencyEuro size={16} />}>
             Règles de prix
+          </Tabs.Tab>
+          <Tabs.Tab value="metafields" leftSection={<IconTag size={16} />}>
+            Métachamps produits
           </Tabs.Tab>
         </Tabs.List>
 
@@ -401,6 +474,106 @@ export default function SettingsPage() {
             )}
           </Paper>
         </Tabs.Panel>
+
+        {/* Onglet Métachamps */}
+        <Tabs.Panel value="metafields">
+          <Paper withBorder p="md" radius="md">
+            <Group justify="space-between" mb="md">
+              <div>
+                <Text fw={600}>Métachamps à afficher</Text>
+                <Text size="sm" c="dimmed">
+                  Configurez les métachamps Shopify à afficher dans les commandes batch
+                </Text>
+              </div>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => {
+                  setEditingMetafield({
+                    metafield_key: '',
+                    display_name: '',
+                    is_active: true,
+                    display_order: metafieldRules.length,
+                  });
+                  openMetafieldModal();
+                }}
+              >
+                Ajouter un métachamp
+              </Button>
+            </Group>
+
+            {metafieldRules.length > 0 && (
+              <TextInput
+                placeholder="Rechercher un métachamp..."
+                value={metafieldSearch}
+                onChange={(e) => setMetafieldSearch(e.target.value)}
+                mb="md"
+              />
+            )}
+
+            {metafieldRules.length > 0 ? (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Clé du métachamp</Table.Th>
+                    <Table.Th>Nom affiché</Table.Th>
+                    <Table.Th>Ordre</Table.Th>
+                    <Table.Th>Actif</Table.Th>
+                    <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {metafieldRules
+                    .filter(rule => 
+                      metafieldSearch === '' || 
+                      rule.metafield_key.toLowerCase().includes(metafieldSearch.toLowerCase()) ||
+                      (rule.display_name && rule.display_name.toLowerCase().includes(metafieldSearch.toLowerCase()))
+                    )
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .map((rule) => (
+                    <Table.Tr key={rule.id || rule.metafield_key}>
+                      <Table.Td>
+                        <Badge variant="light" color="grape">{rule.metafield_key}</Badge>
+                      </Table.Td>
+                      <Table.Td>{rule.display_name || rule.metafield_key}</Table.Td>
+                      <Table.Td>{rule.display_order}</Table.Td>
+                      <Table.Td>
+                        {rule.is_active 
+                          ? <IconCheck size={16} color="green" />
+                          : <IconX size={16} color="red" />
+                        }
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            onClick={() => {
+                              setEditingMetafield(rule);
+                              openMetafieldModal();
+                            }}
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            onClick={() => rule.id && deleteMetafieldRule(rule.id)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                Aucun métachamp configuré. Ajoutez des métachamps pour les afficher dans les commandes batch.
+              </Text>
+            )}
+          </Paper>
+        </Tabs.Panel>
       </Tabs>
 
       {/* Modal édition couleur */}
@@ -519,6 +692,52 @@ export default function SettingsPage() {
               <Button variant="subtle" onClick={closePricingModal}>Annuler</Button>
               <Button 
                 onClick={() => savePricingRule(editingPricing)}
+                loading={saving}
+              >
+                Sauvegarder
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      {/* Modal édition métachamp */}
+      <Modal
+        opened={metafieldModalOpened}
+        onClose={closeMetafieldModal}
+        title={editingMetafield?.id ? 'Modifier le métachamp' : 'Ajouter un métachamp'}
+      >
+        {editingMetafield && (
+          <Stack>
+            <TextInput
+              label="Clé du métachamp"
+              placeholder="ex: verso_impression, couleur_saisonniere"
+              description="La clé exacte du métachamp Shopify (sans le namespace)"
+              value={editingMetafield.metafield_key}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, metafield_key: e.target.value })}
+            />
+            <TextInput
+              label="Nom affiché (optionnel)"
+              placeholder="ex: Impression Verso"
+              description="Le nom à afficher dans l'interface. Si vide, la clé sera utilisée."
+              value={editingMetafield.display_name || ''}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, display_name: e.target.value })}
+            />
+            <NumberInput
+              label="Ordre d'affichage"
+              value={editingMetafield.display_order}
+              onChange={(value) => setEditingMetafield({ ...editingMetafield, display_order: Number(value) || 0 })}
+              min={0}
+            />
+            <Switch
+              label="Métachamp actif"
+              checked={editingMetafield.is_active}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, is_active: e.currentTarget.checked })}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="subtle" onClick={closeMetafieldModal}>Annuler</Button>
+              <Button 
+                onClick={() => saveMetafieldRule(editingMetafield)}
                 loading={saving}
               >
                 Sauvegarder

@@ -5,6 +5,7 @@ import styles from './ProductCard.module.scss';
 
 export interface ProductData {
   id: string;
+  supabaseId?: string;
   title: string;
   handle: string;
   image: string | null;
@@ -13,6 +14,7 @@ export interface ProductData {
   sizeBreakdown: Record<string, number>;
   variants: Array<{
     id: string;
+    supabaseId?: string;
     title: string;
     sku: string;
     quantity: number;

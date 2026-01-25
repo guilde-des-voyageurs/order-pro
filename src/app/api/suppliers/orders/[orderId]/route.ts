@@ -43,7 +43,60 @@ export async function GET(
       console.error('Error fetching items:', itemsError);
     }
 
-    return NextResponse.json({ order, items: items || [] });
+    // Récupérer les règles de métachamps actives pour cette boutique
+    let metafieldRules: any[] = [];
+    try {
+      const { data: rules } = await supabase
+        .from('metafield_display_rules')
+        .select('metafield_key, display_name')
+        .eq('shop_id', shopId)
+        .eq('is_active', true)
+        .order('display_order');
+      
+      metafieldRules = rules || [];
+    } catch (e) {
+      // Table n'existe pas encore
+    }
+
+    // Si on a des règles de métachamps et des articles, récupérer les métachamps
+    let itemsWithMetafields = items || [];
+    if (metafieldRules.length > 0 && items && items.length > 0) {
+      const variantIds = items.map((item: any) => item.variant_id).filter(Boolean);
+      
+      if (variantIds.length > 0) {
+        const metafieldKeys = metafieldRules.map((r: any) => r.metafield_key);
+        
+        // Récupérer les métachamps pour ces variantes
+        const { data: metafields } = await supabase
+          .from('variant_metafields')
+          .select('variant_id, key, value')
+          .in('variant_id', variantIds)
+          .in('key', metafieldKeys);
+
+        // Créer un map variant_id -> { key: value }
+        const metafieldMap: Record<string, Record<string, string>> = {};
+        if (metafields) {
+          metafields.forEach((mf: any) => {
+            if (!metafieldMap[mf.variant_id]) {
+              metafieldMap[mf.variant_id] = {};
+            }
+            metafieldMap[mf.variant_id][mf.key] = mf.value;
+          });
+        }
+
+        // Ajouter les métachamps aux items
+        itemsWithMetafields = items.map((item: any) => ({
+          ...item,
+          metafields: item.variant_id ? metafieldMap[item.variant_id] || {} : {},
+        }));
+      }
+    }
+
+    return NextResponse.json({ 
+      order, 
+      items: itemsWithMetafields,
+      metafieldRules, // Envoyer les règles pour savoir quelles colonnes afficher
+    });
   } catch (error) {
     console.error('Error fetching order:', error);
     return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 });

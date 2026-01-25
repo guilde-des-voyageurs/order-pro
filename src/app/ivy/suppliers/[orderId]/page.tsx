@@ -3,13 +3,24 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Title, Text, Paper, Table, Button, Group, Badge, ActionIcon, Modal, NumberInput, Checkbox, Loader, Center, Stack, Textarea, Divider, Progress, TextInput, SimpleGrid } from '@mantine/core';
-import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage, IconMinus } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
 import { useLocation } from '@/context/LocationContext';
 import { ProductCard, ProductData } from '@/components/Inventory';
+import { getColorHex } from '@/utils/colorMap';
 import styles from './order-detail.module.scss';
+
+// Ordre des tailles pour le tri
+const SIZE_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL'];
+
+function getSizeIndex(size: string | null | undefined): number {
+  if (!size) return 999;
+  const upperSize = size.toUpperCase();
+  const index = SIZE_ORDER.indexOf(upperSize);
+  return index === -1 ? 999 : index;
+}
 
 interface OrderItem {
   id: string;
@@ -22,6 +33,12 @@ interface OrderItem {
   line_total: number;
   is_validated: boolean;
   validated_at: string | null;
+  metafields?: Record<string, string>;
+}
+
+interface MetafieldRule {
+  metafield_key: string;
+  display_name: string | null;
 }
 
 interface SupplierOrder {
@@ -57,6 +74,10 @@ export default function OrderDetailPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<string, number>>({});
+  const [skuFilter, setSkuFilter] = useState<string | null>(null);
+  
+  // Règles de métachamps
+  const [metafieldRules, setMetafieldRules] = useState<MetafieldRule[]>([]);
 
   // Charger la commande et ses articles
   const fetchOrder = useCallback(async () => {
@@ -71,6 +92,7 @@ export default function OrderDetailPage() {
         setItems(data.items || []);
         setNote(data.order.note || '');
         setBalanceAdjustment(data.order.balance_adjustment || 0);
+        setMetafieldRules(data.metafieldRules || []);
       } else {
         throw new Error('Order not found');
       }
@@ -91,13 +113,19 @@ export default function OrderDetailPage() {
     fetchOrder();
   }, [fetchOrder]);
 
-  // Charger les produits pour l'ajout
-  const fetchProducts = async () => {
-    if (!currentShop) return;
+  // Charger les produits pour l'ajout (avec recherche)
+  const fetchProducts = async (query: string) => {
+    if (!currentShop || query.length < 3) {
+      setProducts([]);
+      return;
+    }
     
     setLoadingProducts(true);
     try {
-      const params = new URLSearchParams({ shopId: currentShop.id });
+      const params = new URLSearchParams({ 
+        shopId: currentShop.id,
+        search: query 
+      });
       if (currentLocation) {
         params.append('locationId', currentLocation.id);
       }
@@ -115,21 +143,75 @@ export default function OrderDetailPage() {
 
   // Ouvrir le modal d'ajout
   const handleOpenAddModal = () => {
-    fetchProducts();
+    setProducts([]);
     setSelectedVariants({});
     setSearchQuery('');
+    setSkuFilter(null);
     openAddModal();
   };
 
-  // Filtrer les produits
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery) return products;
-    const query = searchQuery.toLowerCase();
-    return products.filter(p => 
-      p.title.toLowerCase().includes(query) ||
-      p.variants.some(v => v.sku?.toLowerCase().includes(query))
-    );
-  }, [products, searchQuery]);
+  // Extraire les préfixes SKU uniques des produits chargés
+  const skuPrefixes = useMemo(() => {
+    const prefixCounts = new Map<string, Set<string>>();
+    
+    products.forEach(product => {
+      product.variants.forEach(variant => {
+        if (variant.sku) {
+          const match = variant.sku.match(/^([A-Za-z]+)/);
+          if (match) {
+            const prefix = match[1].toUpperCase();
+            if (!prefixCounts.has(prefix)) {
+              prefixCounts.set(prefix, new Set());
+            }
+            prefixCounts.get(prefix)!.add(product.id);
+          }
+        }
+      });
+    });
+    
+    return Array.from(prefixCounts.entries())
+      .map(([prefix, productIds]) => ({ prefix, count: productIds.size }))
+      .sort((a, b) => a.prefix.localeCompare(b.prefix));
+  }, [products]);
+
+  // Filtrer par préfixe SKU et trier les variantes par taille
+  const displayedProducts = useMemo(() => {
+    let result = [...products];
+    
+    if (skuFilter) {
+      result = result.filter(product =>
+        product.variants.some(v => v.sku?.toUpperCase().startsWith(skuFilter))
+      );
+    }
+    
+    // Trier les variantes par taille
+    result = result.map(product => ({
+      ...product,
+      variants: [...product.variants].sort((a, b) => {
+        const sizeA = a.size || a.options?.find(o => o.name?.toLowerCase() === 'taille')?.value;
+        const sizeB = b.size || b.options?.find(o => o.name?.toLowerCase() === 'taille')?.value;
+        return getSizeIndex(sizeA) - getSizeIndex(sizeB);
+      })
+    }));
+    
+    return result;
+  }, [products, skuFilter]);
+
+  // Rechercher les produits quand la query change
+  useEffect(() => {
+    if (!addModalOpened) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length >= 3) {
+        fetchProducts(searchQuery);
+      } else {
+        setProducts([]);
+      }
+    }, 300); // Debounce de 300ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, addModalOpened, currentShop, currentLocation]);
+
 
   // Ajouter les variantes sélectionnées
   const addSelectedVariants = async () => {
@@ -140,10 +222,10 @@ export default function OrderDetailPage() {
       .map(([variantId, quantity]) => {
         // Trouver le produit et la variante
         for (const product of products) {
-          const variant = product.variants.find(v => v.id === variantId);
+          const variant = product.variants.find((v: any) => v.id === variantId);
           if (variant) {
             return {
-              variant_id: variant.id,
+              variant_id: variant.supabaseId, // Utiliser l'UUID Supabase, pas l'ID Shopify
               product_title: product.title,
               variant_title: variant.title,
               sku: variant.sku,
@@ -458,8 +540,9 @@ export default function OrderDetailPage() {
                 <Table.Tr>
                   <Table.Th style={{ width: 50 }}>Validé</Table.Th>
                   <Table.Th>Produit</Table.Th>
-                  <Table.Th>Variante</Table.Th>
                   <Table.Th>SKU</Table.Th>
+                  {metafieldRules.length > 0 && <Table.Th>Méta champ</Table.Th>}
+                  <Table.Th>Variante</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Qté</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Prix unit.</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Total</Table.Th>
@@ -477,10 +560,29 @@ export default function OrderDetailPage() {
                       />
                     </Table.Td>
                     <Table.Td>{item.product_title}</Table.Td>
-                    <Table.Td>{item.variant_title || '-'}</Table.Td>
                     <Table.Td>
                       <Badge variant="light" color="gray">{item.sku || '-'}</Badge>
                     </Table.Td>
+                    {metafieldRules.length > 0 && (
+                      <Table.Td>
+                        {item.metafields && Object.keys(item.metafields).length > 0 ? (
+                          <Stack gap={2}>
+                            {metafieldRules.map((rule) => {
+                              const value = item.metafields?.[rule.metafield_key];
+                              if (!value) return null;
+                              return (
+                                <Badge key={rule.metafield_key} variant="light" color="grape" size="sm">
+                                  {value}
+                                </Badge>
+                              );
+                            })}
+                          </Stack>
+                        ) : (
+                          <Text size="xs" c="dimmed">-</Text>
+                        )}
+                      </Table.Td>
+                    )}
+                    <Table.Td>{item.variant_title || '-'}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.quantity}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.unit_price.toFixed(2)} €</Table.Td>
                     <Table.Td style={{ textAlign: 'right', fontWeight: 600 }}>{item.line_total.toFixed(2)} €</Table.Td>
@@ -562,34 +664,109 @@ export default function OrderDetailPage() {
           mb="md"
         />
         
-        {loadingProducts ? (
+        {/* Filtres SKU */}
+        {skuPrefixes.length > 0 && (
+          <Group gap="xs" mb="md" wrap="wrap">
+            <Text size="sm" fw={500}>SKU:</Text>
+            <Badge
+              variant={skuFilter === null ? 'filled' : 'light'}
+              style={{ cursor: 'pointer' }}
+              onClick={() => setSkuFilter(null)}
+            >
+              Tous
+            </Badge>
+            {skuPrefixes.map(({ prefix, count }) => (
+              <Badge
+                key={prefix}
+                variant={skuFilter === prefix ? 'filled' : 'light'}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSkuFilter(skuFilter === prefix ? null : prefix)}
+              >
+                {prefix} ({count})
+              </Badge>
+            ))}
+          </Group>
+        )}
+
+        {searchQuery.length < 3 ? (
+          <Center h={200}>
+            <Text c="dimmed">Tapez au moins 3 caractères pour rechercher</Text>
+          </Center>
+        ) : loadingProducts ? (
           <Center h={200}>
             <Loader />
           </Center>
+        ) : displayedProducts.length === 0 ? (
+          <Center h={200}>
+            <Text c="dimmed">Aucun produit trouvé pour "{searchQuery}"</Text>
+          </Center>
         ) : (
           <div className={styles.productsList}>
-            {filteredProducts.map((product) => (
+            {displayedProducts.map((product) => (
               <Paper key={product.id} withBorder p="sm" radius="md" mb="sm">
                 <Text fw={600} mb="xs">{product.title}</Text>
                 <div className={styles.variantsList}>
-                  {product.variants.map((variant) => (
-                    <Group key={variant.id} justify="space-between" className={styles.variantRow}>
-                      <Group>
-                        <Text size="sm">{variant.title}</Text>
-                        <Badge size="xs" variant="light">{variant.sku}</Badge>
+                  {product.variants.map((variant) => {
+                    // Extraire la couleur de la variante
+                    const colorOption = variant.options?.find((o: any) => 
+                      o.name?.toLowerCase() === 'couleur' || o.name?.toLowerCase() === 'color'
+                    );
+                    const colorHex = colorOption ? getColorHex(colorOption.value) : null;
+                    
+                    return (
+                      <Group key={variant.id} justify="space-between" className={styles.variantRow}>
+                        <Group gap="xs">
+                          {colorHex && (
+                            <div
+                              style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                background: colorHex,
+                                border: '1px solid #ddd',
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Text size="sm">{variant.title}</Text>
+                          <Badge size="xs" variant="light">{variant.sku}</Badge>
+                        </Group>
+                        <Group gap={4}>
+                          <ActionIcon
+                            size="xs"
+                            variant="light"
+                            onClick={() => setSelectedVariants(prev => ({
+                              ...prev,
+                              [variant.id]: Math.max(0, (prev[variant.id] || 0) - 1),
+                            }))}
+                          >
+                            <IconMinus size={12} />
+                          </ActionIcon>
+                          <NumberInput
+                            size="xs"
+                            min={0}
+                            value={selectedVariants[variant.id] || 0}
+                            onChange={(value) => setSelectedVariants(prev => ({
+                              ...prev,
+                              [variant.id]: Number(value) || 0,
+                            }))}
+                            style={{ width: 60 }}
+                            hideControls
+                          />
+                          <ActionIcon
+                            size="xs"
+                            variant="light"
+                            onClick={() => setSelectedVariants(prev => ({
+                              ...prev,
+                              [variant.id]: (prev[variant.id] || 0) + 1,
+                            }))}
+                          >
+                            <IconPlus size={12} />
+                          </ActionIcon>
+                        </Group>
                       </Group>
-                      <NumberInput
-                        size="xs"
-                        min={0}
-                        value={selectedVariants[variant.id] || 0}
-                        onChange={(value) => setSelectedVariants(prev => ({
-                          ...prev,
-                          [variant.id]: Number(value) || 0,
-                        }))}
-                        style={{ width: 80 }}
-                      />
-                    </Group>
-                  ))}
+                    );
+                  })}
                 </div>
               </Paper>
             ))}
