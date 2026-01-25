@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { IconHome, IconPackage, IconTruck, IconChartBar } from '@tabler/icons-react';
+import { LocationProvider } from '@/context/LocationContext';
+import { LocationSelector } from '@/components/LocationSelector';
 
 interface IvyLayoutProps {
   children: React.ReactNode;
 }
 
-export const IvyLayout = ({ children }: IvyLayoutProps) => {
+function IvyLayoutContent({ children }: IvyLayoutProps) {
   const pathname = usePathname();
 
   const menuCategories = [
@@ -44,6 +46,9 @@ export const IvyLayout = ({ children }: IvyLayoutProps) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
+        <div className={styles.menu_header}>
+          <LocationSelector />
+        </div>
         <ul className={styles.menu_links}>
           {menuCategories.map((category) => (
             <li key={category.title} className={styles.menu_category}>
@@ -72,5 +77,14 @@ export const IvyLayout = ({ children }: IvyLayoutProps) => {
       </div>
       <div className={styles.content}>{children}</div>
     </div>
+  );
+}
+
+// Wrapper avec le LocationProvider
+export const IvyLayout = ({ children }: IvyLayoutProps) => {
+  return (
+    <LocationProvider>
+      <IvyLayoutContent>{children}</IvyLayoutContent>
+    </LocationProvider>
   );
 };

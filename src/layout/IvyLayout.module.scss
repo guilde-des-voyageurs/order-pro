@@ -19,6 +19,12 @@
     flex-direction: column;
     overflow-y: auto;
 
+    &_header {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--mantine-color-gray-2);
+    }
+
     &_links {
       list-style-type: none;
       margin: 0;
