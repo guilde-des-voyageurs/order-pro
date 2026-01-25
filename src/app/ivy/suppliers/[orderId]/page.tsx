@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Title, Text, Paper, Table, Button, Group, Badge, ActionIcon, Modal, NumberInput, Checkbox, Loader, Center, Stack, Textarea, Divider, Progress, TextInput, SimpleGrid } from '@mantine/core';
-import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage, IconMinus } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage, IconMinus, IconRefresh } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
@@ -33,7 +33,6 @@ interface OrderItem {
   line_total: number;
   is_validated: boolean;
   validated_at: string | null;
-  pricing_string?: string;
 }
 
 interface SupplierOrder {
@@ -319,6 +318,44 @@ export default function OrderDetailPage() {
     }
   };
 
+  // Recalculer les prix basés sur les coûts actuels des variantes
+  const recalculatePrices = async () => {
+    if (!currentShop || !orderId) return;
+    
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/suppliers/orders/${orderId}/items`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: currentShop.id,
+          action: 'recalculate_prices',
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        notifications.show({
+          title: 'Succès',
+          message: data.message || 'Prix recalculés',
+          color: 'green',
+        });
+        fetchOrder();
+      } else {
+        throw new Error('Failed to recalculate');
+      }
+    } catch (err) {
+      console.error('Error recalculating prices:', err);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de recalculer les prix',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Sauvegarder les modifications de la commande
   const saveOrder = async () => {
     if (!currentShop || !order) return;
@@ -475,6 +512,16 @@ export default function OrderDetailPage() {
               Ajouter des articles
             </Button>
             <Button
+              variant="light"
+              color="orange"
+              leftSection={<IconRefresh size={18} />}
+              onClick={recalculatePrices}
+              loading={saving}
+              disabled={items.length === 0}
+            >
+              Recalculer les prix
+            </Button>
+            <Button
               leftSection={<IconDeviceFloppy size={18} />}
               onClick={saveOrder}
               loading={saving}
@@ -531,9 +578,11 @@ export default function OrderDetailPage() {
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th style={{ width: 50 }}>Validé</Table.Th>
-                  <Table.Th>Chaîne facturation</Table.Th>
+                  <Table.Th>Produit</Table.Th>
+                  <Table.Th>SKU</Table.Th>
+                  <Table.Th>Variante</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Qté</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>Prix unit.</Table.Th>
+                  <Table.Th style={{ textAlign: 'right' }}>Coût unit.</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Total</Table.Th>
                   {!isCompleted && <Table.Th style={{ width: 50 }}></Table.Th>}
                 </Table.Tr>
@@ -548,9 +597,11 @@ export default function OrderDetailPage() {
                         disabled={isCompleted}
                       />
                     </Table.Td>
+                    <Table.Td>{item.product_title}</Table.Td>
                     <Table.Td>
-                      <Text size="sm">{item.pricing_string || `${item.product_title}, ${item.sku || ''}, ${item.variant_title || ''}`}</Text>
+                      <Badge variant="light" color="gray">{item.sku || '-'}</Badge>
                     </Table.Td>
+                    <Table.Td>{item.variant_title || '-'}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.quantity}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.unit_price.toFixed(2)} €</Table.Td>
                     <Table.Td style={{ textAlign: 'right', fontWeight: 600 }}>{item.line_total.toFixed(2)} €</Table.Td>

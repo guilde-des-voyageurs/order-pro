@@ -12,6 +12,7 @@ export interface ProductData {
   imageAlt: string;
   totalQuantity: number;
   sizeBreakdown: Record<string, number>;
+  costRange?: { min: number; max: number };
   variants: Array<{
     id: string;
     supabaseId?: string;
@@ -19,6 +20,7 @@ export interface ProductData {
     sku: string;
     quantity: number;
     size: string | null;
+    cost?: number;
     options: Array<{ name: string; value: string }>;
   }>;
 }
@@ -73,6 +75,14 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
         {sizeText && (
           <Text size="xs" c="dimmed" lineClamp={1}>
             {sizeText}
+          </Text>
+        )}
+        {product.costRange && (
+          <Text size="xs" c={product.costRange.min === 0 ? 'orange' : 'blue'} fw={500}>
+            {product.costRange.min === product.costRange.max 
+              ? `${product.costRange.min.toFixed(2)} €`
+              : `${product.costRange.min.toFixed(2)} - ${product.costRange.max.toFixed(2)} €`
+            }
           </Text>
         )}
       </Stack>

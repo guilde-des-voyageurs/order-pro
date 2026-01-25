@@ -19,189 +19,21 @@ export async function POST(
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Récupérer les infos de la boutique pour l'API Shopify
-    const { data: shop } = await supabase
-      .from('shops')
-      .select('shopify_url, shopify_token')
-      .eq('id', shopId)
-      .single();
-
-    // Récupérer les règles de prix pour calculer les prix unitaires
-    const { data: pricingRules } = await supabase
-      .from('pricing_rules')
-      .select('*')
-      .eq('shop_id', shopId)
-      .eq('is_active', true)
-      .order('priority');
-
-    // Récupérer les règles de métachamps actives
-    const { data: metafieldRules } = await supabase
-      .from('metafield_display_rules')
-      .select('metafield_key')
-      .eq('shop_id', shopId)
-      .eq('is_active', true);
-
-    const metafieldKeys = metafieldRules?.map(r => r.metafield_key) || [];
-
-    // Récupérer les shopify_id des variantes pour pouvoir chercher les métachamps
+    // Récupérer les variantes avec leur coût Shopify
     const variantIds = items.map((item: any) => item.variant_id).filter(Boolean);
     const { data: variants } = await supabase
       .from('product_variants')
-      .select('id, shopify_id, option1, option2, option3')
+      .select('id, cost')
       .in('id', variantIds);
 
-    const variantMap: Record<string, any> = {};
+    const variantCostMap: Record<string, number> = {};
     variants?.forEach((v: any) => {
-      variantMap[v.id] = v;
+      variantCostMap[v.id] = v.cost || 0;
     });
 
-    // Fonction pour récupérer les métachamps de plusieurs variantes en un seul appel GraphQL
-    const fetchAllVariantMetafields = async (shopifyVariantIds: string[]): Promise<Record<string, Record<string, string>>> => {
-      if (!shop || !metafieldKeys.length || !shopifyVariantIds.length) return {};
-      
-      try {
-        const gids = shopifyVariantIds.map(id => `gid://shopify/ProductVariant/${id}`);
-        
-        const query = `
-          query GetVariantsMetafields($ids: [ID!]!) {
-            nodes(ids: $ids) {
-              ... on ProductVariant {
-                id
-                metafields(first: 20) {
-                  edges {
-                    node {
-                      namespace
-                      key
-                      value
-                    }
-                  }
-                }
-              }
-            }
-          }
-        `;
-
-        const response = await fetch(
-          `https://${shop.shopify_url}/admin/api/2024-01/graphql.json`,
-          {
-            method: 'POST',
-            headers: {
-              'X-Shopify-Access-Token': shop.shopify_token,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              query,
-              variables: { ids: gids },
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const result: Record<string, Record<string, string>> = {};
-          
-          data.data?.nodes?.forEach((node: any) => {
-            if (!node || !node.id) return;
-            
-            const shopifyId = node.id.replace('gid://shopify/ProductVariant/', '');
-            const metafields: Record<string, string> = {};
-            
-            node.metafields?.edges?.forEach((edge: any) => {
-              const mf = edge.node;
-              const fullKey = `${mf.namespace}.${mf.key}`;
-              if (metafieldKeys.includes(fullKey) || metafieldKeys.includes(mf.key)) {
-                metafields[mf.key] = mf.value;
-              }
-            });
-            
-            result[shopifyId] = metafields;
-          });
-          
-          return result;
-        }
-      } catch (err) {
-        console.error('Error fetching metafields:', err);
-      }
-      return {};
-    };
-
-    // Construire la chaîne de facturation pour un article
-    const buildPricingString = (item: any, variant: any, metafields: Record<string, string>): string => {
-      const parts: string[] = [];
-      
-      // Nom du produit
-      if (item.product_title) parts.push(item.product_title);
-      
-      // SKU
-      if (item.sku) parts.push(item.sku);
-      
-      // Options (taille, couleur, etc.)
-      if (variant?.option1) parts.push(variant.option1);
-      if (variant?.option2) parts.push(variant.option2);
-      if (variant?.option3) parts.push(variant.option3);
-      
-      // Métachamps
-      Object.values(metafields).forEach(value => {
-        if (value) parts.push(value);
-      });
-      
-      return parts.join(', ');
-    };
-
-    // Fonction pour calculer le prix unitaire basé sur la chaîne de facturation
-    const calculateUnitPrice = (pricingString: string) => {
-      let price = 0;
-      const upperString = pricingString.toUpperCase();
-      
-      // Chercher le prix de base
-      const baseRule = pricingRules?.find(r => r.rule_type === 'base_price');
-      if (baseRule) {
-        price = baseRule.price_value;
-      }
-
-      // Appliquer les majorations basées sur la chaîne de facturation
-      pricingRules?.forEach(rule => {
-        if (rule.rule_type === 'base_price') return;
-        
-        let matches = false;
-        
-        if (rule.condition_value) {
-          // Vérifier si la condition est présente dans la chaîne de facturation
-          matches = upperString.includes(rule.condition_value.toUpperCase());
-        }
-        
-        if (matches) {
-          if (rule.is_percentage) {
-            price += price * (rule.price_value / 100);
-          } else {
-            price += rule.price_value;
-          }
-        }
-      });
-
-      return price;
-    };
-
-    // Récupérer tous les métachamps en un seul appel (optimisation)
-    const shopifyVariantIds = items
-      .map((item: any) => variantMap[item.variant_id]?.shopify_id)
-      .filter(Boolean);
-    
-    const allMetafields = await fetchAllVariantMetafields(shopifyVariantIds);
-
-    // Préparer les articles à insérer
+    // Préparer les articles à insérer (utilise le coût Shopify)
     const itemsToInsert = items.map((item: any) => {
-      const variant = variantMap[item.variant_id];
-      const shopifyVariantId = variant?.shopify_id;
-      
-      // Récupérer les métachamps depuis le cache
-      const metafields = shopifyVariantId ? (allMetafields[shopifyVariantId] || {}) : {};
-      
-      // Construire la chaîne de facturation
-      const pricingString = buildPricingString(item, variant, metafields);
-      
-      // Calculer le prix basé sur la chaîne
-      const unitPrice = calculateUnitPrice(pricingString);
+      const unitPrice = variantCostMap[item.variant_id] || 0;
       
       return {
         order_id: orderId,
@@ -212,11 +44,8 @@ export async function POST(
         quantity: item.quantity,
         unit_price: unitPrice,
         line_total: unitPrice * item.quantity,
-        pricing_string: pricingString,
       };
     });
-
-    console.log('Inserting items:', JSON.stringify(itemsToInsert, null, 2));
 
     const { data: insertedItems, error } = await supabase
       .from('supplier_order_items')
@@ -225,26 +54,6 @@ export async function POST(
 
     if (error) {
       console.error('Error inserting items:', error);
-      
-      // Si l'erreur est liée à pricing_string, réessayer sans cette colonne
-      if (error.message?.includes('pricing_string')) {
-        console.log('Retrying without pricing_string column...');
-        const itemsWithoutPricingString = itemsToInsert.map(({ pricing_string, ...rest }: any) => rest);
-        
-        const { data: retryItems, error: retryError } = await supabase
-          .from('supplier_order_items')
-          .insert(itemsWithoutPricingString)
-          .select();
-        
-        if (retryError) {
-          console.error('Retry error:', retryError);
-          return NextResponse.json({ error: retryError.message }, { status: 500 });
-        }
-        
-        await updateOrderTotals(orderId, shopId);
-        return NextResponse.json({ items: retryItems });
-      }
-      
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -271,8 +80,63 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { shopId, itemId, is_validated, quantity, unit_price } = body;
+    const { shopId, itemId, is_validated, quantity, unit_price, action } = body;
     const { orderId } = await params;
+
+    // Action spéciale : recalculer tous les prix basés sur les coûts actuels
+    if (action === 'recalculate_prices') {
+      if (!shopId || !orderId) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Récupérer tous les articles de la commande
+      const { data: orderItems } = await supabase
+        .from('supplier_order_items')
+        .select('id, variant_id, quantity')
+        .eq('order_id', orderId);
+
+      if (!orderItems || orderItems.length === 0) {
+        return NextResponse.json({ message: 'No items to update' });
+      }
+
+      // Récupérer les coûts des variantes
+      const variantIds = orderItems.map(i => i.variant_id).filter(Boolean);
+      const { data: variants } = await supabase
+        .from('product_variants')
+        .select('id, cost')
+        .in('id', variantIds);
+
+      const costMap: Record<string, number> = {};
+      variants?.forEach(v => {
+        costMap[v.id] = v.cost || 0;
+      });
+
+      // Mettre à jour chaque article
+      let updatedCount = 0;
+      for (const item of orderItems) {
+        const cost = item.variant_id ? (costMap[item.variant_id] || 0) : 0;
+        const lineTotal = cost * item.quantity;
+
+        await supabase
+          .from('supplier_order_items')
+          .update({ 
+            unit_price: cost, 
+            line_total: lineTotal,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+
+        updatedCount++;
+      }
+
+      // Mettre à jour les totaux de la commande
+      await updateOrderTotals(orderId, shopId);
+
+      return NextResponse.json({ 
+        message: `${updatedCount} articles mis à jour`,
+        updatedCount 
+      });
+    }
 
     if (!shopId || !orderId || !itemId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

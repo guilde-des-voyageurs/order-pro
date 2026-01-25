@@ -148,6 +148,7 @@ export async function POST(request: Request) {
           option2: variant.option2,
           option3: variant.option3,
           inventory_item_id: variant.inventory_item_id?.toString(),
+          cost: variant.cost ? parseFloat(variant.cost) : 0,
         });
 
         if (variant.inventory_item_id) {
@@ -166,6 +167,59 @@ export async function POST(request: Request) {
     }
 
     console.log(`Upserted ${variantsToUpsert.length} variants`);
+
+    // 5b. Récupérer les coûts depuis inventory_items (le cost n'est pas dans products.json)
+    try {
+      const inventoryItemToCost: Record<string, number> = {};
+      for (let i = 0; i < inventoryItemIds.length; i += 50) {
+        const batch = inventoryItemIds.slice(i, i + 50);
+        const inventoryItemsResponse = await fetch(
+          `https://${shop.shopify_url}/admin/api/2024-01/inventory_items.json?ids=${batch.join(',')}`,
+          {
+            headers: {
+              'X-Shopify-Access-Token': shop.shopify_token,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (inventoryItemsResponse.ok) {
+          const inventoryItemsData = await inventoryItemsResponse.json();
+          for (const item of inventoryItemsData.inventory_items || []) {
+            if (item.cost) {
+              inventoryItemToCost[item.id.toString()] = parseFloat(item.cost);
+            }
+          }
+        }
+      }
+
+      console.log(`Fetched costs for ${Object.keys(inventoryItemToCost).length} inventory items`);
+
+      // Mettre à jour les coûts des variantes par batch
+      const costUpdates: { shopify_id: string; cost: number }[] = [];
+      for (const [inventoryItemId, cost] of Object.entries(inventoryItemToCost)) {
+        const variantShopifyId = inventoryItemToVariantShopifyId[inventoryItemId];
+        if (variantShopifyId) {
+          costUpdates.push({ shopify_id: variantShopifyId, cost });
+        }
+      }
+
+      // Mettre à jour par batch de 100
+      for (let i = 0; i < costUpdates.length; i += 100) {
+        const batch = costUpdates.slice(i, i + 100);
+        for (const update of batch) {
+          await supabase
+            .from('product_variants')
+            .update({ cost: update.cost })
+            .eq('shopify_id', update.shopify_id);
+        }
+      }
+
+      console.log(`Updated ${costUpdates.length} variant costs`);
+    } catch (costError) {
+      console.error('Error fetching/updating costs (non-blocking):', costError);
+      // Ne pas bloquer la sync si la récupération des coûts échoue
+    }
 
     // 6. Récupérer les IDs des variantes insérées
     const { data: insertedVariants } = await supabase

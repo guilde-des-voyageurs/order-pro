@@ -111,6 +111,7 @@ export async function GET(request: Request) {
             option1,
             option2,
             option3,
+            cost,
             inventory_levels(
               quantity,
               location_id
@@ -239,6 +240,7 @@ export async function GET(request: Request) {
           sku: variant.sku,
           quantity,
           size,
+          cost: variant.cost || 0,
           options: [
             variant.option1 && { name: optionNames?.option1_name || 'Option 1', value: variant.option1 },
             variant.option2 && { name: optionNames?.option2_name || 'Option 2', value: variant.option2 },
@@ -258,6 +260,12 @@ export async function GET(request: Request) {
         }
       });
 
+      // Calculer la tranche de coût
+      const costs = variants.map((v: any) => v.cost || 0);
+      const costRange = costs.length > 0 
+        ? { min: Math.min(...costs), max: Math.max(...costs) }
+        : undefined;
+
       return {
         id: `gid://shopify/Product/${product.shopify_id}`,
         supabaseId: product.id,
@@ -268,6 +276,7 @@ export async function GET(request: Request) {
         imageAlt: product.title,
         totalQuantity,
         sizeBreakdown,
+        costRange,
         variants,
         syncedAt: product.synced_at,
       };
