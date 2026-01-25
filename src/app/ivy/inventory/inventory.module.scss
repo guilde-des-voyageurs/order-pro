@@ -6,3 +6,87 @@
 .header {
   margin-bottom: 24px;
 }
+
+// Barre de filtres
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  flex: 1;
+  max-width: 400px;
+}
+
+// Filtres SKU
+.skuFilters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.skuLabel {
+  font-size: 14px;
+  color: var(--mantine-color-dimmed);
+  margin-right: 4px;
+}
+
+.skuButton {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--mantine-color-gray-3);
+  background-color: white;
+  color: var(--mantine-color-gray-7);
+
+  &:hover {
+    background-color: var(--mantine-color-green-0);
+    border-color: var(--mantine-color-green-4);
+    color: var(--mantine-color-green-7);
+  }
+
+  &.active {
+    background-color: var(--mantine-color-green-6);
+    border-color: var(--mantine-color-green-6);
+    color: white;
+  }
+
+  &.allButton {
+    background-color: var(--mantine-color-gray-1);
+    border-color: var(--mantine-color-gray-3);
+    color: var(--mantine-color-gray-7);
+
+    &:hover {
+      background-color: var(--mantine-color-gray-2);
+    }
+
+    &.active {
+      background-color: var(--mantine-color-gray-6);
+      border-color: var(--mantine-color-gray-6);
+      color: white;
+    }
+  }
+}
+
+// Grille de produits
+.productsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+// Message vide
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--mantine-color-dimmed);
+}

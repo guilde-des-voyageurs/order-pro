@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Title, Text, SimpleGrid, Loader, Center, TextInput, Group, Button, Paper, Stack, Badge } from '@mantine/core';
-import { IconSearch, IconRefresh, IconUpload, IconDownload } from '@tabler/icons-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Title, Text, SimpleGrid, Loader, Center, TextInput, Group, Button, Paper, Stack, Badge, Modal } from '@mantine/core';
+import { IconSearch, IconRefresh, IconUpload, IconDownload, IconAlertTriangle } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
 import { useLocation } from '@/context/LocationContext';
 import { ProductCard, ProductData, ProductDetailPanel } from '@/components/Inventory';
@@ -20,7 +21,9 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [skuFilter, setSkuFilter] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [syncModalOpened, { open: openSyncModal, close: closeSyncModal }] = useDisclosure(false);
 
   const fetchProducts = useCallback(async () => {
     if (!currentShop) return;
@@ -63,10 +66,11 @@ export default function InventoryPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Synchroniser depuis Shopify
+  // Synchroniser depuis Shopify (appelé après confirmation)
   const handleSyncFromShopify = async () => {
     if (!currentShop) return;
-
+    
+    closeSyncModal();
     setSyncing(true);
     try {
       const response = await fetch('/api/inventory/sync', {
@@ -149,10 +153,50 @@ export default function InventoryPage() {
     }
   };
 
-  // Filtrer les produits par recherche
-  const filteredProducts = products.filter(product =>
-    product.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Extraire les préfixes SKU uniques pour les filtres
+  const skuPrefixes = useMemo(() => {
+    const prefixes = new Set<string>();
+    products.forEach(product => {
+      product.variants.forEach(variant => {
+        if (variant.sku) {
+          // Extraire le préfixe (partie avant le premier tiret ou les 3 premiers caractères)
+          const match = variant.sku.match(/^([A-Za-z]+)/);
+          if (match) {
+            prefixes.add(match[1].toUpperCase());
+          }
+        }
+      });
+    });
+    return Array.from(prefixes).sort();
+  }, [products]);
+
+  // Filtrer et trier les produits
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    // Filtre par recherche (titre ou SKU)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(product => 
+        product.title.toLowerCase().includes(query) ||
+        product.variants.some(v => v.sku?.toLowerCase().includes(query))
+      );
+    }
+
+    // Filtre par préfixe SKU
+    if (skuFilter) {
+      result = result.filter(product =>
+        product.variants.some(v => 
+          v.sku?.toUpperCase().startsWith(skuFilter)
+        )
+      );
+    }
+
+    // Trier par ordre alphabétique
+    result.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+
+    return result;
+  }, [products, searchQuery, skuFilter]);
 
   // Affichage si besoin de sync initial
   if (!loading && needsSync && products.length === 0) {
@@ -231,7 +275,7 @@ export default function InventoryPage() {
               variant="light"
               color="green"
               leftSection={<IconDownload size={16} />}
-              onClick={handleSyncFromShopify}
+              onClick={openSyncModal}
               loading={syncing}
               size="sm"
             >
@@ -252,15 +296,36 @@ export default function InventoryPage() {
         </Group>
       </div>
 
-      <Group mb="xl">
+      <div className={styles.filters}>
         <TextInput
-          placeholder="Rechercher un produit..."
+          className={styles.searchInput}
+          placeholder="Rechercher par nom ou SKU..."
           leftSection={<IconSearch size={16} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.currentTarget.value)}
-          style={{ flex: 1, maxWidth: 400 }}
         />
-      </Group>
+        
+        {skuPrefixes.length > 0 && (
+          <div className={styles.skuFilters}>
+            <span className={styles.skuLabel}>SKU:</span>
+            <button
+              className={`${styles.skuButton} ${styles.allButton} ${skuFilter === null ? styles.active : ''}`}
+              onClick={() => setSkuFilter(null)}
+            >
+              Tous
+            </button>
+            {skuPrefixes.map((prefix) => (
+              <button
+                key={prefix}
+                className={`${styles.skuButton} ${skuFilter === prefix ? styles.active : ''}`}
+                onClick={() => setSkuFilter(skuFilter === prefix ? null : prefix)}
+              >
+                {prefix}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
         {filteredProducts.map((product) => (
@@ -284,6 +349,36 @@ export default function InventoryPage() {
           onClose={() => setSelectedProduct(null)}
         />
       )}
+
+      {/* Modal de confirmation pour la synchronisation */}
+      <Modal 
+        opened={syncModalOpened} 
+        onClose={closeSyncModal}
+        title={
+          <Group gap="xs">
+            <IconAlertTriangle size={20} color="var(--mantine-color-orange-6)" />
+            <Text fw={600}>Confirmer la synchronisation</Text>
+          </Group>
+        }
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Vous allez écraser vos changements locaux avec les données de la boutique en ligne.
+          </Text>
+          <Text size="sm" c="dimmed">
+            Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?
+          </Text>
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button variant="default" onClick={closeSyncModal}>
+              Annuler
+            </Button>
+            <Button color="green" onClick={handleSyncFromShopify}>
+              Oui, synchroniser
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </div>
   );
 }
