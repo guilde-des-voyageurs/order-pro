@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Button, Group, Text, ActionIcon, Tooltip } from '@mantine/core';
-import { IconLogout } from '@tabler/icons-react';
+import { IconLogout, IconSettings } from '@tabler/icons-react';
 import Image from 'next/image';
 import { APP_VERSION } from '@/config/version';
 import { ShopSelector } from '@/components/ShopSelector';
@@ -62,6 +62,16 @@ export function TopNavbar() {
       <Group gap="md">
         <ShopSelector />
         <Text size="sm" c="dimmed">v{APP_VERSION}</Text>
+        <Tooltip label="Options globales">
+          <ActionIcon 
+            variant="subtle" 
+            color="gray" 
+            size="lg"
+            onClick={() => router.push('/ivy/settings')}
+          >
+            <IconSettings size={20} />
+          </ActionIcon>
+        </Tooltip>
         <Tooltip label="Déconnexion">
           <ActionIcon 
             variant="subtle" 

@@ -6,6 +6,7 @@ import { IconArrowLeft, IconPhoto, IconPlus, IconMinus, IconDeviceFloppy } from 
 import { notifications } from '@mantine/notifications';
 import { ProductData } from './ProductCard';
 import { SortOptionsBar } from './SortOptionsBar';
+import { getColorHex, isColorOption } from '@/utils/colorMap';
 import styles from './ProductDetailView.module.scss';
 
 interface ProductDetailViewProps {
@@ -208,16 +209,24 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
     return a.localeCompare(b, 'fr');
   };
 
-  // Formater le nom de la variante selon l'ordre de tri
-  const getVariantDisplayName = (variant: typeof product.variants[0]) => {
-    if (sortOrder.length === 0) return variant.title || 'Default';
+  // Formater le nom de la variante selon l'ordre de tri (retourne un tableau de segments avec couleur optionnelle)
+  const getVariantDisplayParts = (variant: typeof product.variants[0]) => {
+    if (sortOrder.length === 0) {
+      return [{ text: variant.title || 'Default', color: null }];
+    }
     
-    // Construire le nom avec les valeurs des options dans l'ordre de tri
-    const parts = sortOrder
-      .map(optName => getOptionValue(variant, optName))
-      .filter(val => val !== '');
+    // Construire les parties avec les valeurs des options dans l'ordre de tri
+    const parts: { text: string; color: string | null }[] = [];
     
-    return parts.length > 0 ? parts.join(' / ') : (variant.title || 'Default');
+    for (const optName of sortOrder) {
+      const value = getOptionValue(variant, optName);
+      if (value) {
+        const color = isColorOption(optName) ? getColorHex(value) : null;
+        parts.push({ text: value, color });
+      }
+    }
+    
+    return parts.length > 0 ? parts : [{ text: variant.title || 'Default', color: null }];
   };
 
   // Trier les variantes selon l'ordre de priorité défini
@@ -355,7 +364,23 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
               {sortedVariants.map((variant) => (
                 <Table.Tr key={variant.id}>
                   <Table.Td className={styles.variantName}>
-                    {getVariantDisplayName(variant)}
+                    <span className={styles.variantNameContent}>
+                      {getVariantDisplayParts(variant).map((part, idx, arr) => (
+                        <span key={idx}>
+                          {part.color && (
+                            <span 
+                              className={styles.colorDot}
+                              style={{ 
+                                background: part.color,
+                                border: part.color === '#FFFFFF' ? '1px solid #ccc' : 'none'
+                              }}
+                            />
+                          )}
+                          {part.text}
+                          {idx < arr.length - 1 && ' / '}
+                        </span>
+                      ))}
+                    </span>
                   </Table.Td>
                   <Table.Td className={styles.variantSku}>
                     {variant.sku || '-'}

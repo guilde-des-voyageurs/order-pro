@@ -156,21 +156,31 @@ export default function InventoryPage() {
     }
   };
 
-  // Extraire les préfixes SKU uniques pour les filtres
+  // Extraire les préfixes SKU uniques pour les filtres avec comptage des produits
   const skuPrefixes = useMemo(() => {
-    const prefixes = new Set<string>();
+    const prefixCounts = new Map<string, Set<string>>();
+    
     products.forEach(product => {
       product.variants.forEach(variant => {
         if (variant.sku) {
           // Extraire le préfixe (partie avant le premier tiret ou les 3 premiers caractères)
           const match = variant.sku.match(/^([A-Za-z]+)/);
           if (match) {
-            prefixes.add(match[1].toUpperCase());
+            const prefix = match[1].toUpperCase();
+            if (!prefixCounts.has(prefix)) {
+              prefixCounts.set(prefix, new Set());
+            }
+            // Ajouter l'ID du produit (pas de la variante) pour compter les produits uniques
+            prefixCounts.get(prefix)!.add(product.id);
           }
         }
       });
     });
-    return Array.from(prefixes).sort();
+    
+    // Convertir en tableau avec le comptage
+    return Array.from(prefixCounts.entries())
+      .map(([prefix, productIds]) => ({ prefix, count: productIds.size }))
+      .sort((a, b) => a.prefix.localeCompare(b.prefix));
   }, [products]);
 
   // Filtrer et trier les produits
@@ -398,13 +408,13 @@ export default function InventoryPage() {
             >
               Tous
             </button>
-            {skuPrefixes.map((prefix) => (
+            {skuPrefixes.map(({ prefix, count }) => (
               <button
                 key={prefix}
                 className={`${styles.skuButton} ${skuFilter === prefix ? styles.active : ''}`}
                 onClick={() => setSkuFilter(skuFilter === prefix ? null : prefix)}
               >
-                {prefix}
+                {prefix} <span className={styles.skuCount}>({count})</span>
               </button>
             ))}
           </div>
