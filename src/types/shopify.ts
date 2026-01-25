@@ -1,6 +1,7 @@
 export interface ShopifyOrder {
   id: string;
   name: string;  // Le numéro de commande (ex: "#1404")
+  orderNumber?: string;  // Le numéro sans le # (ex: "1404")
   createdAt: string;
   cancelledAt: string | null;
   displayFulfillmentStatus: string;

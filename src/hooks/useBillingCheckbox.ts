@@ -1,43 +1,61 @@
 import { useEffect, useState } from 'react';
-import { db } from '@/firebase/config';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
-/* Test 32*/
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
+
 export const useBillingCheckbox = (orderId: string) => {
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    const encodedOrderId = encodeFirestoreId(orderId);
-    const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
-
-    const unsubscribe = onSnapshot(docRef, (doc) => {
-      if (doc.exists()) {
-        setChecked(doc.data().invoiced || false);
-      } else {
-        setChecked(false);
-      }
+    if (!currentShop || !orderId) {
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
-  }, [orderId]);
+    const loadStatus = async () => {
+      const { data } = await supabase
+        .from('order_invoices')
+        .select('invoiced')
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', orderId)
+        .single();
 
-  const handleChange = async (checked: boolean) => {
+      setChecked(data?.invoiced || false);
+      setLoading(false);
+    };
+
+    loadStatus();
+
+    const channel = supabase
+      .channel(`invoice-status-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_invoices', filter: `order_id=eq.${orderId}` },
+        () => loadStatus()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, currentShop]);
+
+  const handleChange = async (newChecked: boolean) => {
+    if (!currentShop) return;
     setLoading(true);
     try {
-      const encodedOrderId = encodeFirestoreId(orderId);
-      const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
-
-      await setDoc(docRef, {
-        orderId: orderId,
-        invoiced: checked,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      await supabase
+        .from('order_invoices')
+        .upsert({
+          shop_id: currentShop.id,
+          order_id: orderId,
+          invoiced: newChecked,
+        }, { onConflict: 'shop_id,order_id' });
+      setChecked(newChecked);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
-      // Remettre l'état précédent en cas d'erreur
-      setChecked(!checked);
+      setChecked(!newChecked);
     } finally {
       setLoading(false);
     }

@@ -1,24 +1,42 @@
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import type { ShopifyOrder } from '@/types/shopify';
 
 export function useOrderTextileCount(order: ShopifyOrder) {
   const [checkedCount, setCheckedCount] = useState(0);
+  const { currentShop } = useShop();
   const total = order.lineItems?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
   useEffect(() => {
-    if (!order.id) return;
+    if (!order.id || !currentShop) return;
 
-    // Écouter tous les variants de la commande
-    const variantsRef = collection(db, 'variants');
-    const q = query(variantsRef, where('orderId', '==', order.id));
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from('line_item_checks')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', order.id)
+        .eq('checked', true);
 
-    return onSnapshot(q, (snapshot) => {
-      const count = snapshot.docs.length;
-      setCheckedCount(count);
-    });
-  }, [order.id]);
+      setCheckedCount(count || 0);
+    };
+
+    loadCount();
+
+    const channel = supabase
+      .channel(`order-textile-count-${order.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'line_item_checks', filter: `order_id=eq.${order.id}` },
+        () => loadCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [order.id, currentShop]);
 
   return { checked: checkedCount, total };
 }

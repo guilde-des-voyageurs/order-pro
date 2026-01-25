@@ -1,4 +1,7 @@
 export interface OrderCost {
-  total: number;
-  updatedAt: string;
+  costs: Array<{ description: string; amount: number }>;
+  handlingFee: number;
+  balance: number;
+  total?: number;
+  updatedAt?: string;
 }

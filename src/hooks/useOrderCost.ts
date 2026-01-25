@@ -1,29 +1,49 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import type { OrderCost } from '@/types/order-cost';
-import { db } from '@/firebase/db';
 
 export function useOrderCost(orderId: string) {
   const [orderCost, setOrderCost] = useState<OrderCost | null>(null);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, 'orders-cost', orderId),
-      (doc) => {
-        if (doc.exists()) {
-          setOrderCost(doc.data() as OrderCost);
-        } else {
-          setOrderCost(null);
-        }
-      },
-      (error) => {
-        console.error('Error fetching order cost:', error);
+    if (!currentShop || !orderId) return;
+
+    const loadCost = async () => {
+      const { data, error } = await supabase
+        .from('order_costs')
+        .select('*')
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', orderId)
+        .single();
+
+      if (!error && data) {
+        setOrderCost({
+          costs: data.costs as OrderCost['costs'],
+          handlingFee: data.handling_fee,
+          balance: data.balance,
+        });
+      } else {
         setOrderCost(null);
       }
-    );
+    };
 
-    return () => unsubscribe();
-  }, [orderId]);
+    loadCost();
+
+    const channel = supabase
+      .channel(`order-cost-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_costs', filter: `order_id=eq.${orderId}` },
+        () => loadCost()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, currentShop]);
 
   return orderCost;
 }

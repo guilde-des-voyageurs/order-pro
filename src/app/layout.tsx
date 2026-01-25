@@ -5,6 +5,7 @@ import { ColorSchemeScript } from '@mantine/core';
 import { createTheme } from '@mantine/core';
 import { ClientLayout } from '@/components/ClientLayout';
 import { AuthProvider } from '@/context/AuthContext';
+import { ShopProvider } from '@/context/ShopContext';
 import '@mantine/core/styles.css';
 import '@mantine/nprogress/styles.css';
 import '@mantine/notifications/styles.css';
@@ -23,8 +24,8 @@ const alegreya = Alegreya({
 });
 
 export const metadata: Metadata = {
-  title: 'OrderPro - Runes de Chêne',
-  description: 'App de gestion des commandes',
+  title: 'Ivy - Gestion de production',
+  description: 'Application de gestion de production et facturation',
 };
 
 const theme = createTheme({
@@ -46,9 +47,11 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${alegreya.variable}`}>
         <AuthProvider>
-          <ClientLayout theme={theme}>
-            {children}
-          </ClientLayout>
+          <ShopProvider>
+            <ClientLayout theme={theme}>
+              {children}
+            </ClientLayout>
+          </ShopProvider>
         </AuthProvider>
       </body>
     </html>

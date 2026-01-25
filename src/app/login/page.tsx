@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { TextInput, Button, Paper, Title, Stack, Alert } from '@mantine/core';
+import Link from 'next/link';
+import { TextInput, Button, Paper, Title, Stack, Alert, Text, Anchor } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import styles from './login.module.scss';
 
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,8 +22,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError('Email ou mot de passe incorrect');
+      } else {
+        router.push('/');
+      }
     } catch (error) {
       setError('Email ou mot de passe incorrect');
     } finally {
@@ -33,7 +38,7 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <Paper className={styles.formContainer} shadow="md" p="xl">
-        <Title order={2} mb="lg">Connexion</Title>
+        <Title order={2} mb="lg">Connexion à Ivy</Title>
         
         {error && (
           <Alert icon={<IconAlertCircle size={16} />} color="red" mb="md">
@@ -62,6 +67,13 @@ export default function LoginPage() {
             <Button type="submit" loading={loading}>
               Se connecter
             </Button>
+
+            <Text size="sm" ta="center">
+              Pas encore de compte ?{' '}
+              <Anchor component={Link} href="/signup">
+                Créer un compte
+              </Anchor>
+            </Text>
           </Stack>
         </form>
       </Paper>

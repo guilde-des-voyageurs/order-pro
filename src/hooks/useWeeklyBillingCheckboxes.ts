@@ -1,74 +1,71 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/firebase/config';
-import { doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 
 export const useWeeklyBillingCheckboxes = (orderIds: string[]) => {
   const [checkedStates, setCheckedStates] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    if (!orderIds.length) {
+    if (!orderIds.length || !currentShop) {
       setCheckedStates(new Map());
       setLoading(false);
       return;
     }
 
-    const encodedOrderIds = orderIds.map(encodeFirestoreId);
-    
-    // Créer une référence pour chaque document
-    const docRefs = encodedOrderIds.map(id => doc(db, 'InvoiceStatus', id));
-    
-    // Écouter les changements sur tous les documents
-    const unsubscribes = docRefs.map((docRef, index) => 
-      onSnapshot(docRef, (snapshot) => {
-        const docData = snapshot.data();
-        const isInvoiced = docData?.invoiced || false;
-        const encodedId = encodedOrderIds[index];
-        
-        setCheckedStates(prev => {
-          const next = new Map(prev);
-          next.set(encodedId, isInvoiced);
-          return next;
-        });
-      })
-    );
+    const loadStatuses = async () => {
+      const { data } = await supabase
+        .from('order_invoices')
+        .select('order_id, invoiced')
+        .eq('shop_id', currentShop.id)
+        .in('order_id', orderIds);
 
-    setLoading(false);
+      const newStates = new Map<string, boolean>();
+      data?.forEach(item => {
+        newStates.set(item.order_id, item.invoiced || false);
+      });
+      setCheckedStates(newStates);
+      setLoading(false);
+    };
+
+    loadStatuses();
+
+    const channel = supabase
+      .channel('weekly-invoice-statuses')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_invoices' },
+        () => loadStatuses()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribes.forEach(unsubscribe => unsubscribe());
+      supabase.removeChannel(channel);
       setCheckedStates(new Map());
     };
-  }, [orderIds]);
+  }, [orderIds, currentShop]);
 
   const checkedCount = Array.from(checkedStates.values()).filter(Boolean).length;
   const checked = orderIds.length > 0 && checkedCount === orderIds.length;
   const indeterminate = checkedCount > 0 && checkedCount < orderIds.length;
 
   const handleChange = async () => {
-    if (!orderIds.length) return;
+    if (!orderIds.length || !currentShop) return;
     
-    // Si au moins une checkbox est cochée, on décoche tout
     const shouldCheck = checkedCount < orderIds.length;
     
     setLoading(true);
     try {
-      const batch = writeBatch(db);
-      const now = new Date().toISOString();
+      const upsertData = orderIds.map(orderId => ({
+        shop_id: currentShop.id,
+        order_id: orderId,
+        invoiced: shouldCheck,
+      }));
 
-      orderIds.forEach(orderId => {
-        const encodedOrderId = encodeFirestoreId(orderId);
-        const docRef = doc(db, 'InvoiceStatus', encodedOrderId);
-        
-        batch.set(docRef, {
-          orderId: orderId,
-          invoiced: shouldCheck,
-          updatedAt: now
-        }, { merge: true });
-      });
-
-      await batch.commit();
+      await supabase
+        .from('order_invoices')
+        .upsert(upsertData, { onConflict: 'shop_id,order_id' });
     } catch (error) {
       console.error('Erreur lors de la mise à jour des statuts:', error);
     } finally {
@@ -76,10 +73,5 @@ export const useWeeklyBillingCheckboxes = (orderIds: string[]) => {
     }
   };
 
-  return { 
-    checked,
-    indeterminate,
-    loading,
-    handleChange 
-  };
+  return { checked, indeterminate, loading, handleChange };
 };

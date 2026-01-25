@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import { generateVariantId } from '@/utils/variant-helpers';
 
 interface UseCheckedVariantsProps {
@@ -27,61 +27,54 @@ interface UseCheckedVariantsProps {
 export function useCheckedVariants({ orderId, sku = '', color, size, quantity, productIndex, lineItems }: UseCheckedVariantsProps) {
   const [checkedCount, setCheckedCount] = useState(0);
   const checkedVariantsRef = useRef(new Set<string>());
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    console.log('useCheckedVariants effect running for:', { orderId, sku, color, size, productIndex });
-    
-    // Vérifier que l'orderId est valide
-    if (!orderId) {
-      console.log('No orderId, setting count to 0');
+    if (!orderId || !currentShop) {
       setCheckedCount(0);
       return;
     }
 
     // Générer les IDs pour tous les variants de cette combinaison
     const variantIds = Array.from({ length: quantity }).map((_, quantityIndex) => {
-      return generateVariantId(
-        orderId,  // orderId est déjà encodé
-        sku,
-        color,
-        size,
-        productIndex,
-        quantityIndex
-      );
+      return generateVariantId(orderId, sku, color, size, productIndex, quantityIndex);
     });
 
-    console.log('Generated variant IDs:', variantIds);
+    const loadCheckedStatus = async () => {
+      const { data } = await supabase
+        .from('line_item_checks')
+        .select('id, checked')
+        .in('id', variantIds);
 
-    const unsubscribes = variantIds.map(variantId => {
-      const variantRef = doc(db, 'variants-ordered-v2', variantId);
-      
-      return onSnapshot(variantRef, (snapshot) => {
-        console.log('Snapshot for variant:', variantId, snapshot.exists(), snapshot.data());
-        
-        if (snapshot.exists()) {
-          const isChecked = snapshot.data()?.checked || false;
-          console.log('Variant state:', { variantId, isChecked });
-          
-          if (isChecked) {
-            checkedVariantsRef.current.add(variantId);
-          } else {
-            checkedVariantsRef.current.delete(variantId);
+      if (data) {
+        checkedVariantsRef.current.clear();
+        data.forEach(item => {
+          if (item.checked) {
+            checkedVariantsRef.current.add(item.id);
           }
-          
-          console.log('Updated checked variants:', { count: checkedVariantsRef.current.size, variants: Array.from(checkedVariantsRef.current) });
-          setCheckedCount(checkedVariantsRef.current.size);
-        }
-      });
-    });
-    
+        });
+        setCheckedCount(checkedVariantsRef.current.size);
+      }
+    };
+
+    loadCheckedStatus();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel(`line-item-checks-${orderId}-${productIndex}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'line_item_checks', filter: `order_id=eq.${orderId}` },
+        () => loadCheckedStatus()
+      )
+      .subscribe();
+
     return () => {
-      console.log('Cleanup running for:', { orderId, sku, color, size, productIndex });
-      unsubscribes.forEach(unsubscribe => unsubscribe());
+      supabase.removeChannel(channel);
       checkedVariantsRef.current.clear();
       setCheckedCount(0);
     };
-  }, [orderId, sku, color, size, productIndex]);
+  }, [orderId, sku, color, size, productIndex, quantity, currentShop]);
 
-  console.log('Current checked count:', checkedCount);
   return checkedCount;
 }

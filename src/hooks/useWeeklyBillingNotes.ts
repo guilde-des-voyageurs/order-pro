@@ -1,40 +1,61 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/firebase/config';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import { format } from 'date-fns';
 
 export const useWeeklyBillingNotes = (weekStart: Date) => {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { currentShop } = useShop();
 
-  // On utilise la date de début de semaine comme ID
   const weekId = format(weekStart, 'yyyy-MM-dd');
 
   useEffect(() => {
-    const docRef = doc(db, 'WeeklyBillingNotes', weekId);
-
-    const unsubscribe = onSnapshot(docRef, (doc) => {
-      if (doc.exists()) {
-        setNote(doc.data().note || '');
-      } else {
-        setNote('');
-      }
+    if (!currentShop) {
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
-  }, [weekId]);
+    const loadNote = async () => {
+      const { data } = await supabase
+        .from('weekly_billing_notes')
+        .select('note')
+        .eq('shop_id', currentShop.id)
+        .eq('week', weekId)
+        .single();
+
+      setNote(data?.note || '');
+      setLoading(false);
+    };
+
+    loadNote();
+
+    const channel = supabase
+      .channel(`weekly-billing-note-${weekId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'weekly_billing_notes', filter: `week=eq.${weekId}` },
+        () => loadNote()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [weekId, currentShop]);
 
   const saveNote = async () => {
+    if (!currentShop) return;
     setSaving(true);
     try {
-      const docRef = doc(db, 'WeeklyBillingNotes', weekId);
-      await setDoc(docRef, {
-        weekStart: weekStart.toISOString(),
-        note: note,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      await supabase
+        .from('weekly_billing_notes')
+        .upsert({
+          shop_id: currentShop.id,
+          week: weekId,
+          note,
+        }, { onConflict: 'shop_id,week' });
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la note:', error);
     } finally {
@@ -42,11 +63,5 @@ export const useWeeklyBillingNotes = (weekStart: Date) => {
     }
   };
 
-  return { 
-    note, 
-    setNote,
-    loading,
-    saving,
-    saveNote
-  };
+  return { note, setNote, loading, saving, saveNote };
 };

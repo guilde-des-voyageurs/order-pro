@@ -1,29 +1,46 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 
 export function useMonthlyBalance(month: string) {
   const [balance, setBalance] = useState(0);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    if (!month) return;
+    if (!month || !currentShop) return;
 
-    const balanceRef = doc(db, 'MonthlyBillingNotes', month);
-    const unsubscribe = onSnapshot(balanceRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setBalance(snapshot.data().balance || 0);
-      } else {
-        setBalance(0);
-      }
-    });
+    const loadBalance = async () => {
+      const { data } = await supabase
+        .from('monthly_balance')
+        .select('balance')
+        .eq('shop_id', currentShop.id)
+        .eq('month', month)
+        .single();
 
-    return () => unsubscribe();
-  }, [month]);
+      setBalance(data?.balance || 0);
+    };
+
+    loadBalance();
+
+    const channel = supabase
+      .channel(`monthly-balance-${month}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'monthly_balance', filter: `month=eq.${month}` },
+        () => loadBalance()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [month, currentShop]);
 
   const updateBalance = async (amount: number) => {
-    if (!month) return;
-    const balanceRef = doc(db, 'MonthlyBillingNotes', month);
-    await setDoc(balanceRef, { balance: amount }, { merge: true });
+    if (!month || !currentShop) return;
+    await supabase
+      .from('monthly_balance')
+      .upsert({ shop_id: currentShop.id, month, balance: amount }, { onConflict: 'shop_id,month' });
   };
 
   return { balance, updateBalance };

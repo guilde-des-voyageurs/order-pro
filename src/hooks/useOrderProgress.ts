@@ -1,28 +1,55 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase/config';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 
 export const useOrderProgress = (orderId: string) => {
   const [checkedCount, setCheckedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    const encodedOrderId = encodeFirestoreId(orderId);
-    const progressRef = doc(db, 'textile-progress-v2', encodedOrderId);
+    if (!currentShop || !orderId) {
+      setLoading(false);
+      return;
+    }
 
-    const unsubscribe = onSnapshot(progressRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setCheckedCount(data.checkedCount || 0);
-        setTotalCount(data.totalCount || 0);
+    const loadProgress = async () => {
+      const { data, error } = await supabase
+        .from('order_progress')
+        .select('*')
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', orderId)
+        .single();
+
+      if (!error && data) {
+        setCheckedCount(data.checked_count || 0);
+        setTotalCount(data.total_count || 0);
       }
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [orderId]);
+    loadProgress();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel(`order-progress-${orderId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'order_progress', 
+          filter: `order_id=eq.${orderId}` 
+        },
+        () => loadProgress()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, currentShop]);
 
   return { checkedCount, totalCount, loading };
 };

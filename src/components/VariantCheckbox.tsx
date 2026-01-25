@@ -2,13 +2,9 @@
 
 import { Checkbox } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { db } from '@/firebase/config';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
-import { ordersService } from '@/firebase/services/orders';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import { useHasMounted } from '@/hooks/useHasMounted';
-import { generateVariantId } from '@/utils/variant-helpers';
-import { transformColor } from '@/utils/color-transformer';
 
 interface VariantCheckboxProps {
   sku: string;
@@ -24,16 +20,6 @@ interface VariantCheckboxProps {
   disabled?: boolean;
 }
 
-interface VariantDocument {
-  checked: boolean;
-  sku: string;
-  color: string;
-  size: string;
-  originalId: string;
-  updatedAt: string;
-  orderId: string;
-}
-
 export const VariantCheckbox = ({ 
   sku, 
   color, 
@@ -41,7 +27,7 @@ export const VariantCheckbox = ({
   quantity,
   orderId,
   productIndex,
-  quantityIndex,
+  quantityIndex = 0,
   className,
   disabled,
   variantId
@@ -49,56 +35,85 @@ export const VariantCheckbox = ({
 
   const [checked, setChecked] = useState(false);
   const hasMounted = useHasMounted();
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    if (!hasMounted) return;
+    if (!hasMounted || !currentShop) return;
 
-    console.log('VariantCheckbox mounted for:', { variantId, sku, color, size });
+    const loadCheckState = async () => {
+      const { data } = await supabase
+        .from('line_item_checks')
+        .select('checked')
+        .eq('id', variantId)
+        .single();
 
-    // Écouter les changements de la variante
-    const variantRef = doc(db, 'variants-ordered-v2', variantId);
-    const unsubscribe = onSnapshot(variantRef, (doc) => {
-      console.log('VariantCheckbox snapshot:', { variantId, exists: doc.exists(), data: doc.data() });
-      if (doc.exists()) {
-        const isChecked = doc.data()?.checked || false;
-        console.log('Setting checkbox state:', { variantId, isChecked });
-        setChecked(isChecked);
+      if (data) {
+        setChecked(data.checked || false);
       }
-    });
+    };
+
+    loadCheckState();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel(`variant-checkbox-${variantId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'line_item_checks', filter: `id=eq.${variantId}` },
+        (payload) => {
+          if (payload.new && 'checked' in payload.new) {
+            setChecked(payload.new.checked as boolean);
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
-      console.log('VariantCheckbox unmounting:', { variantId });
-      unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [variantId, hasMounted, sku, color, size]);
+  }, [variantId, hasMounted, currentShop]);
 
-  const handleCheckboxChange = async (event: any) => {
-    const newChecked = event.target.checked;
-    console.log('Checkbox clicked:', { variantId, newChecked });
+  const handleCheckboxChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentShop) return;
     
-    const document: VariantDocument = {
-      checked: newChecked,
-      sku,
-      color: color || 'no-color',
-      size: size || 'no-size',
-      originalId: orderId, // orderId est déjà encodé
-      updatedAt: new Date().toISOString(),
-      orderId: orderId // orderId est déjà encodé
-    };
+    const newChecked = event.target.checked;
+    setChecked(newChecked); // Optimistic update
 
     try {
-      console.log('Updating variant in Firestore:', { variantId, document });
-      const variantRef = doc(db, 'variants-ordered-v2', variantId);
-      await setDoc(variantRef, document);
-      console.log('Variant updated successfully:', { variantId });
+      // Upsert le check
+      await supabase
+        .from('line_item_checks')
+        .upsert({
+          id: variantId,
+          shop_id: currentShop.id,
+          order_id: orderId,
+          sku,
+          color: color || 'no-color',
+          size: size || 'no-size',
+          product_index: productIndex,
+          quantity_index: quantityIndex,
+          checked: newChecked,
+        }, { onConflict: 'id' });
 
-      // Une fois que le document est mis à jour, mettre à jour le compteur
-      await ordersService.updateCheckedCount(orderId);
-      console.log('Order checked count updated:', { orderId });
-      
-      // Note: pas besoin de setChecked ici car le onSnapshot va le faire
+      // Mettre à jour le compteur de progression
+      const { count } = await supabase
+        .from('line_item_checks')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', orderId)
+        .eq('checked', true);
+
+      await supabase
+        .from('order_progress')
+        .upsert({
+          shop_id: currentShop.id,
+          order_id: orderId,
+          checked_count: count || 0,
+        }, { onConflict: 'shop_id,order_id' });
+
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', { variantId, error });
+      console.error('Erreur lors de la mise à jour:', error);
+      setChecked(!newChecked); // Revert on error
     }
   };
 

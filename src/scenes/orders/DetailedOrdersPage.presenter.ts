@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase/db';
+import { supabase } from '@/supabase/client';
+import { useShop } from '@/context/ShopContext';
 import type { ShopifyOrder } from '@/types/shopify';
-
-const ORDERS_COLLECTION = 'orders-v2';
 
 export function useDetailedOrdersPagePresenter() {
   const [isReversed, setIsReversed] = useState(false);
@@ -13,28 +11,63 @@ export function useDetailedOrdersPagePresenter() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<ShopifyOrder | undefined>(undefined);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { currentShop } = useShop();
 
   useEffect(() => {
-    const ordersRef = collection(db, ORDERS_COLLECTION);
-    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+    if (!currentShop) {
+      setOrders([]);
+      setIsLoading(false);
+      return;
+    }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-        };
-      }) as ShopifyOrder[];
-      
+    const loadOrders = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('shop_id', currentShop.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      const ordersData: ShopifyOrder[] = (data || []).map(order => ({
+        id: order.shopify_id,
+        name: order.name,
+        orderNumber: order.order_number,
+        createdAt: order.created_at,
+        cancelledAt: order.cancelled_at,
+        displayFulfillmentStatus: order.display_fulfillment_status,
+        displayFinancialStatus: order.display_financial_status,
+        totalPrice: order.total_price,
+        totalPriceCurrency: order.total_price_currency || 'EUR',
+        note: order.note,
+        tags: order.tags || [],
+        lineItems: order.line_items || [],
+      }));
+
       setOrders(ordersData);
       setIsLoading(false);
-    }, (error) => {
-      console.error('Error fetching orders:', error);
-      setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    loadOrders();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `shop_id=eq.${currentShop.id}` },
+        () => loadOrders()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentShop]);
 
   const pendingOrders = useMemo(() => {
     return orders.filter(order => {

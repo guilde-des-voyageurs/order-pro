@@ -1,20 +1,20 @@
-# 📦 IVY (ex-OrderPro) - Documentation Complète
+# 📦 IVY - Documentation Complète
 
-**Version:** 0.2.6 - Correctif bug textile  
-**Entreprise:** Runes de Chêne  
-**Type:** Application de gestion de production textile et facturation
+**Version:** 1.0.0 - Migration Supabase Multi-Tenant  
+**Type:** Application SaaS de gestion de production et facturation
 
 ---
 
 ## 🎯 Vue d'ensemble
 
-**IVY** est une application web de gestion de production pour l'atelier de sérigraphie textile de Runes de Chêne. Elle synchronise les commandes depuis Shopify, gère le suivi de production avec un système de checkboxes, et automatise la facturation fournisseur.
+**IVY** est une application web SaaS de gestion de production. Elle synchronise les commandes depuis Shopify, gère le suivi de production avec un système de checkboxes, et automatise la facturation fournisseur.
 
 ### Objectifs principaux
-1. **Synchronisation Shopify** → Firebase en temps réel
-2. **Suivi de production** avec système de checkboxes par variante (couleur/taille)
-3. **Facturation automatisée** basée sur des règles de prix configurables
-4. **Gestion séparée** des commandes clients et des commandes stock (batch)
+1. **Multi-tenant** : Support de plusieurs boutiques par compte utilisateur
+2. **Synchronisation Shopify** → Supabase en temps réel
+3. **Suivi de production** avec système de checkboxes par article
+4. **Facturation automatisée** basée sur des règles de prix configurables
+5. **Gestion séparée** des commandes clients et des commandes stock (batch)
 
 ---
 
@@ -30,21 +30,67 @@
 - **TypeScript:** 5.x
 
 ### Stack Backend
-- **Base de données:** Firebase Firestore
-- **Authentification:** Firebase Auth
+- **Base de données:** Supabase PostgreSQL
+- **Authentification:** Supabase Auth
+- **Realtime:** Supabase Realtime (remplace Firebase onSnapshot)
 - **API:** Shopify Admin API (GraphQL) via `@shopify/admin-api-client`
 - **Server Actions:** Next.js Server Actions
 
-### Collections Firestore
+### Architecture Multi-Tenant
 
-#### 1. `orders-v2`
-Stocke toutes les commandes synchronisées depuis Shopify.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        UTILISATEURS                         │
+├─────────────────────────────────────────────────────────────┤
+│  👤 Compte A → Boutique 1                                   │
+│  👤 Compte B → Boutique 1, Boutique 2, Boutique 3           │
+│  👤 Compte C → Boutique 2 (partagée avec B)                 │
+└─────────────────────────────────────────────────────────────┘
 
-**Structure:**
-```typescript
-{
-  id: string,                          // ID Shopify (gid://shopify/Order/XXX)
-  name: string,                        // Numéro de commande (#1234)
+Tables:
+- shops: Boutiques Shopify (credentials stockés)
+- user_shops: Liaison many-to-many (user_id, shop_id, role)
+- Toutes les autres tables ont un shop_id pour l'isolation
+```
+
+### Row Level Security (RLS)
+Chaque utilisateur ne voit que les données des boutiques auxquelles il appartient via la fonction `user_has_shop_access(shop_id)`.
+
+### Tables Supabase
+
+#### 1. `shops`
+Boutiques Shopify connectées.
+
+```sql
+id UUID PRIMARY KEY
+name TEXT NOT NULL
+shopify_url TEXT NOT NULL
+shopify_token TEXT NOT NULL
+shopify_location_id TEXT
+created_at TIMESTAMPTZ
+updated_at TIMESTAMPTZ
+```
+
+#### 2. `user_shops`
+Liaison utilisateurs ↔ boutiques (many-to-many).
+
+```sql
+id UUID PRIMARY KEY
+user_id UUID REFERENCES auth.users(id)
+shop_id UUID REFERENCES shops(id)
+role TEXT DEFAULT 'member'  -- 'owner', 'admin', 'member'
+is_default BOOLEAN DEFAULT FALSE
+created_at TIMESTAMPTZ
+```
+
+#### 3. `orders`
+Commandes synchronisées depuis Shopify.
+
+```sql
+id UUID PRIMARY KEY
+shop_id UUID REFERENCES shops(id)
+shopify_id TEXT NOT NULL  -- gid://shopify/Order/XXX
+name TEXT NOT NULL        -- #1234
   orderNumber: string,                 // Sans le # (1234)
   createdAt: string,                   // ISO date
   cancelledAt: string | null,

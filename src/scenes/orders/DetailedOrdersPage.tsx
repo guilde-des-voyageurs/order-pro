@@ -13,14 +13,15 @@ import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './DetailedOrdersPage.module.scss';
-import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { transformColor } from '@/utils/color-transformer';
 import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
+import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { IconMessage, IconAlertTriangle, IconArrowsSort, IconCheck } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
-import { ordersService } from '@/firebase/services/orders';
+import * as ordersService from '@/supabase/services/orders';
+import { useShop } from '@/context/ShopContext';
 
 interface OrderRowProps {
   order: ShopifyOrder;
@@ -32,6 +33,7 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   const [isMarkingAsFulfilled, setIsMarkingAsFulfilled] = useState(false);
+  const { currentShop } = useShop();
 
   const handleMarkAsFulfilled = () => {
     modals.openConfirmModal({
@@ -48,7 +50,8 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
       onConfirm: async () => {
         setIsMarkingAsFulfilled(true);
         try {
-          await ordersService.markOrderAsFulfilled(order.id);
+          if (!currentShop) throw new Error('No shop selected');
+          await ordersService.markOrderAsFulfilled(currentShop.id, order.id);
           notifications.show({
             title: 'Succès',
             message: `La commande ${order.name} a été marquée comme expédiée`,

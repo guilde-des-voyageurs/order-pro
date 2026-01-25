@@ -5,15 +5,14 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { SyncButton } from '@/components/SyncButton/SyncButton';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import { useAuth } from '@/context/AuthContext';
+import { useShop } from '@/context/ShopContext';
 import { Button } from '@mantine/core';
-import { IconLogout, IconCurrencyEuro } from '@tabler/icons-react';
-import Image from 'next/image';
+import { IconLogout } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase/db';
+import { supabase } from '@/supabase/client';
 import { APP_VERSION } from '@/config/version';
+import { ShopSelector } from '@/components/ShopSelector';
 
 interface MenuItem {
   href: string;
@@ -27,46 +26,69 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { signOut } = useAuth();
+  const { currentShop, hasShops, loading: shopLoading } = useShop();
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [stockOrdersCount, setStockOrdersCount] = useState(0);
 
   useEffect(() => {
-    // Compteur des commandes clients
-    const unsubscribeOrders = onSnapshot(collection(db, 'orders-v2'), snapshot => {
-      const count = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled' 
-          && data.displayFinancialStatus?.toLowerCase() !== 'refunded'
-          && !data.tags?.some((tag: string) => tag.toLowerCase().includes('batch'));
-      }).length;
-      setPendingOrdersCount(count);
-    });
+    if (!currentShop) return;
 
-    // Compteur des commandes stock
-    const unsubscribeStock = onSnapshot(collection(db, 'orders-v2'), snapshot => {
-      const count = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        return data.displayFulfillmentStatus?.toLowerCase() !== 'fulfilled' 
-          && data.displayFinancialStatus?.toLowerCase() !== 'refunded'
-          && data.tags?.some((tag: string) => tag.toLowerCase().includes('batch'));
-      }).length;
-      setStockOrdersCount(count);
-    });
+    // Fonction pour charger les compteurs
+    const loadCounts = async () => {
+      // Compteur des commandes clients
+      const { data: clientOrders } = await supabase
+        .from('orders')
+        .select('id, tags')
+        .eq('shop_id', currentShop.id)
+        .neq('display_fulfillment_status', 'FULFILLED')
+        .neq('display_financial_status', 'REFUNDED');
+
+      const pendingCount = clientOrders?.filter(order => 
+        !order.tags?.some((tag: string) => tag.toLowerCase().includes('batch'))
+      ).length || 0;
+      setPendingOrdersCount(pendingCount);
+
+      // Compteur des commandes stock
+      const stockCount = clientOrders?.filter(order => 
+        order.tags?.some((tag: string) => tag.toLowerCase().includes('batch'))
+      ).length || 0;
+      setStockOrdersCount(stockCount);
+    };
+
+    loadCounts();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel('orders-count')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `shop_id=eq.${currentShop.id}` },
+        () => loadCounts()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribeOrders();
-      unsubscribeStock();
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentShop]);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
       router.push('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
   };
+
+  // Rediriger vers onboarding si pas de boutique (seulement après le chargement)
+  useEffect(() => {
+    if (shopLoading) return; // Attendre que le chargement soit terminé
+    if (!hasShops && pathname !== '/onboarding' && pathname !== '/login' && pathname !== '/signup') {
+      router.push('/onboarding');
+    }
+  }, [hasShops, shopLoading, pathname, router]);
 
   const menuCategories = [
     {
@@ -129,6 +151,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className={styles.view}>
       <div className={styles.menu}>
+        <div className={styles.menu_header}>
+          <ShopSelector />
+        </div>
         <div className={styles.menu_sync}>
           <SyncButton />
         </div>

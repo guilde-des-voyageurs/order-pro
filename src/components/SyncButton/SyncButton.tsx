@@ -1,27 +1,44 @@
-import { Button, Tooltip } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
-import { fetchOrdersApiAction } from '@/actions/fetch-orders-api-action';
-import { ordersService } from '@/firebase/services/orders';
+import { useShop } from '@/context/ShopContext';
 import styles from './SyncButton.module.scss';
 
 export function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
+  const { currentShop } = useShop();
 
   const handleSync = async () => {
+    if (!currentShop) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Aucune boutique sélectionnée',
+        color: 'red',
+      });
+      return;
+    }
+
     try {
-      console.log('🔄 Début de la synchronisation...');
       setIsSyncing(true);
-      console.log('📡 Récupération des commandes depuis Shopify...');
-      const orders = await fetchOrdersApiAction();
-      console.log(`✅ ${orders.length} commandes récupérées depuis Shopify`);
-      console.log('💾 Synchronisation avec Firebase...');
-      await ordersService.syncOrders(orders);
+      
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ shopId: currentShop.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur de synchronisation');
+      }
 
       notifications.show({
         title: 'Synchronisation réussie',
-        message: `${orders.length} commandes synchronisées (avec notes)`,
+        message: `${result.ordersCount} commandes synchronisées`,
         color: 'green',
       });
     } catch (error) {

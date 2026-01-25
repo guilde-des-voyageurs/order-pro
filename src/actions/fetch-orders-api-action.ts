@@ -5,26 +5,11 @@ import type { ShopifyOrder } from '@/types/shopify';
 import { TEST_QUERY, ORDERS_QUERY, ORDERS_QUERY_PAGINATED } from '@/graphql/queries';
 import { getDefaultSku } from '@/utils/variant-helpers';
 
-const getShopifyCredentials = () => {
-  if (!process.env.SHOPIFY_URL || !process.env.SHOPIFY_TOKEN) {
-    throw new Error('Missing Shopify credentials in environment variables');
-  }
-  return {
-    url: process.env.SHOPIFY_URL,
-    token: process.env.SHOPIFY_TOKEN,
-  };
-};
-
-
-
-const ACCEPTED_LOCATION_ID = '88278073611';
-
-const getShopifyClient = () => {
-  const { url, token } = getShopifyCredentials();
+const getShopifyClient = (shopifyUrl: string, shopifyToken: string) => {
   return createAdminApiClient({
-    storeDomain: url,
+    storeDomain: shopifyUrl,
     apiVersion: '2024-10',
-    accessToken: token,
+    accessToken: shopifyToken,
   });
 };
 
@@ -110,8 +95,8 @@ interface ShopifyResponse {
   };
 }
 
-export const fetchOrdersApiAction = async (): Promise<ShopifyOrder[]> => {
-  const shopifyClient = getShopifyClient();
+export const fetchOrdersApiAction = async (shopifyUrl: string, shopifyToken: string): Promise<ShopifyOrder[]> => {
+  const shopifyClient = getShopifyClient(shopifyUrl, shopifyToken);
   try {
     console.log('Test de connexion a API Shopify...');
     await shopifyClient.request(TEST_QUERY);
