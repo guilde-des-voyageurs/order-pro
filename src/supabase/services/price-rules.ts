@@ -6,13 +6,21 @@ import type { PriceRule } from '../types';
  */
 export async function getPriceRules(shopId: string) {
   const { data, error } = await supabase
-    .from('price_rules')
+    .from('pricing_rules')
     .select('*')
     .eq('shop_id', shopId)
-    .order('search_string', { ascending: true });
+    .eq('is_active', true)
+    .order('rule_name', { ascending: true });
 
   if (error) throw error;
-  return data as PriceRule[];
+  
+  // Convertir vers le format attendu pour compatibilité
+  return (data || []).map(rule => ({
+    id: rule.id,
+    shop_id: rule.shop_id,
+    search_string: rule.condition_value || rule.rule_name,
+    price: rule.price_value,
+  })) as PriceRule[];
 }
 
 /**
@@ -20,32 +28,55 @@ export async function getPriceRules(shopId: string) {
  */
 export async function createPriceRule(shopId: string, searchString: string, price: number) {
   const { data, error } = await supabase
-    .from('price_rules')
+    .from('pricing_rules')
     .insert({
       shop_id: shopId,
-      search_string: searchString,
-      price,
+      rule_name: searchString,
+      rule_type: 'sku_markup',
+      condition_field: 'sku',
+      condition_value: searchString,
+      price_value: price,
+      is_active: true,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data as PriceRule;
+  return {
+    id: data.id,
+    shop_id: data.shop_id,
+    search_string: data.condition_value || data.rule_name,
+    price: data.price_value,
+  } as PriceRule;
 }
 
 /**
  * Met à jour une règle de prix
  */
 export async function updatePriceRule(ruleId: string, updates: { search_string?: string; price?: number }) {
+  const updateData: any = {};
+  if (updates.search_string) {
+    updateData.rule_name = updates.search_string;
+    updateData.condition_value = updates.search_string;
+  }
+  if (updates.price !== undefined) {
+    updateData.price_value = updates.price;
+  }
+
   const { data, error } = await supabase
-    .from('price_rules')
-    .update(updates)
+    .from('pricing_rules')
+    .update(updateData)
     .eq('id', ruleId)
     .select()
     .single();
 
   if (error) throw error;
-  return data as PriceRule;
+  return {
+    id: data.id,
+    shop_id: data.shop_id,
+    search_string: data.condition_value || data.rule_name,
+    price: data.price_value,
+  } as PriceRule;
 }
 
 /**
@@ -53,7 +84,7 @@ export async function updatePriceRule(ruleId: string, updates: { search_string?:
  */
 export async function deletePriceRule(ruleId: string) {
   const { error } = await supabase
-    .from('price_rules')
+    .from('pricing_rules')
     .delete()
     .eq('id', ruleId);
 

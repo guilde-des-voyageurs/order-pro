@@ -6,7 +6,6 @@ import { IconPlus, IconTrash, IconEdit, IconCheck, IconX, IconPalette, IconCurre
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
-import { colorMap as defaultColorMap } from '@/utils/colorMap';
 import styles from './settings.module.scss';
 
 interface ColorRule {
@@ -68,42 +67,6 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchRules();
   }, [fetchRules]);
-
-  // Initialiser avec les couleurs par défaut si vide
-  const initializeDefaultColors = async () => {
-    if (!currentShop) return;
-    
-    setSaving(true);
-    try {
-      const defaultColors = Object.entries(defaultColorMap)
-        .filter(([_, value]) => !value.includes('gradient'))
-        .map(([name, hex]) => ({ color_name: name, hex_value: hex }));
-      
-      const response = await fetch('/api/settings/colors/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopId: currentShop.id, colors: defaultColors }),
-      });
-      
-      if (response.ok) {
-        notifications.show({
-          title: 'Succès',
-          message: 'Couleurs par défaut initialisées',
-          color: 'green',
-        });
-        fetchRules();
-      }
-    } catch (err) {
-      console.error('Error initializing colors:', err);
-      notifications.show({
-        title: 'Erreur',
-        message: 'Impossible d\'initialiser les couleurs',
-        color: 'red',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // Sauvegarder une règle de couleur
   const saveColorRule = async (rule: ColorRule) => {
@@ -242,56 +205,7 @@ export default function SettingsPage() {
           <Paper withBorder p="md" radius="md">
             <Group justify="space-between" mb="md">
               <Text fw={600}>Mapping des couleurs</Text>
-              <Group>
-                {colorRules.length === 0 && (
-                  <>
-                    <Button
-                      variant="light"
-                      onClick={initializeDefaultColors}
-                      loading={saving}
-                    >
-                      Initialiser par défaut
-                    </Button>
-                    <Button
-                      variant="light"
-                      color="orange"
-                      onClick={async () => {
-                        if (!currentShop) return;
-                        setSaving(true);
-                        try {
-                          const response = await fetch('/api/settings/import-colors-from-firebase', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ shopId: currentShop.id }),
-                          });
-                          if (response.ok) {
-                            const data = await response.json();
-                            notifications.show({
-                              title: 'Succès',
-                              message: `${data.imported} couleurs importées depuis Firebase`,
-                              color: 'green',
-                            });
-                            fetchRules();
-                          } else {
-                            throw new Error('Import failed');
-                          }
-                        } catch (err) {
-                          console.error('Error importing colors:', err);
-                          notifications.show({
-                            title: 'Erreur',
-                            message: 'Impossible d\'importer depuis Firebase',
-                            color: 'red',
-                          });
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                      loading={saving}
-                    >
-                      Importer depuis Firebase
-                    </Button>
-                  </>
-                )}
+              <Group> 
                 <Button
                   leftSection={<IconPlus size={16} />}
                   onClick={() => {
@@ -377,64 +291,22 @@ export default function SettingsPage() {
           <Paper withBorder p="md" radius="md">
             <Group justify="space-between" mb="md">
               <Text fw={600}>Règles de tarification</Text>
-              <Group>
-                {pricingRules.length === 0 && (
-                  <Button
-                    variant="light"
-                    color="orange"
-                    onClick={async () => {
-                      if (!currentShop) return;
-                      setSaving(true);
-                      try {
-                        const response = await fetch('/api/settings/import-from-firebase', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ shopId: currentShop.id }),
-                        });
-                        if (response.ok) {
-                          const data = await response.json();
-                          notifications.show({
-                            title: 'Succès',
-                            message: `${data.imported.pricingRules} règles importées depuis Firebase`,
-                            color: 'green',
-                          });
-                          fetchRules();
-                        } else {
-                          throw new Error('Import failed');
-                        }
-                      } catch (err) {
-                        console.error('Error importing:', err);
-                        notifications.show({
-                          title: 'Erreur',
-                          message: 'Impossible d\'importer depuis Firebase',
-                          color: 'red',
-                        });
-                      } finally {
-                        setSaving(false);
-                      }
-                    }}
-                    loading={saving}
-                  >
-                    Importer depuis Firebase
-                  </Button>
-                )}
-                <Button
-                  leftSection={<IconPlus size={16} />}
-                  onClick={() => {
-                    setEditingPricing({
-                      rule_name: '',
-                      rule_type: 'base_price',
-                      price_value: 0,
-                      is_percentage: false,
-                      priority: 0,
-                      is_active: true,
-                    });
-                    openPricingModal();
-                  }}
-                >
-                  Ajouter une règle
-                </Button>
-              </Group>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => {
+                  setEditingPricing({
+                    rule_name: '',
+                    rule_type: 'base_price',
+                    price_value: 0,
+                    is_percentage: false,
+                    priority: 0,
+                    is_active: true,
+                  });
+                  openPricingModal();
+                }}
+              >
+                Ajouter une règle
+              </Button>
             </Group>
 
             {pricingRules.length > 0 && (

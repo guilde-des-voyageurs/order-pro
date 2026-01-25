@@ -3,17 +3,18 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useEffect, useState, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import { useCheckedVariants } from '@/hooks/useCheckedVariants';
+import { usePriceRules } from '@/hooks/usePriceRules';
 import { db } from '@/firebase/db';
-import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { encodeFirestoreId } from '@/utils/firestore';
 import { BatchBalance } from '@/components/BatchBalance/BatchBalance';
 import { getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 import { reverseTransformColor } from '@/utils/color-transformer';
 
-interface PriceRule {
-  id: string;
+interface PriceRuleWithCount {
+  id?: string;
   searchString: string;
-  price?: number;
+  price: number;
   count?: number;
 }
 
@@ -102,55 +103,23 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
   const displayedItems = order.lineItems || [];
   const [checkedItemStrings, setCheckedItemStrings] = useState<Record<string, { count: number; string: string }>>({});
   const [currentString, setCurrentString] = useState<string | null>(null);
-  const [priceRules, setPriceRules] = useState<PriceRule[]>([]);
+  const [priceRulesWithCount, setPriceRulesWithCount] = useState<PriceRuleWithCount[]>([]);
   const [balance, setBalance] = useState<number>(0);
-
-  // Charger toutes les règles de prix
+  
+  // Charger les règles de prix depuis Supabase via le hook
+  const { rules: supabaseRules, isLoading: isLoadingRules } = usePriceRules();
+  
+  // Synchroniser les règles Supabase avec l'état local (avec count)
   useEffect(() => {
-    const loadPriceRules = async () => {
-      try {
-        console.log('Loading price rules...');
-        const rulesCollection = collection(db, 'price-rules');
-        console.log('Collection ref:', rulesCollection);
-        
-        const rulesSnapshot = await getDocs(rulesCollection);
-        console.log('Found rules:', rulesSnapshot.docs.length);
-        console.log('Collection price-rules :', rulesSnapshot.docs.length, 'documents');
-        const rules = rulesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          // Afficher les données brutes du document
-          console.log('Document price-rules :', {
-            id: doc.id,
-            data: data,
-            searchString: data.searchString,
-            searchStringType: typeof data.searchString,
-            searchStringLength: data.searchString?.length,
-            // Détailler chaque caractère si c'est DTG-CUI
-            ...(data.searchString?.includes('DTG') ? {
-              chars: [...(data.searchString || '')].map(c => ({ char: c, code: c.charCodeAt(0) })),
-              containsDTG: data.searchString?.includes('DTG'),
-              containsCUI: data.searchString?.includes('CUI'),
-              containsDTGCUI: data.searchString?.includes('DTG-CUI')
-            } : {})
-          });
-          if (!data.searchString) {
-            console.warn('Rule missing searchString field:', doc.id);
-          }
-          return {
-            id: doc.id,
-            searchString: data.searchString || '',
-            price: data.price
-          };
-        });
-        
-        console.log('Final rules:', rules);
-        setPriceRules(rules);
-      } catch (error) {
-        console.error('Error loading price rules:', error);
-      }
-    };
-    loadPriceRules();
-  }, []);
+    if (supabaseRules.length > 0) {
+      setPriceRulesWithCount(supabaseRules.map(rule => ({
+        id: rule.id,
+        searchString: rule.searchString,
+        price: rule.price,
+        count: 0
+      })));
+    }
+  }, [supabaseRules]);
 
   const handleCheckedChange = useCallback((key: string, count: number, itemString: string) => {
     setCheckedItemStrings(prev => ({
@@ -197,7 +166,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
       setCurrentString(newString);
 
       // Calculer le nombre d'occurrences de chaque règle
-      setPriceRules(prev => prev.map(rule => {
+      setPriceRulesWithCount(prev => prev.map(rule => {
         if (!rule.searchString || !newString) return { ...rule, count: 0 };
 
         // Compter les occurrences avec regex (comme dans handleGenerateWorkshopSheet)
@@ -242,7 +211,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
     setCurrentString(allStrings);
 
     // Mettre à jour le compteur des règles
-    setPriceRules(prev => prev.map(rule => ({
+    setPriceRulesWithCount(prev => prev.map(rule => ({
       ...rule,
       count: allStrings ? (allStrings.match(new RegExp(rule.searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length : 0
     })));
@@ -295,7 +264,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
         )}
 
         {/* Règles de prix (colonne droite) */}
-        {priceRules.some(rule => (rule.count || 0) > 0) && (
+        {priceRulesWithCount.some(rule => (rule.count || 0) > 0) && (
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="md">
               {(() => {
@@ -328,7 +297,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                     const skuColor = `${nonImpressionParts[0]} - ${nonImpressionParts[1]}`;
                     
                     // Vérifier si cette combinaison a une règle (insensible à la casse)
-                    const hasSkuColorRule = priceRules.some(rule => 
+                    const hasSkuColorRule = priceRulesWithCount.some(rule => 
                       rule.searchString && rule.searchString.toLowerCase() === skuColor.toLowerCase()
                     );
                     
@@ -340,7 +309,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   // Vérifier chaque terme d'impression (insensible à la casse)
                   parts.forEach(part => {
                     if (impressionTerms.includes(part)) {
-                      const hasImpressionRule = priceRules.some(rule => 
+                      const hasImpressionRule = priceRulesWithCount.some(rule => 
                         rule.searchString && rule.searchString.toLowerCase() === part.toLowerCase()
                       );
                       
@@ -365,7 +334,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                         ))}
                       </Stack>
                       <Text size="xs" c="dimmed" mt="sm">
-                        💡 Ajoutez ces règles dans la collection "price-rules" de Firebase
+                        💡 Ajoutez ces règles dans les Options Globales
                       </Text>
                     </Alert>
                   );
@@ -374,7 +343,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
               })()}
               
               <Paper p="xs" withBorder>
-                {priceRules
+                {priceRulesWithCount
                 .filter(rule => (rule.count || 0) > 0)
                 .sort((a, b) => {
                   // Extraire le type de produit (ex: CREATOR, DRUMMER, etc.)
@@ -400,7 +369,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                     )}
                   </Text>
                 ))}
-              {priceRules.some(rule => rule.price && rule.count) && (
+              {priceRulesWithCount.some(rule => rule.price && rule.count) && (
                 <Stack gap="xs" mt="md">
                   {(() => {
                     // Compter à partir des checkboxes cochées (checkedItemStrings)
@@ -449,7 +418,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   })()}
                   
                   <Text fw={700} size="lg">
-                    Sous-total HT : {priceRules
+                    Sous-total HT : {priceRulesWithCount
                       .filter(rule => (rule.count || 0) > 0)
                       .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0)
                       .toFixed(2)}€
@@ -461,7 +430,7 @@ export function OrderItemsList({ order }: OrderItemsListProps) {
                   
                   <Text fw={700} size="xl" c="blue">
                     Total HT : {(
-                      priceRules
+                      priceRulesWithCount
                         .filter(rule => (rule.count || 0) > 0)
                         .reduce((total, rule) => total + ((rule.count || 0) * (rule.price || 0)), 0) + balance
                     ).toFixed(2)}€

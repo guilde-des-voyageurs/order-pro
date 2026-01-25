@@ -23,7 +23,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const pathname = usePathname();
   const { currentShop, hasShops, loading: shopLoading } = useShop();
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
-  const [stockOrdersCount, setStockOrdersCount] = useState(0);
 
   useEffect(() => {
     if (!currentShop) return;
@@ -42,12 +41,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         !order.tags?.some((tag: string) => tag.toLowerCase().includes('batch'))
       ).length || 0;
       setPendingOrdersCount(pendingCount);
-
-      // Compteur des commandes stock
-      const stockCount = clientOrders?.filter(order => 
-        order.tags?.some((tag: string) => tag.toLowerCase().includes('batch'))
-      ).length || 0;
-      setStockOrdersCount(stockCount);
     };
 
     loadCounts();
@@ -94,40 +87,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         {
           href: '/archived-orders',
           label: 'Commandes archivées',
-        },
-      ],
-    },
-    {
-      title: 'Commandes stock',
-      items: [
-        {
-          href: '/batch',
-          label: `Batch en cours (${stockOrdersCount})`
-        },
-        {
-          href: '/textile-batch',
-          label: 'Textile à commander'
-        },
-        {
-          href: '/stock-invoices',
-          label: 'Facturation',
-        },
-        {
-          href: '/archived-batch',
-          label: 'Batchs archivés',
-        },
-      ],
-    },
-    {
-      title: 'Réglages',
-      items: [
-        {
-          href: '/price-rules',
-          label: 'Règles de prix',
-        },
-        {
-          href: '/color-mappings',
-          label: 'Règles de couleur',
         },
       ],
     },

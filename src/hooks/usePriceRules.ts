@@ -22,16 +22,18 @@ export function usePriceRules() {
 
     const loadRules = async () => {
       const { data, error } = await supabase
-        .from('price_rules')
+        .from('pricing_rules')
         .select('*')
         .eq('shop_id', currentShop.id)
-        .order('search_string', { ascending: true });
+        .eq('is_active', true)
+        .order('rule_name', { ascending: true });
 
       if (!error && data) {
+        // Convertir le nouveau format vers l'ancien format pour compatibilité
         setRules(data.map(rule => ({
           id: rule.id,
-          searchString: rule.search_string,
-          price: rule.price,
+          searchString: rule.condition_value || rule.rule_name,
+          price: rule.price_value,
         })));
       }
       setIsLoading(false);
@@ -41,10 +43,10 @@ export function usePriceRules() {
 
     // Écouter les changements en temps réel
     const channel = supabase
-      .channel('price-rules-changes')
+      .channel('pricing-rules-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'price_rules', filter: `shop_id=eq.${currentShop.id}` },
+        { event: '*', schema: 'public', table: 'pricing_rules', filter: `shop_id=eq.${currentShop.id}` },
         () => loadRules()
       )
       .subscribe();
