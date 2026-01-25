@@ -1,0 +1,174 @@
+// ===========================================
+// VUE DÉTAIL PRODUIT - Styles personnalisables
+// ===========================================
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// Header avec bouton retour
+.header {
+  position: sticky;
+  display: flex;
+  align-items: center;
+  top: -40px;
+  margin-top: -42px;
+  margin-left: -42px;
+  margin-right: -40px;
+  margin-bottom: 24px;
+  background: #fefefe;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  gap: 10px;
+}
+
+.backButton {
+  font-weight: 500;
+}
+
+// Contenu principal
+.content {
+  flex: 1;
+}
+
+// Section info produit (image + détails)
+.productInfo {
+  margin-bottom: 15px;
+}
+
+// Section image
+.imageSection {
+  flex-shrink: 0;
+  background-color: var(--mantine-color-gray-0);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.productImage {
+  width: 40px;
+  height: 40px;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.noImage {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--mantine-color-gray-1);
+  color: var(--mantine-color-gray-5);
+}
+
+// Section informations
+.infoSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.productTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mantine-color-dark-8);
+  margin: 0;
+}
+
+.productHandle {
+  font-size: 14px;
+  color: var(--mantine-color-dimmed);
+}
+
+// Stock total
+.stockTotal {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.stockLabel {
+  width: fit-content;
+  border-radius: 20px;
+  font-size: 14px;
+  color: var(--mantine-color-dark-3);
+  padding: 7px 20px;
+  background-color: var(--mantine-color-gray-0);
+}
+
+.stockBadge {
+  width: fit-content;
+}
+
+// Répartition par taille
+.sizeBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sizeBreakdownBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sizeBadge {
+  &.inStock {
+    color: var(--mantine-color-green-6);
+    border-color: var(--mantine-color-green-6);
+  }
+
+  &.outOfStock {
+    color: var(--mantine-color-gray-6);
+    border-color: var(--mantine-color-gray-6);
+  }
+}
+
+// Section variantes (tableau)
+.variantsSection, .productInfo {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--mantine-color-gray-2);
+}
+
+.variantsTitle {
+  font-size: 16px;
+  color: var(--mantine-color-dark-7);
+}
+
+.variantsTable {
+  // Styles personnalisés pour le tableau
+}
+
+.variantName {
+  font-weight: 500;
+}
+
+.variantSku {
+  color: var(--mantine-color-dimmed);
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.variantQuantity {
+  text-align: right;
+}
+
+.quantityBadge {
+  &.inStock {
+    color: var(--mantine-color-green-6);
+    border-color: var(--mantine-color-green-6);
+    background: transparent;
+  }
+
+  &.outOfStock {
+    color: var(--mantine-color-gray-6);
+    border-color: var(--mantine-color-gray-6);
+    background: transparent;
+  }
+}

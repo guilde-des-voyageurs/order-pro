@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Title, Text, SimpleGrid, Loader, Center, TextInput, Group, Button, Paper, Stack, Badge, Modal } from '@mantine/core';
-import { IconSearch, IconRefresh, IconUpload, IconDownload, IconAlertTriangle } from '@tabler/icons-react';
+import { IconSearch, IconRefresh, IconUpload, IconDownload, IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
 import { useLocation } from '@/context/LocationContext';
-import { ProductCard, ProductData, ProductDetailPanel } from '@/components/Inventory';
+import { ProductCard, ProductData } from '@/components/Inventory';
+import { ProductDetailView } from '@/components/Inventory/ProductDetailView';
 import styles from './inventory.module.scss';
 
 export default function InventoryPage() {
@@ -24,6 +25,8 @@ export default function InventoryPage() {
   const [skuFilter, setSkuFilter] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [syncModalOpened, { open: openSyncModal, close: closeSyncModal }] = useDisclosure(false);
+  const scrollPositionRef = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchProducts = useCallback(async () => {
     if (!currentShop) return;
@@ -198,6 +201,35 @@ export default function InventoryPage() {
     return result;
   }, [products, searchQuery, skuFilter]);
 
+  // Sélectionner un produit (sauvegarde la position de scroll)
+  const handleSelectProduct = useCallback((product: ProductData) => {
+    // Sauvegarder la position de scroll actuelle
+    const contentElement = containerRef.current?.closest('[class*="content"]');
+    if (contentElement) {
+      scrollPositionRef.current = contentElement.scrollTop;
+    }
+    setSelectedProduct(product);
+    // Scroller en haut pour la vue détail
+    requestAnimationFrame(() => {
+      const el = containerRef.current?.closest('[class*="content"]');
+      if (el) {
+        el.scrollTop = 0;
+      }
+    });
+  }, []);
+
+  // Retour à la liste (restaure la position de scroll)
+  const handleBackToList = useCallback(() => {
+    setSelectedProduct(null);
+    // Restaurer la position de scroll après le rendu
+    requestAnimationFrame(() => {
+      const contentElement = containerRef.current?.closest('[class*="content"]');
+      if (contentElement) {
+        contentElement.scrollTop = scrollPositionRef.current;
+      }
+    });
+  }, []);
+
   // Affichage si besoin de sync initial
   if (!loading && needsSync && products.length === 0) {
     return (
@@ -247,8 +279,51 @@ export default function InventoryPage() {
     );
   }
 
+  // Si un produit est sélectionné, afficher la vue détail
+  if (selectedProduct) {
+    return (
+      <div className={styles.container} ref={containerRef}>
+        <ProductDetailView 
+          product={selectedProduct} 
+          onBack={handleBackToList}
+          locationName={currentLocation?.name}
+        />
+
+        {/* Modal de confirmation pour la synchronisation */}
+        <Modal 
+          opened={syncModalOpened} 
+          onClose={closeSyncModal}
+          title={
+            <Group gap="xs">
+              <IconAlertTriangle size={20} color="var(--mantine-color-orange-6)" />
+              <Text fw={600}>Confirmer la synchronisation</Text>
+            </Group>
+          }
+          centered
+        >
+          <Stack gap="md">
+            <Text size="sm">
+              Vous allez écraser vos changements locaux avec les données de la boutique en ligne.
+            </Text>
+            <Text size="sm" c="dimmed">
+              Cette action est irréversible. Êtes-vous sûr de vouloir continuer ?
+            </Text>
+            <Group justify="flex-end" gap="sm" mt="md">
+              <Button variant="default" onClick={closeSyncModal}>
+                Annuler
+              </Button>
+              <Button color="green" onClick={handleSyncFromShopify}>
+                Oui, synchroniser
+              </Button>
+            </Group>
+          </Stack>
+        </Modal>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <div className={styles.header}>
         <Group justify="space-between" align="flex-start">
           <div>
@@ -332,7 +407,7 @@ export default function InventoryPage() {
           <ProductCard
             key={product.id}
             product={product}
-            onClick={() => setSelectedProduct(product)}
+            onClick={() => handleSelectProduct(product)}
           />
         ))}
       </SimpleGrid>
@@ -341,13 +416,6 @@ export default function InventoryPage() {
         <Center h={200}>
           <Text c="dimmed">Aucun produit trouvé</Text>
         </Center>
-      )}
-
-      {selectedProduct && (
-        <ProductDetailPanel
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
       )}
 
       {/* Modal de confirmation pour la synchronisation */}
