@@ -33,12 +33,7 @@ interface OrderItem {
   line_total: number;
   is_validated: boolean;
   validated_at: string | null;
-  metafields?: Record<string, string>;
-}
-
-interface MetafieldRule {
-  metafield_key: string;
-  display_name: string | null;
+  pricing_string?: string;
 }
 
 interface SupplierOrder {
@@ -76,8 +71,6 @@ export default function OrderDetailPage() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, number>>({});
   const [skuFilter, setSkuFilter] = useState<string | null>(null);
   
-  // Règles de métachamps
-  const [metafieldRules, setMetafieldRules] = useState<MetafieldRule[]>([]);
 
   // Charger la commande et ses articles
   const fetchOrder = useCallback(async () => {
@@ -92,7 +85,6 @@ export default function OrderDetailPage() {
         setItems(data.items || []);
         setNote(data.order.note || '');
         setBalanceAdjustment(data.order.balance_adjustment || 0);
-        setMetafieldRules(data.metafieldRules || []);
       } else {
         throw new Error('Order not found');
       }
@@ -539,10 +531,7 @@ export default function OrderDetailPage() {
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th style={{ width: 50 }}>Validé</Table.Th>
-                  <Table.Th>Produit</Table.Th>
-                  <Table.Th>SKU</Table.Th>
-                  {metafieldRules.length > 0 && <Table.Th>Méta champ</Table.Th>}
-                  <Table.Th>Variante</Table.Th>
+                  <Table.Th>Chaîne facturation</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Qté</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Prix unit.</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Total</Table.Th>
@@ -559,30 +548,9 @@ export default function OrderDetailPage() {
                         disabled={isCompleted}
                       />
                     </Table.Td>
-                    <Table.Td>{item.product_title}</Table.Td>
                     <Table.Td>
-                      <Badge variant="light" color="gray">{item.sku || '-'}</Badge>
+                      <Text size="sm">{item.pricing_string || `${item.product_title}, ${item.sku || ''}, ${item.variant_title || ''}`}</Text>
                     </Table.Td>
-                    {metafieldRules.length > 0 && (
-                      <Table.Td>
-                        {item.metafields && Object.keys(item.metafields).length > 0 ? (
-                          <Stack gap={2}>
-                            {metafieldRules.map((rule) => {
-                              const value = item.metafields?.[rule.metafield_key];
-                              if (!value) return null;
-                              return (
-                                <Badge key={rule.metafield_key} variant="light" color="grape" size="sm">
-                                  {value}
-                                </Badge>
-                              );
-                            })}
-                          </Stack>
-                        ) : (
-                          <Text size="xs" c="dimmed">-</Text>
-                        )}
-                      </Table.Td>
-                    )}
-                    <Table.Td>{item.variant_title || '-'}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.quantity}</Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>{item.unit_price.toFixed(2)} €</Table.Td>
                     <Table.Td style={{ textAlign: 'right', fontWeight: 600 }}>{item.line_total.toFixed(2)} €</Table.Td>

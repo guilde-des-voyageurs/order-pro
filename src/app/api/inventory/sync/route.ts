@@ -195,7 +195,21 @@ export async function POST(request: Request) {
     console.log('Location IDs for inventory sync:', locationIds);
     console.log('Inventory item IDs count:', inventoryItemIds.length);
 
-    // Récupérer et batch upsert l'inventaire
+    // Supprimer les anciens inventory_levels pour ces variantes (pour un remplacement complet)
+    const variantUuids = Object.values(variantIdMap);
+    if (variantUuids.length > 0) {
+      // Supprimer par batch de 500
+      for (let i = 0; i < variantUuids.length; i += 500) {
+        const batch = variantUuids.slice(i, i + 500);
+        await supabase
+          .from('inventory_levels')
+          .delete()
+          .in('variant_id', batch);
+      }
+      console.log(`Deleted old inventory levels for ${variantUuids.length} variants`);
+    }
+
+    // Récupérer et insérer l'inventaire depuis Shopify
     const inventoryToUpsert: any[] = [];
 
     for (const locId of locationIds) {
@@ -241,74 +255,7 @@ export async function POST(request: Request) {
 
     console.log(`Upserted ${inventoryToUpsert.length} inventory levels`);
 
-    // 8. Récupérer les metafields des variantes (optionnel - nécessite la migration 007)
-    let metafieldsCount = 0;
-    try {
-      // Vérifier si la table existe
-      const { error: tableCheckError } = await supabase
-        .from('variant_metafields')
-        .select('id')
-        .limit(1);
-      
-      if (!tableCheckError) {
-        const metafieldsToUpsert: any[] = [];
-        
-        for (let i = 0; i < allProducts.length; i += 10) {
-          const productBatch = allProducts.slice(i, i + 10);
-          
-          for (const product of productBatch) {
-            for (const variant of product.variants) {
-              const variantId = variantIdMap[variant.id.toString()];
-              if (!variantId) continue;
-              
-              try {
-                const metafieldsResponse = await fetch(
-                  `https://${shop.shopify_url}/admin/api/2024-01/variants/${variant.id}/metafields.json`,
-                  {
-                    headers: {
-                      'X-Shopify-Access-Token': shop.shopify_token,
-                      'Content-Type': 'application/json',
-                    },
-                  }
-                );
-
-                if (metafieldsResponse.ok) {
-                  const metafieldsData = await metafieldsResponse.json();
-                  
-                  for (const metafield of metafieldsData.metafields || []) {
-                    metafieldsToUpsert.push({
-                      variant_id: variantId,
-                      namespace: metafield.namespace,
-                      key: metafield.key,
-                      value: metafield.value,
-                      type: metafield.type,
-                      synced_at: new Date().toISOString(),
-                    });
-                  }
-                }
-              } catch (err) {
-                // Ignorer les erreurs individuelles de metafields
-              }
-            }
-          }
-        }
-
-        // Upsert metafields par batch de 500
-        for (let i = 0; i < metafieldsToUpsert.length; i += 500) {
-          const batch = metafieldsToUpsert.slice(i, i + 500);
-          await supabase
-            .from('variant_metafields')
-            .upsert(batch, { onConflict: 'variant_id,namespace,key' });
-        }
-        
-        metafieldsCount = metafieldsToUpsert.length;
-        console.log(`Upserted ${metafieldsCount} variant metafields`);
-      } else {
-        console.log('Table variant_metafields not found, skipping metafields sync');
-      }
-    } catch (err) {
-      console.log('Metafields sync skipped (table may not exist yet)');
-    }
+    // Les metafields sont récupérés à la demande lors de l'ajout d'articles aux commandes batch
 
     return NextResponse.json({ 
       success: true, 
@@ -318,7 +265,7 @@ export async function POST(request: Request) {
         variants: variantsToUpsert.length,
         inventoryLevels: inventoryToUpsert.length,
         locations: locationIds.length,
-        metafields: metafieldsCount,
+        metafields: 0,
       }
     });
   } catch (error) {
