@@ -6,17 +6,18 @@
   margin-top: 60px;
 
   .menu {
-    position: fixed;
-    left: 0;
+    position: sticky;
     top: 60px;
-    bottom: 0;
+    height: calc(100vh - 60px);
     width: $app-menu-width;
+    min-width: $app-menu-width;
     padding-inline: 24px;
     padding-block: 20px;
     background-color: rgb(253, 251, 250);
     border-right: 1px solid rgba(60,50,50,0.1);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 
     &_header {
       margin-bottom: 16px;
@@ -92,10 +93,10 @@
   }
 
   .content {
-    margin-left: $app-menu-width;
-    padding: 40px;
     flex: 1;
+    padding: 40px;
     background-color: var(--mantine-color-gray-0);
     min-height: calc(100vh - 60px);
+    overflow-x: auto;
   }
 }
