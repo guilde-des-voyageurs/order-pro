@@ -14,8 +14,8 @@ export function TopNavbar() {
   const router = useRouter();
   const { signOut } = useAuth();
   
-  const isCommandesSection = pathname.startsWith('/ivy/commandes') || pathname.startsWith('/detailed-orders') || pathname.startsWith('/orders') || pathname.startsWith('/facturation') || pathname.startsWith('/archived-orders') || pathname.startsWith('/textile');
-  const isInventaireSection = pathname === '/ivy' || pathname.startsWith('/ivy/inventory') || pathname.startsWith('/ivy/suppliers') || pathname.startsWith('/ivy/analytics') || pathname.startsWith('/ivy/settings');
+  const isCommandesSection = pathname.startsWith('/ivy/commandes');
+  const isInventaireSection = pathname.startsWith('/ivy/inventaire') || pathname.startsWith('/ivy/parametres');
 
   const handleLogout = async () => {
     try {
@@ -50,7 +50,7 @@ export function TopNavbar() {
           <Button
             variant={isInventaireSection ? 'filled' : 'subtle'}
             color="orange"
-            onClick={() => router.push('/ivy')}
+            onClick={() => router.push('/ivy/inventaire')}
             size="md"
             className={isInventaireSection ? styles.activeButton : styles.inactiveButton}
           >
@@ -67,7 +67,7 @@ export function TopNavbar() {
             variant="subtle" 
             color="gray" 
             size="lg"
-            onClick={() => router.push('/ivy/settings')}
+            onClick={() => router.push('/ivy/parametres')}
           >
             <IconSettings size={20} />
           </ActionIcon>

@@ -16,7 +16,8 @@ interface IvyLayoutProps {
 function IvyLayoutContent({ children }: IvyLayoutProps) {
   const pathname = usePathname();
   
-  const isCommandesSection = pathname.startsWith('/ivy/commandes') || pathname.startsWith('/detailed-orders') || pathname.startsWith('/orders') || pathname.startsWith('/facturation') || pathname.startsWith('/archived-orders') || pathname.startsWith('/textile');
+  const isCommandesSection = pathname.startsWith('/ivy/commandes');
+  const isInventaireSection = pathname.startsWith('/ivy/inventaire');
 
   // Menu contextuel selon la section
   const commandesMenu = [
@@ -34,22 +35,22 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
       title: 'Commandes boutique',
       items: [
         {
-          href: '/detailed-orders',
+          href: '/ivy/commandes/boutique',
           label: 'Commandes',
           icon: IconShoppingCart,
         },
         {
-          href: '/textile',
+          href: '/ivy/commandes/boutique/suivi',
           label: 'Suivi interne',
           icon: IconChecklist,
         },
         {
-          href: '/facturation-v2',
+          href: '/ivy/commandes/boutique/facturation',
           label: 'Facturation',
           icon: IconFileInvoice,
         },
         {
-          href: '/archived-orders',
+          href: '/ivy/commandes/boutique/archives',
           label: 'Archives',
           icon: IconArchive,
         },
@@ -72,17 +73,17 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
       title: 'Inventaire',
       items: [
         {
-          href: '/ivy',
+          href: '/ivy/inventaire',
           label: 'Tableau de bord',
           icon: IconHome,
         },
         {
-          href: '/ivy/inventory',
+          href: '/ivy/inventaire/produits',
           label: 'Produits',
           icon: IconPackage,
         },
         {
-          href: '/ivy/analytics',
+          href: '/ivy/inventaire/statistiques',
           label: 'Statistiques',
           icon: IconChartBar,
         },
