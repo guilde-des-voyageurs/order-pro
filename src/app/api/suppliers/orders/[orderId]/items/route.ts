@@ -205,12 +205,10 @@ export async function PUT(
       }
 
       // Récupérer les métachamps via GraphQL
-      const graphqlDebugInfo: { rawResponse?: any } = {};
       const variantMetafieldsMap = await fetchVariantMetafields(
         shopId,
         Object.values(variantShopifyIdMap),
-        metafieldConfigs,
-        graphqlDebugInfo
+        metafieldConfigs
       );
 
       // Mettre à jour chaque article avec ses métachamps
@@ -238,14 +236,6 @@ export async function PUT(
       return NextResponse.json({ 
         message: `${updatedCount} articles traités, ${withMetafields} variantes avec métachamps`,
         updatedCount,
-        debug: {
-          configuredMetafields: metafieldConfigs,
-          variantsChecked: Object.keys(variantShopifyIdMap).length,
-          variantShopifyIds: Object.values(variantShopifyIdMap),
-          variantsWithMetafields: withMetafields,
-          metafieldsMap: variantMetafieldsMap,
-          graphqlRawResponse: graphqlDebugInfo.rawResponse,
-        }
       });
     }
 
@@ -385,8 +375,7 @@ async function updateOrderTotals(orderId: string, shopId: string) {
 async function fetchVariantMetafields(
   shopId: string,
   variantShopifyIds: string[],
-  metafieldConfigs: Array<{ namespace: string; key: string; display_name: string }>,
-  debugInfo?: { rawResponse?: any }
+  metafieldConfigs: Array<{ namespace: string; key: string; display_name: string }>
 ): Promise<Record<string, Record<string, string>>> {
   try {
     // Récupérer les infos du shop
@@ -443,11 +432,6 @@ async function fetchVariantMetafields(
     }
 
     const data = await response.json();
-    
-    // Stocker la réponse brute pour debug
-    if (debugInfo) {
-      debugInfo.rawResponse = data;
-    }
     
     if (data.errors) {
       console.error('GraphQL errors:', data.errors);

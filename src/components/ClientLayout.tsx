@@ -18,7 +18,7 @@ interface ClientLayoutProps {
 export function ClientLayout({ theme, children }: ClientLayoutProps) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/onboarding';
-  const isIvySection = pathname.startsWith('/ivy');
+  const isIvySection = pathname.startsWith('/ivy') || pathname.startsWith('/detailed-orders') || pathname.startsWith('/orders') || pathname.startsWith('/facturation') || pathname.startsWith('/archived-orders') || pathname.startsWith('/textile');
 
   return (
     <MantineProvider theme={theme}>

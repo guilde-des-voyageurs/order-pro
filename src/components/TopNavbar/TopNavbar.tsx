@@ -14,8 +14,8 @@ export function TopNavbar() {
   const router = useRouter();
   const { signOut } = useAuth();
   
-  const isIvy = pathname.startsWith('/ivy');
-  const isAtelier = !isIvy && pathname !== '/';
+  const isCommandesSection = pathname.startsWith('/ivy/commandes') || pathname.startsWith('/detailed-orders') || pathname.startsWith('/orders') || pathname.startsWith('/facturation') || pathname.startsWith('/archived-orders') || pathname.startsWith('/textile');
+  const isInventaireSection = pathname === '/ivy' || pathname.startsWith('/ivy/inventory') || pathname.startsWith('/ivy/suppliers') || pathname.startsWith('/ivy/analytics') || pathname.startsWith('/ivy/settings');
 
   const handleLogout = async () => {
     try {
@@ -39,22 +39,22 @@ export function TopNavbar() {
         />
         <Group gap="xs">
           <Button
-            variant={isAtelier ? 'filled' : 'subtle'}
+            variant={isCommandesSection ? 'filled' : 'subtle'}
             color="orange"
-            onClick={() => router.push('/detailed-orders')}
+            onClick={() => router.push('/ivy/commandes')}
             size="md"
-            className={isAtelier ? styles.activeButton : styles.inactiveButton}
+            className={isCommandesSection ? styles.activeButton : styles.inactiveButton}
           >
-            ATELIER
+            Commandes
           </Button>
           <Button
-            variant={isIvy ? 'filled' : 'subtle'}
+            variant={isInventaireSection ? 'filled' : 'subtle'}
             color="orange"
             onClick={() => router.push('/ivy')}
             size="md"
-            className={isIvy ? styles.activeButton : styles.inactiveButton}
+            className={isInventaireSection ? styles.activeButton : styles.inactiveButton}
           >
-            IVY
+            Inventaire
           </Button>
         </Group>
       </Group>

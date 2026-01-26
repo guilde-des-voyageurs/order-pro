@@ -1,0 +1,15 @@
+.container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.groupHeader {
+  padding: 0.75rem 1rem;
+  background: var(--mantine-color-gray-0);
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+.validatedRow {
+  background-color: var(--mantine-color-green-0) !important;
+}

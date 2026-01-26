@@ -1,0 +1,30 @@
+.container {
+  padding: 0;
+}
+
+.groupHeader {
+  padding: 12px 16px;
+  background-color: var(--mantine-color-gray-0);
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+.validatedRow {
+  background-color: var(--mantine-color-green-0) !important;
+}
+
+.productsList {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.variantsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variantRow {
+  padding: 4px 8px;
+  background-color: var(--mantine-color-gray-0);
+  border-radius: 4px;
+}

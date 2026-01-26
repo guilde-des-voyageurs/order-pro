@@ -95,7 +95,7 @@ export default function OrderDetailPage() {
         message: 'Impossible de charger la commande',
         color: 'red',
       });
-      router.push('/ivy/suppliers');
+      router.push('/ivy/commandes/stock');
     } finally {
       setLoading(false);
     }
@@ -473,7 +473,7 @@ export default function OrderDetailPage() {
         });
         
         if (newStatus === 'completed') {
-          router.push('/ivy/suppliers');
+          router.push('/ivy/commandes/stock');
         } else {
           fetchOrder();
         }
@@ -566,7 +566,7 @@ export default function OrderDetailPage() {
             variant="subtle"
             color="gray"
             leftSection={<IconArrowLeft size={18} />}
-            onClick={() => router.push('/ivy/suppliers')}
+            onClick={() => router.push('/ivy/commandes/stock')}
           >
             Retour
           </Button>
@@ -980,3 +980,4 @@ export default function OrderDetailPage() {
     </div>
   );
 }
+
