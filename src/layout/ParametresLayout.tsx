@@ -4,7 +4,7 @@ import styles from './IvyLayout.module.scss';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { IconPalette, IconTag, IconShoppingCart } from '@tabler/icons-react';
+import { IconPalette, IconTag, IconShoppingCart, IconCurrencyEuro } from '@tabler/icons-react';
 
 interface ParametresLayoutProps {
   children: React.ReactNode;
@@ -32,6 +32,11 @@ export function ParametresLayout({ children }: ParametresLayoutProps) {
           href: '/parametres/metachamps',
           label: 'Métachamps',
           icon: IconTag,
+        },
+        {
+          href: '/parametres/prix',
+          label: 'Règles de prix',
+          icon: IconCurrencyEuro,
         },
       ],
     },

@@ -1,0 +1,744 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  Title, Text, Paper, Stack, Table, TextInput, Button, Group, 
+  ActionIcon, Badge, Loader, Center, Modal, NumberInput, Select,
+  Accordion, Switch, Tooltip
+} from '@mantine/core';
+import { IconPlus, IconTrash, IconEdit, IconPlayerPlay, IconCheck, IconTerminal2, IconX } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { useDisclosure } from '@mantine/hooks';
+import { useShop } from '@/context/ShopContext';
+
+interface Modifier {
+  id?: string;
+  namespace: string;
+  key: string;
+  value: string;
+  amount: number;
+  // Champs retournés par l'API (noms DB)
+  metafield_namespace?: string;
+  metafield_key?: string;
+  metafield_value?: string;
+  modifier_amount?: number;
+}
+
+interface PriceRule {
+  id?: string;
+  sku: string;
+  base_price: number;
+  description: string | null;
+  is_active: boolean;
+  last_applied_at: string | null;
+  modifiers: Modifier[];
+}
+
+interface MetafieldConfig {
+  id: string;
+  namespace: string;
+  key: string;
+  display_name: string;
+}
+
+export default function PriceRulesPage() {
+  const { currentShop } = useShop();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [applying, setApplying] = useState<string | null>(null);
+  const [applyingLocal, setApplyingLocal] = useState<string | null>(null);
+  const [terminalLogs, setTerminalLogs] = useState<Array<{message: string, type: string, timestamp: string}>>([]);
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  
+  const [rules, setRules] = useState<PriceRule[]>([]);
+  const [metafields, setMetafields] = useState<MetafieldConfig[]>([]);
+  const [editingRule, setEditingRule] = useState<PriceRule | null>(null);
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+
+  // État pour le formulaire
+  const [formSku, setFormSku] = useState('');
+  const [formBasePrice, setFormBasePrice] = useState<number>(0);
+  const [formDescription, setFormDescription] = useState('');
+  const [formModifiers, setFormModifiers] = useState<Modifier[]>([]);
+
+  // État pour ajouter un nouveau modificateur
+  const [newModifierNamespace, setNewModifierNamespace] = useState('');
+  const [newModifierKey, setNewModifierKey] = useState('');
+  const [newModifierValue, setNewModifierValue] = useState('');
+  const [newModifierAmount, setNewModifierAmount] = useState<number>(0);
+
+  const fetchData = useCallback(async () => {
+    if (!currentShop) return;
+    
+    setLoading(true);
+    try {
+      const [rulesRes, metafieldsRes] = await Promise.all([
+        fetch(`/api/settings/price-rules?shopId=${currentShop.id}`),
+        fetch(`/api/settings/metafields?shopId=${currentShop.id}`),
+      ]);
+      
+      if (rulesRes.ok) {
+        const data = await rulesRes.json();
+        setRules(data.rules || []);
+      }
+      
+      if (metafieldsRes.ok) {
+        const data = await metafieldsRes.json();
+        setMetafields(data.metafields || []);
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentShop]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const resetForm = () => {
+    setFormSku('');
+    setFormBasePrice(0);
+    setFormDescription('');
+    setFormModifiers([]);
+    setNewModifierNamespace('');
+    setNewModifierKey('');
+    setNewModifierValue('');
+    setNewModifierAmount(0);
+  };
+
+  const openCreateModal = () => {
+    setEditingRule(null);
+    resetForm();
+    openModal();
+  };
+
+  const openEditModal = (rule: PriceRule) => {
+    setEditingRule(rule);
+    setFormSku(rule.sku);
+    setFormBasePrice(rule.base_price);
+    setFormDescription(rule.description || '');
+    setFormModifiers(rule.modifiers.map(m => ({
+      namespace: m.metafield_namespace || m.namespace,
+      key: m.metafield_key || m.key,
+      value: m.metafield_value || m.value,
+      amount: m.modifier_amount || m.amount,
+    })));
+    openModal();
+  };
+
+  const addModifier = () => {
+    if (!newModifierNamespace || !newModifierKey || !newModifierValue) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Veuillez remplir tous les champs du modificateur',
+        color: 'red',
+      });
+      return;
+    }
+
+    setFormModifiers([...formModifiers, {
+      namespace: newModifierNamespace,
+      key: newModifierKey,
+      value: newModifierValue,
+      amount: newModifierAmount,
+    }]);
+
+    setNewModifierValue('');
+    setNewModifierAmount(0);
+  };
+
+  const removeModifier = (index: number) => {
+    setFormModifiers(formModifiers.filter((_, i) => i !== index));
+  };
+
+  const saveRule = async () => {
+    if (!currentShop || !formSku.trim()) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Le SKU est obligatoire',
+        color: 'red',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const url = '/api/settings/price-rules';
+      const method = editingRule ? 'PUT' : 'POST';
+      const body = editingRule
+        ? {
+            id: editingRule.id,
+            sku: formSku,
+            basePrice: formBasePrice,
+            description: formDescription || null,
+            modifiers: formModifiers,
+          }
+        : {
+            shopId: currentShop.id,
+            sku: formSku,
+            basePrice: formBasePrice,
+            description: formDescription || null,
+            modifiers: formModifiers,
+          };
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: editingRule ? 'Règle mise à jour' : 'Règle créée',
+          color: 'green',
+        });
+        closeModal();
+        fetchData();
+      } else {
+        const error = await response.json();
+        notifications.show({
+          title: 'Erreur',
+          message: error.error || 'Impossible de sauvegarder',
+          color: 'red',
+        });
+      }
+    } catch (err) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de sauvegarder la règle',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteRule = async (id: string) => {
+    if (!confirm('Supprimer cette règle ?')) return;
+
+    try {
+      const response = await fetch(`/api/settings/price-rules?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: 'Règle supprimée',
+          color: 'green',
+        });
+        fetchData();
+      }
+    } catch (err) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de supprimer la règle',
+        color: 'red',
+      });
+    }
+  };
+
+  const applyRule = async (rule: PriceRule) => {
+    if (!currentShop || !rule.id) return;
+
+    setApplying(rule.id);
+    setTerminalLogs([]);
+    setTerminalOpen(true);
+
+    try {
+      const response = await fetch('/api/settings/price-rules/apply-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: currentShop.id,
+          ruleId: rule.id,
+        }),
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            if (data.message === 'DONE') {
+              fetchData();
+            } else {
+              setTerminalLogs(prev => [...prev, data]);
+              // Auto-scroll
+              setTimeout(() => {
+                if (terminalRef.current) {
+                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                }
+              }, 10);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    } catch (err) {
+      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
+    } finally {
+      setApplying(null);
+    }
+  };
+
+  const applyRuleLocal = async (rule: PriceRule) => {
+    if (!currentShop || !rule.id) return;
+
+    setApplyingLocal(rule.id);
+    try {
+      const response = await fetch('/api/settings/price-rules/apply-local', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: currentShop.id,
+          ruleId: rule.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        notifications.show({
+          title: 'Succès',
+          message: `${data.updatedItemsCount} article(s) mis à jour dans ${data.updatedOrdersCount} commande(s)`,
+          color: 'green',
+        });
+        fetchData();
+      } else {
+        const error = await response.json();
+        notifications.show({
+          title: 'Erreur',
+          message: error.error || 'Impossible d\'appliquer la règle',
+          color: 'red',
+        });
+      }
+    } catch (err) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible d\'appliquer la règle en local',
+        color: 'red',
+      });
+    } finally {
+      setApplyingLocal(null);
+    }
+  };
+
+  const toggleRuleActive = async (rule: PriceRule) => {
+    try {
+      const response = await fetch('/api/settings/price-rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: rule.id,
+          isActive: !rule.is_active,
+        }),
+      });
+
+      if (response.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error('Error toggling rule:', err);
+    }
+  };
+
+  const getMetafieldLabel = (namespace: string, key: string) => {
+    const config = metafields.find(m => m.namespace === namespace && m.key === key);
+    return config?.display_name || `${namespace}.${key}`;
+  };
+
+  const calculateTotalPrice = (rule: PriceRule) => {
+    const modifiersTotal = rule.modifiers.reduce((sum, m) => {
+      const amount = m.modifier_amount || m.amount || 0;
+      return sum + amount;
+    }, 0);
+    return rule.base_price + modifiersTotal;
+  };
+
+  // Options pour le select des métachamps
+  const metafieldOptions = metafields.map(m => ({
+    value: `${m.namespace}|${m.key}`,
+    label: m.display_name || `${m.namespace}.${m.key}`,
+  }));
+
+  if (loading) {
+    return (
+      <Center h={400}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
+
+  return (
+    <div>
+      <Group justify="space-between" mb="lg">
+        <div>
+          <Title order={2}>Règles de prix</Title>
+          <Text size="sm" c="dimmed">
+            Définissez des règles de calcul de coût basées sur le SKU et les métachamps
+          </Text>
+        </div>
+        <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
+          Nouvelle règle
+        </Button>
+      </Group>
+
+      {/* Terminal de logs */}
+      {terminalOpen && (
+        <Paper 
+          withBorder 
+          radius="md" 
+          mb="lg"
+          style={{ 
+            backgroundColor: '#1e1e1e',
+            overflow: 'hidden',
+          }}
+        >
+          <Group 
+            justify="space-between" 
+            p="xs" 
+            style={{ 
+              backgroundColor: '#2d2d2d',
+              borderBottom: '1px solid #3d3d3d',
+            }}
+          >
+            <Group gap="xs">
+              <IconTerminal2 size={16} color="#888" />
+              <Text size="sm" c="dimmed">Console</Text>
+            </Group>
+            <ActionIcon 
+              variant="subtle" 
+              color="gray" 
+              size="sm"
+              onClick={() => setTerminalOpen(false)}
+            >
+              <IconX size={14} />
+            </ActionIcon>
+          </Group>
+          <div
+            ref={terminalRef}
+            style={{
+              height: 300,
+              overflowY: 'auto',
+              padding: '0.75rem',
+              fontFamily: 'monospace',
+              fontSize: '0.8rem',
+              lineHeight: 1.6,
+            }}
+          >
+            {terminalLogs.map((log, index) => (
+              <div 
+                key={index}
+                style={{
+                  color: log.type === 'error' ? '#f87171' 
+                    : log.type === 'success' ? '#4ade80'
+                    : log.type === 'progress' ? '#60a5fa'
+                    : '#a1a1aa',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {log.message}
+              </div>
+            ))}
+            {applying && (
+              <div style={{ color: '#fbbf24' }}>
+                <Loader size={12} color="yellow" style={{ display: 'inline', marginRight: 8 }} />
+                En cours...
+              </div>
+            )}
+          </div>
+        </Paper>
+      )}
+
+      {rules.length === 0 ? (
+        <Paper withBorder p="xl" radius="md">
+          <Center>
+            <Text c="dimmed">Aucune règle de prix configurée</Text>
+          </Center>
+        </Paper>
+      ) : (
+        <Accordion variant="separated">
+          {rules.map((rule) => (
+            <Accordion.Item key={rule.id} value={rule.id || rule.sku}>
+              <Accordion.Control>
+                <Group justify="space-between" wrap="nowrap" style={{ flex: 1 }}>
+                  <Group gap="md">
+                    <Switch
+                      checked={rule.is_active}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleRuleActive(rule);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div>
+                      <Text fw={600}>{rule.sku}</Text>
+                      {rule.description && (
+                        <Text size="xs" c="dimmed">{rule.description}</Text>
+                      )}
+                    </div>
+                  </Group>
+                  <Group gap="xs">
+                    <Badge color="blue" variant="light">
+                      Base: {rule.base_price.toFixed(2)} €
+                    </Badge>
+                    {rule.modifiers.length > 0 && (
+                      <Badge color="violet" variant="light">
+                        +{rule.modifiers.length} modificateur(s)
+                      </Badge>
+                    )}
+                    <Badge color="green" variant="filled">
+                      Total max: {calculateTotalPrice(rule).toFixed(2)} €
+                    </Badge>
+                  </Group>
+                </Group>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  {rule.modifiers.length > 0 && (
+                    <Table>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Métachamp</Table.Th>
+                          <Table.Th>Valeur</Table.Th>
+                          <Table.Th style={{ textAlign: 'right' }}>Majoration</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {rule.modifiers.map((mod, index) => (
+                          <Table.Tr key={index}>
+                            <Table.Td>
+                              {getMetafieldLabel(
+                                mod.metafield_namespace || mod.namespace,
+                                mod.metafield_key || mod.key
+                              )}
+                            </Table.Td>
+                            <Table.Td>
+                              <Badge variant="outline">
+                                {mod.metafield_value || mod.value}
+                              </Badge>
+                            </Table.Td>
+                            <Table.Td style={{ textAlign: 'right' }}>
+                              <Text fw={500} c={(mod.modifier_amount || mod.amount) >= 0 ? 'green' : 'red'}>
+                                {(mod.modifier_amount || mod.amount) >= 0 ? '+' : ''}
+                                {(mod.modifier_amount || mod.amount).toFixed(2)} €
+                              </Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        ))}
+                      </Table.Tbody>
+                    </Table>
+                  )}
+
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      <ActionIcon
+                        variant="light"
+                        color="blue"
+                        onClick={() => openEditModal(rule)}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="light"
+                        color="red"
+                        onClick={() => rule.id && deleteRule(rule.id)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                    <Group gap="xs">
+                      <Tooltip label="Appliquer sur les commandes locales (Supabase)">
+                        <Button
+                          leftSection={applyingLocal === rule.id ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
+                          color="blue"
+                          variant="light"
+                          onClick={() => applyRuleLocal(rule)}
+                          loading={applyingLocal === rule.id}
+                          disabled={!rule.is_active}
+                        >
+                          Appliquer en local
+                        </Button>
+                      </Tooltip>
+                      <Tooltip label="Appliquer sur Shopify (met à jour le coût des variantes)">
+                        <Button
+                          leftSection={applying === rule.id ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
+                          color="green"
+                          onClick={() => applyRule(rule)}
+                          loading={applying === rule.id}
+                          disabled={!rule.is_active}
+                        >
+                          Appliquer sur Shopify
+                        </Button>
+                      </Tooltip>
+                    </Group>
+                  </Group>
+
+                  {rule.last_applied_at && (
+                    <Text size="xs" c="dimmed" ta="right">
+                      Dernière application : {new Date(rule.last_applied_at).toLocaleString('fr-FR')}
+                    </Text>
+                  )}
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          ))}
+        </Accordion>
+      )}
+
+      {/* Modal de création/édition */}
+      <Modal
+        opened={modalOpened}
+        onClose={closeModal}
+        title={editingRule ? 'Modifier la règle' : 'Nouvelle règle de prix'}
+        size="lg"
+      >
+        <Stack gap="md">
+          <TextInput
+            label="SKU"
+            placeholder="Ex: CRAFTER"
+            value={formSku}
+            onChange={(e) => setFormSku(e.target.value.toUpperCase())}
+            required
+          />
+
+          <NumberInput
+            label="Prix de base (€)"
+            placeholder="0.00"
+            value={formBasePrice}
+            onChange={(val) => setFormBasePrice(typeof val === 'number' ? val : 0)}
+            decimalScale={2}
+            fixedDecimalScale
+            min={0}
+            step={0.5}
+          />
+
+          <TextInput
+            label="Description (optionnel)"
+            placeholder="Ex: T-shirt basique"
+            value={formDescription}
+            onChange={(e) => setFormDescription(e.target.value)}
+          />
+
+          <Paper withBorder p="md" radius="md">
+            <Text fw={600} mb="md">Modificateurs par métachamp</Text>
+
+            {formModifiers.length > 0 && (
+              <Table mb="md">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Métachamp</Table.Th>
+                    <Table.Th>Valeur</Table.Th>
+                    <Table.Th>Majoration</Table.Th>
+                    <Table.Th></Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {formModifiers.map((mod, index) => (
+                    <Table.Tr key={index}>
+                      <Table.Td>{getMetafieldLabel(mod.namespace, mod.key)}</Table.Td>
+                      <Table.Td>{mod.value}</Table.Td>
+                      <Table.Td>{mod.amount >= 0 ? '+' : ''}{mod.amount.toFixed(2)} €</Table.Td>
+                      <Table.Td>
+                        <ActionIcon
+                          variant="light"
+                          color="red"
+                          size="sm"
+                          onClick={() => removeModifier(index)}
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
+
+            {metafields.length > 0 ? (
+              <Stack gap="xs">
+                <Group grow>
+                  <Select
+                    label="Métachamp"
+                    placeholder="Sélectionner"
+                    data={metafieldOptions}
+                    value={newModifierNamespace && newModifierKey ? `${newModifierNamespace}|${newModifierKey}` : null}
+                    onChange={(val) => {
+                      if (val) {
+                        const [ns, k] = val.split('|');
+                        setNewModifierNamespace(ns);
+                        setNewModifierKey(k);
+                      }
+                    }}
+                  />
+                  <TextInput
+                    label="Valeur"
+                    placeholder="Ex: DTG-OPA"
+                    value={newModifierValue}
+                    onChange={(e) => setNewModifierValue(e.target.value)}
+                  />
+                  <NumberInput
+                    label="Majoration (€)"
+                    placeholder="0.00"
+                    value={newModifierAmount}
+                    onChange={(val) => setNewModifierAmount(typeof val === 'number' ? val : 0)}
+                    decimalScale={2}
+                    fixedDecimalScale
+                    step={0.5}
+                  />
+                </Group>
+                <Button
+                  variant="light"
+                  leftSection={<IconPlus size={14} />}
+                  onClick={addModifier}
+                  disabled={!newModifierNamespace || !newModifierKey || !newModifierValue}
+                >
+                  Ajouter ce modificateur
+                </Button>
+              </Stack>
+            ) : (
+              <Text c="dimmed" size="sm">
+                Configurez d'abord des métachamps dans les options globales pour ajouter des modificateurs.
+              </Text>
+            )}
+          </Paper>
+
+          <Paper withBorder p="md" radius="md" bg="gray.0">
+            <Group justify="space-between">
+              <Text>Prix total calculé :</Text>
+              <Text fw={700} size="lg" c="green">
+                {(formBasePrice + formModifiers.reduce((sum, m) => sum + m.amount, 0)).toFixed(2)} €
+              </Text>
+            </Group>
+          </Paper>
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="light" onClick={closeModal}>
+              Annuler
+            </Button>
+            <Button onClick={saveRule} loading={saving}>
+              {editingRule ? 'Mettre à jour' : 'Créer'}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </div>
+  );
+}
