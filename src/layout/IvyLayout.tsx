@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import styles from './IvyLayout.module.scss';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { Button } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconHome, IconPackage, IconTruck, IconChartBar, IconPrinter, IconShoppingCart, IconFileInvoice, IconArchive, IconRefresh, IconChecklist } from '@tabler/icons-react';
 import { LocationProvider } from '@/context/LocationContext';
 import { LocationSelector } from '@/components/LocationSelector';
+import { useShop } from '@/context/ShopContext';
 
 interface IvyLayoutProps {
   children: React.ReactNode;
@@ -15,9 +18,48 @@ interface IvyLayoutProps {
 
 function IvyLayoutContent({ children }: IvyLayoutProps) {
   const pathname = usePathname();
+  const { currentShop } = useShop();
+  const [syncing, setSyncing] = useState(false);
   
   const isCommandesSection = pathname.startsWith('/ivy/commandes');
   const isInventaireSection = pathname.startsWith('/ivy/inventaire');
+
+  const handleSync = async () => {
+    if (!currentShop || syncing) return;
+    
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: currentShop.id }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        notifications.show({
+          title: 'Synchronisation terminée',
+          message: `${data.ordersCount || 0} commande(s) synchronisée(s)`,
+          color: 'green',
+        });
+        // Déclencher un refresh de la page si on est sur les commandes boutique
+        if (pathname.startsWith('/ivy/commandes/boutique')) {
+          window.dispatchEvent(new CustomEvent('orders-synced'));
+        }
+      } else {
+        throw new Error('Sync failed');
+      }
+    } catch (err) {
+      console.error('Error syncing:', err);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de synchroniser les commandes',
+        color: 'red',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Menu contextuel selon la section
   const commandesMenu = [
@@ -102,6 +144,9 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
               variant="light"
               leftSection={<IconRefresh size={16} />}
               fullWidth
+              onClick={handleSync}
+              loading={syncing}
+              disabled={!currentShop}
             >
               Synchroniser
             </Button>
