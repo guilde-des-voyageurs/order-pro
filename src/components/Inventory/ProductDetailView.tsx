@@ -357,6 +357,7 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
               <Table.Tr>
                 <Table.Th>Variante</Table.Th>
                 <Table.Th>SKU</Table.Th>
+                <Table.Th style={{ textAlign: 'right' }}>Coût</Table.Th>
                 <Table.Th style={{ textAlign: 'right' }}>Quantité</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -384,6 +385,11 @@ export function ProductDetailView({ product, onBack, locationName, shopId, locat
                   </Table.Td>
                   <Table.Td className={styles.variantSku}>
                     {variant.sku || '-'}
+                  </Table.Td>
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <Text size="sm" fw={500} c={(variant.cost || 0) > 0 ? 'blue' : 'orange'}>
+                      {(variant.cost || 0) > 0 ? `${(variant.cost || 0).toFixed(2)} €` : '-'}
+                    </Text>
                   </Table.Td>
                   <Table.Td className={styles.variantQuantity}>
                     <Group gap="xs" justify="flex-end" className={styles.quantityControls}>

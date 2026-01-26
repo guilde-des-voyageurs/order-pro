@@ -22,6 +22,7 @@ export interface ProductData {
     size: string | null;
     cost?: number;
     options: Array<{ name: string; value: string }>;
+    metafields?: Array<{ namespace: string; key: string; value: string }>;
   }>;
 }
 

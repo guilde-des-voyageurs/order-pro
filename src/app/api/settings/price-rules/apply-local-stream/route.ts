@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       };
 
       try {
-        send('🚀 Démarrage de l\'application locale...', 'info');
+        send('🚀 Démarrage de l\'application aux commandes...', 'info');
         send('', 'info');
 
         // Récupérer la boutique
@@ -71,47 +71,9 @@ export async function GET(request: NextRequest) {
         }
 
         send('', 'info');
-        
-        // 1. Mettre à jour les coûts dans product_variants (pour l'Inventaire)
-        send('📦 Mise à jour des coûts produits...', 'info');
-        
-        const { data: variants, error: variantsError } = await supabase
-          .from('product_variants')
-          .select('id, shopify_id, sku, option1, option2, option3, cost')
-          .ilike('sku', `${rule.sku}%`);
-
-        let variantsUpdated = 0;
-        if (variants && variants.length > 0) {
-          for (const variant of variants) {
-            let cost = rule.base_price;
-            
-            // Appliquer les modificateurs d'options
-            const variantOptions = [variant.option1, variant.option2, variant.option3].filter(Boolean);
-            for (const optMod of rule.option_modifiers || []) {
-              const match = variantOptions.some(
-                (opt: string) => opt.toLowerCase() === optMod.option_value.toLowerCase()
-              );
-              if (match) {
-                cost += optMod.modifier_amount;
-              }
-            }
-
-            if (variant.cost !== cost) {
-              await supabase
-                .from('product_variants')
-                .update({ cost: cost })
-                .eq('id', variant.id);
-              variantsUpdated++;
-              send(`  ✓ ${variant.sku} → ${cost.toFixed(2)}€`, 'progress');
-            }
-          }
-        }
-        send(`✓ ${variantsUpdated} variante(s) mise(s) à jour`, 'success');
-
-        send('', 'info');
         send('📋 Mise à jour des commandes...', 'info');
 
-        // 2. Récupérer toutes les commandes avec leurs line_items
+        // Récupérer toutes les commandes avec leurs line_items
         const { data: orders, error: ordersError } = await supabase
           .from('orders')
           .select('id, name, line_items')

@@ -26,8 +26,6 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log('Fetching products for shop:', shopId, 'search:', search);
-
     let productsByTitle: any[] = [];
     let variantsBySku: any[] = [];
 
@@ -93,7 +91,7 @@ export async function GET(request: Request) {
       variantsBySku = skuResults || [];
     } else {
       // Pas de recherche - récupérer tous les produits avec inventaire (pour la page inventaire)
-      const { data: allProducts } = await supabase
+      const { data: allProducts, error: productsError } = await supabase
         .from('products')
         .select(`
           id,
@@ -122,7 +120,12 @@ export async function GET(request: Request) {
         .eq('status', 'active')
         .order('title');
       
+      if (productsError) {
+        console.error('Error fetching products:', productsError);
+      }
+      
       productsByTitle = allProducts || [];
+      
     }
 
     // Combiner les résultats
@@ -177,8 +180,6 @@ export async function GET(request: Request) {
         }
       });
     }
-
-    console.log('Products fetched:', productsData?.length || 0);
     
     // Essayer de récupérer les noms d'options (colonnes optionnelles)
     let optionNamesMap: Record<string, { option1_name?: string; option2_name?: string; option3_name?: string }> = {};
@@ -246,6 +247,7 @@ export async function GET(request: Request) {
             variant.option2 && { name: optionNames?.option2_name || 'Option 2', value: variant.option2 },
             variant.option3 && { name: optionNames?.option3_name || 'Option 3', value: variant.option3 },
           ].filter(Boolean),
+          metafields: variant.metafields || [],
         };
       });
 

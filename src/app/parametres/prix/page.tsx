@@ -614,7 +614,7 @@ export default function PriceRulesPage() {
                 loading={applyingAllLocal}
                 disabled={applyingAllShopify}
               >
-                Appliquer toutes en local
+                Appliquer aux commandes
               </Button>
               <Button
                 leftSection={applyingAllShopify ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
@@ -833,7 +833,7 @@ export default function PriceRulesPage() {
                       </ActionIcon>
                     </Group>
                     <Group gap="xs">
-                      <Tooltip label="Appliquer sur les commandes locales (Supabase)">
+                      <Tooltip label="Met à jour les coûts dans les commandes Supabase">
                         <Button
                           leftSection={applyingLocal === rule.id ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
                           color="blue"
@@ -842,7 +842,7 @@ export default function PriceRulesPage() {
                           loading={applyingLocal === rule.id}
                           disabled={!rule.is_active}
                         >
-                          Appliquer en local
+                          Appliquer aux commandes
                         </Button>
                       </Tooltip>
                       <Tooltip label="Appliquer sur Shopify (met à jour le coût des variantes)">

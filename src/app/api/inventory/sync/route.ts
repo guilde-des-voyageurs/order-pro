@@ -309,8 +309,6 @@ export async function POST(request: Request) {
 
     console.log(`Upserted ${inventoryToUpsert.length} inventory levels`);
 
-    // Les metafields sont récupérés à la demande lors de l'ajout d'articles aux commandes batch
-
     return NextResponse.json({ 
       success: true, 
       message: 'Synchronisation terminée',
@@ -319,7 +317,6 @@ export async function POST(request: Request) {
         variants: variantsToUpsert.length,
         inventoryLevels: inventoryToUpsert.length,
         locations: locationIds.length,
-        metafields: 0,
       }
     });
   } catch (error) {

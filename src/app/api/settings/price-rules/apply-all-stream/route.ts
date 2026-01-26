@@ -244,13 +244,6 @@ async function applyAllOnShopify(
           send(`    ❌ ${variant.sku} - ${variant.title}`, 'error');
           totalErrors++;
         } else {
-          // Mettre à jour aussi le coût local dans product_variants
-          const variantShopifyId = variant.id.replace('gid://shopify/ProductVariant/', '');
-          await supabase
-            .from('product_variants')
-            .update({ cost: cost })
-            .eq('shopify_id', variantShopifyId);
-
           const modStr = appliedModifiers.length > 0 ? ` ${appliedModifiers.join(' ')}` : '';
           send(`    ✓ ${variant.sku} → ${cost.toFixed(2)}€${modStr}`, 'progress');
           totalUpdated++;
@@ -282,51 +275,12 @@ async function applyAllLocal(
   send: (message: string, type?: string) => void,
   shopId: string
 ) {
-  let totalVariantsUpdated = 0;
   let totalOrderItemsUpdated = 0;
   let totalOrders = 0;
 
-  // 1. Mettre à jour les coûts dans product_variants (pour l'Inventaire)
-  send('📦 Mise à jour des coûts produits...', 'info');
-  
-  for (const rule of rules) {
-    const { data: variants } = await supabase
-      .from('product_variants')
-      .select('id, shopify_id, sku, option1, option2, option3, cost')
-      .ilike('sku', `${rule.sku}%`);
-
-    if (variants && variants.length > 0) {
-      for (const variant of variants) {
-        let cost = rule.base_price;
-        
-        // Appliquer les modificateurs d'options
-        const variantOptions = [variant.option1, variant.option2, variant.option3].filter(Boolean);
-        for (const optMod of rule.option_modifiers || []) {
-          const match = variantOptions.some(
-            (opt: string) => opt.toLowerCase() === optMod.option_value.toLowerCase()
-          );
-          if (match) {
-            cost += optMod.modifier_amount;
-          }
-        }
-
-        if (variant.cost !== cost) {
-          await supabase
-            .from('product_variants')
-            .update({ cost: cost })
-            .eq('id', variant.id);
-          totalVariantsUpdated++;
-          send(`  ✓ ${variant.sku} → ${cost.toFixed(2)}€`, 'progress');
-        }
-      }
-    }
-  }
-  send(`✓ ${totalVariantsUpdated} variante(s) mise(s) à jour`, 'success');
-
-  send('', 'info');
   send('📋 Mise à jour des commandes...', 'info');
 
-  // 2. Récupérer toutes les commandes avec leurs line_items
+  // Récupérer toutes les commandes avec leurs line_items
   const { data: orders, error: ordersError } = await supabase
     .from('orders')
     .select('id, name, line_items')
@@ -416,5 +370,5 @@ async function applyAllLocal(
 
   send('', 'info');
   send('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-  send(`✅ Terminé: ${totalVariantsUpdated} variante(s), ${totalOrderItemsUpdated} article(s) dans ${totalOrders} commande(s)`, 'success');
+  send(`✅ Terminé: ${totalOrderItemsUpdated} article(s) mis à jour dans ${totalOrders} commande(s)`, 'success');
 }
