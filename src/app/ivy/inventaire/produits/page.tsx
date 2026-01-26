@@ -23,7 +23,7 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [skuFilter, setSkuFilter] = useState<string | null>(null);
+  const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [syncModalOpened, { open: openSyncModal, close: closeSyncModal }] = useDisclosure(false);
   const scrollPositionRef = useRef<number>(0);
@@ -71,7 +71,7 @@ export default function InventoryPage() {
   }, [fetchProducts]);
 
   // Synchroniser depuis Shopify (appelé après confirmation)
-  const handleSyncFromShopify = async () => {
+  const handleSyncFromShopify = async (productType?: string | null) => {
     if (!currentShop) return;
     
     closeSyncModal();
@@ -81,9 +81,14 @@ export default function InventoryPage() {
     if (currentLocation?.id) {
       params.append('locationId', currentLocation.id);
     }
+    if (productType) {
+      params.append('productType', productType);
+    }
+    
+    const title = productType ? `Import: ${productType}` : 'Import Inventaire';
     
     await streamFromUrl(`/api/inventory/sync-stream?${params}`, {
-      title: 'Import Inventaire',
+      title,
       onComplete: async () => {
         await fetchProducts();
         setSyncing(false);
@@ -91,31 +96,20 @@ export default function InventoryPage() {
     });
   };
 
-  // Extraire les préfixes SKU uniques pour les filtres avec comptage des produits
-  const skuPrefixes = useMemo(() => {
-    const prefixCounts = new Map<string, Set<string>>();
+  // Extraire les types de produits uniques pour les filtres avec comptage
+  const productTypes = useMemo(() => {
+    const typeCounts = new Map<string, number>();
     
     products.forEach(product => {
-      product.variants.forEach(variant => {
-        if (variant.sku) {
-          // Extraire le préfixe (partie avant le premier tiret ou les 3 premiers caractères)
-          const match = variant.sku.match(/^([A-Za-z]+)/);
-          if (match) {
-            const prefix = match[1].toUpperCase();
-            if (!prefixCounts.has(prefix)) {
-              prefixCounts.set(prefix, new Set());
-            }
-            // Ajouter l'ID du produit (pas de la variante) pour compter les produits uniques
-            prefixCounts.get(prefix)!.add(product.id);
-          }
-        }
-      });
+      if (product.productType) {
+        typeCounts.set(product.productType, (typeCounts.get(product.productType) || 0) + 1);
+      }
     });
     
     // Convertir en tableau avec le comptage
-    return Array.from(prefixCounts.entries())
-      .map(([prefix, productIds]) => ({ prefix, count: productIds.size }))
-      .sort((a, b) => a.prefix.localeCompare(b.prefix));
+    return Array.from(typeCounts.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => a.type.localeCompare(b.type, 'fr'));
   }, [products]);
 
   // Filtrer et trier les produits
@@ -131,20 +125,16 @@ export default function InventoryPage() {
       );
     }
 
-    // Filtre par préfixe SKU
-    if (skuFilter) {
-      result = result.filter(product =>
-        product.variants.some(v => 
-          v.sku?.toUpperCase().startsWith(skuFilter)
-        )
-      );
+    // Filtre par type de produit
+    if (productTypeFilter) {
+      result = result.filter(product => product.productType === productTypeFilter);
     }
 
     // Trier par ordre alphabétique
     result.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
     return result;
-  }, [products, searchQuery, skuFilter]);
+  }, [products, searchQuery, productTypeFilter]);
 
   // Sélectionner un produit (sauvegarde la position de scroll)
   const handleSelectProduct = useCallback((product: ProductData) => {
@@ -196,7 +186,7 @@ export default function InventoryPage() {
                 size="lg"
                 color="green"
                 leftSection={<IconDownload size={20} />}
-                onClick={handleSyncFromShopify}
+                onClick={() => handleSyncFromShopify()}
                 loading={syncing}
               >
                 Récupérer depuis Shopify
@@ -266,7 +256,7 @@ export default function InventoryPage() {
               <Button variant="default" onClick={closeSyncModal}>
                 Annuler
               </Button>
-              <Button color="green" onClick={handleSyncFromShopify}>
+              <Button color="green" onClick={() => handleSyncFromShopify()}>
                 Oui, synchroniser
               </Button>
             </Group>
@@ -304,11 +294,11 @@ export default function InventoryPage() {
               variant="light"
               color="green"
               leftSection={<IconDownload size={16} />}
-              onClick={openSyncModal}
+              onClick={() => productTypeFilter ? handleSyncFromShopify(productTypeFilter) : openSyncModal()}
               loading={syncing}
               size="sm"
             >
-              {syncing ? 'Synchronisation...' : 'Récupérer'}
+              {syncing ? 'Synchronisation...' : productTypeFilter ? `Récupérer: ${productTypeFilter}` : 'Récupérer tout'}
             </Button>
           </Group>
         </Group>
@@ -323,22 +313,22 @@ export default function InventoryPage() {
           onChange={(e) => setSearchQuery(e.currentTarget.value)}
         />
         
-        {skuPrefixes.length > 0 && (
+        {productTypes.length > 0 && (
           <div className={styles.skuFilters}>
-            <span className={styles.skuLabel}>SKU:</span>
+            <span className={styles.skuLabel}>Type:</span>
             <button
-              className={`${styles.skuButton} ${styles.allButton} ${skuFilter === null ? styles.active : ''}`}
-              onClick={() => setSkuFilter(null)}
+              className={`${styles.skuButton} ${styles.allButton} ${productTypeFilter === null ? styles.active : ''}`}
+              onClick={() => setProductTypeFilter(null)}
             >
               Tous
             </button>
-            {skuPrefixes.map(({ prefix, count }) => (
+            {productTypes.map(({ type, count }) => (
               <button
-                key={prefix}
-                className={`${styles.skuButton} ${skuFilter === prefix ? styles.active : ''}`}
-                onClick={() => setSkuFilter(skuFilter === prefix ? null : prefix)}
+                key={type}
+                className={`${styles.skuButton} ${productTypeFilter === type ? styles.active : ''}`}
+                onClick={() => setProductTypeFilter(productTypeFilter === type ? null : type)}
               >
-                {prefix} <span className={styles.skuCount}>({count})</span>
+                {type} <span className={styles.skuCount}>({count})</span>
               </button>
             ))}
           </div>
@@ -384,7 +374,7 @@ export default function InventoryPage() {
             <Button variant="default" onClick={closeSyncModal}>
               Annuler
             </Button>
-            <Button color="green" onClick={handleSyncFromShopify}>
+            <Button color="green" onClick={() => handleSyncFromShopify()}>
               Oui, synchroniser
             </Button>
           </Group>

@@ -315,7 +315,14 @@ export default function PriceRulesPage() {
           fetchData();
           setApplying(null);
         },
-        actions: [
+        actions: rule.product_type ? [
+          {
+            label: `Importer dans l'inventaire les prix (${rule.product_type})`,
+            color: 'green',
+            icon: <IconDownload size={14} />,
+            onClick: () => syncInventory(rule.product_type!),
+          },
+        ] : [
           {
             label: 'Importer dans l\'inventaire',
             color: 'green',
@@ -327,12 +334,18 @@ export default function PriceRulesPage() {
     );
   };
   
-  const syncInventory = async () => {
+  const syncInventory = async (productType?: string) => {
     if (!currentShop) return;
     
-    await streamFromUrl(`/api/inventory/sync-stream?shopId=${currentShop.id}`, {
-      title: 'Import Inventaire',
-    });
+    let url = `/api/inventory/sync-stream?shopId=${currentShop.id}`;
+    let title = 'Import Inventaire';
+    
+    if (productType) {
+      url += `&productType=${encodeURIComponent(productType)}`;
+      title = `Import: ${productType}`;
+    }
+    
+    await streamFromUrl(url, { title });
   };
 
   const applyRuleLocal = async (rule: PriceRule) => {

@@ -100,6 +100,7 @@ export async function GET(request: Request) {
           handle,
           image_url,
           status,
+          product_type,
           synced_at,
           variants:product_variants(
             id,
@@ -276,6 +277,7 @@ export async function GET(request: Request) {
         status: product.status?.toUpperCase() || 'ACTIVE',
         image: product.image_url,
         imageAlt: product.title,
+        productType: product.product_type || null,
         totalQuantity,
         sizeBreakdown,
         costRange,

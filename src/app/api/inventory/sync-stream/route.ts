@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const shopId = searchParams.get('shopId');
   const locationId = searchParams.get('locationId');
+  const productType = searchParams.get('productType'); // Filtre optionnel par type de produit
 
   if (!shopId) {
     return new Response('Missing shopId', { status: 400 });
@@ -25,7 +26,11 @@ export async function GET(request: NextRequest) {
       };
 
       try {
-        send('🚀 Démarrage de la synchronisation...', 'info');
+        if (productType) {
+          send(`🚀 Synchronisation: ${productType}`, 'info');
+        } else {
+          send('🚀 Démarrage de la synchronisation...', 'info');
+        }
         send('', 'info');
 
         // Récupérer la boutique
@@ -44,10 +49,16 @@ export async function GET(request: NextRequest) {
         send(`✓ Boutique: ${shop.name || shop.shopify_url}`, 'success');
 
         // Récupérer les produits depuis Shopify (API REST)
-        send('📦 Récupération des produits depuis Shopify...', 'info');
+        const productTypeLabel = productType ? ` (${productType})` : '';
+        send(`📦 Récupération des produits${productTypeLabel}...`, 'info');
         
         let allProducts: any[] = [];
-        let currentUrl = `https://${shop.shopify_url}/admin/api/2024-01/products.json?status=active&limit=250`;
+        // Ajouter le filtre product_type si spécifié
+        let baseUrl = `https://${shop.shopify_url}/admin/api/2024-01/products.json?status=active&limit=250`;
+        if (productType) {
+          baseUrl += `&product_type=${encodeURIComponent(productType)}`;
+        }
+        let currentUrl = baseUrl;
         let hasMorePages = true;
         let pageNum = 1;
 
@@ -96,6 +107,7 @@ export async function GET(request: NextRequest) {
           handle: product.handle,
           image_url: product.image?.src || product.images?.[0]?.src || null,
           status: product.status,
+          product_type: product.product_type || null,
           option1_name: product.options?.[0]?.name || null,
           option2_name: product.options?.[1]?.name || null,
           option3_name: product.options?.[2]?.name || null,
