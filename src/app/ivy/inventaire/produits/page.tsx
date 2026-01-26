@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Title, Text, SimpleGrid, Loader, Center, TextInput, Group, Button, Paper, Stack, Badge, Modal } from '@mantine/core';
-import { IconSearch, IconRefresh, IconUpload, IconDownload, IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
+import { IconSearch, IconRefresh, IconDownload, IconAlertTriangle, IconArrowLeft } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
 import { useLocation } from '@/context/LocationContext';
+import { useTerminalStream } from '@/hooks/useTerminalStream';
 import { ProductCard, ProductData } from '@/components/Inventory';
 import { ProductDetailView } from '@/components/Inventory/ProductDetailView';
 import styles from './inventory.module.scss';
@@ -14,10 +15,10 @@ import styles from './inventory.module.scss';
 export default function InventoryPage() {
   const { currentShop } = useShop();
   const { currentLocation } = useLocation();
+  const { streamFromUrl } = useTerminalStream();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [pushing, setPushing] = useState(false);
   const [needsSync, setNeedsSync] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
@@ -75,85 +76,19 @@ export default function InventoryPage() {
     
     closeSyncModal();
     setSyncing(true);
-    try {
-      const response = await fetch('/api/inventory/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shopId: currentShop.id,
-          locationId: currentLocation?.id,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Sync failed');
-      }
-
-      notifications.show({
-        title: 'Synchronisation réussie',
-        message: `${data.stats.products} produits synchronisés`,
-        color: 'green',
-      });
-
-      // Recharger les produits
-      await fetchProducts();
-    } catch (err: any) {
-      console.error('Error syncing:', err);
-      notifications.show({
-        title: 'Erreur de synchronisation',
-        message: err.message || 'Une erreur est survenue',
-        color: 'red',
-      });
-    } finally {
-      setSyncing(false);
+    
+    const params = new URLSearchParams({ shopId: currentShop.id });
+    if (currentLocation?.id) {
+      params.append('locationId', currentLocation.id);
     }
-  };
-
-  // Envoyer vers Shopify
-  const handlePushToShopify = async () => {
-    if (!currentShop || !currentLocation) {
-      notifications.show({
-        title: 'Emplacement requis',
-        message: 'Veuillez sélectionner un emplacement pour envoyer les stocks',
-        color: 'orange',
-      });
-      return;
-    }
-
-    setPushing(true);
-    try {
-      const response = await fetch('/api/inventory/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shopId: currentShop.id,
-          locationId: currentLocation.id,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Push failed');
-      }
-
-      notifications.show({
-        title: 'Envoi réussi',
-        message: `${data.stats.updated} stocks mis à jour sur Shopify`,
-        color: 'green',
-      });
-    } catch (err: any) {
-      console.error('Error pushing:', err);
-      notifications.show({
-        title: 'Erreur d\'envoi',
-        message: err.message || 'Une erreur est survenue',
-        color: 'red',
-      });
-    } finally {
-      setPushing(false);
-    }
+    
+    await streamFromUrl(`/api/inventory/sync-stream?${params}`, {
+      title: 'Import Inventaire',
+      onComplete: async () => {
+        await fetchProducts();
+        setSyncing(false);
+      },
+    });
   };
 
   // Extraire les préfixes SKU uniques pour les filtres avec comptage des produits
@@ -374,17 +309,6 @@ export default function InventoryPage() {
               size="sm"
             >
               {syncing ? 'Synchronisation...' : 'Récupérer'}
-            </Button>
-            <Button
-              variant="light"
-              color="blue"
-              leftSection={<IconUpload size={16} />}
-              onClick={handlePushToShopify}
-              loading={pushing}
-              disabled={!currentLocation || syncing}
-              size="sm"
-            >
-              Envoyer
             </Button>
           </Group>
         </Group>

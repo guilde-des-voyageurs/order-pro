@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Title, Text, Paper, Stack, Table, TextInput, Button, Group, 
   ActionIcon, Badge, Loader, Center, Modal, NumberInput, Select,
   Accordion, Switch, Tooltip
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconEdit, IconPlayerPlay, IconCheck, IconTerminal2, IconX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconEdit, IconPlayerPlay, IconCheck, IconDownload } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
+import { useTerminalStream } from '@/hooks/useTerminalStream';
 
 interface Modifier {
   id?: string;
@@ -56,15 +57,13 @@ interface MetafieldConfig {
 
 export default function PriceRulesPage() {
   const { currentShop } = useShop();
+  const { streamFromUrl, endSync } = useTerminalStream();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [applyingLocal, setApplyingLocal] = useState<string | null>(null);
   const [applyingAllShopify, setApplyingAllShopify] = useState(false);
   const [applyingAllLocal, setApplyingAllLocal] = useState(false);
-  const [terminalLogs, setTerminalLogs] = useState<Array<{message: string, type: string, timestamp: string}>>([]);
-  const [terminalOpen, setTerminalOpen] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
   
   const [rules, setRules] = useState<PriceRule[]>([]);
   const [metafields, setMetafields] = useState<MetafieldConfig[]>([]);
@@ -307,106 +306,50 @@ export default function PriceRulesPage() {
     if (!currentShop || !rule.id) return;
 
     setApplying(rule.id);
-    setTerminalLogs([]);
-    setTerminalOpen(true);
-
-    try {
-      const response = await fetch('/api/settings/price-rules/apply-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shopId: currentShop.id,
-          ruleId: rule.id,
-        }),
-      });
-
-      if (!response.body) {
-        throw new Error('No response body');
+    
+    await streamFromUrl(
+      `/api/settings/price-rules/apply-stream?shopId=${currentShop.id}&ruleId=${rule.id}`,
+      {
+        title: `Appliquer sur Shopify: ${rule.sku}`,
+        onComplete: () => {
+          fetchData();
+          setApplying(null);
+        },
+        actions: [
+          {
+            label: 'Importer dans l\'inventaire',
+            color: 'green',
+            icon: <IconDownload size={14} />,
+            onClick: () => syncInventory(),
+          },
+        ],
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter(line => line.startsWith('data: '));
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            if (data.message === 'DONE') {
-              fetchData();
-            } else {
-              setTerminalLogs(prev => [...prev, data]);
-              // Auto-scroll
-              setTimeout(() => {
-                if (terminalRef.current) {
-                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-                }
-              }, 10);
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    } catch (err) {
-      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
-    } finally {
-      setApplying(null);
-    }
+    );
+  };
+  
+  const syncInventory = async () => {
+    if (!currentShop) return;
+    
+    await streamFromUrl(`/api/inventory/sync-stream?shopId=${currentShop.id}`, {
+      title: 'Import Inventaire',
+    });
   };
 
   const applyRuleLocal = async (rule: PriceRule) => {
     if (!currentShop || !rule.id) return;
 
     setApplyingLocal(rule.id);
-    setTerminalLogs([]);
-    setTerminalOpen(true);
-
-    try {
-      const response = await fetch(`/api/settings/price-rules/apply-local-stream?shopId=${currentShop.id}&ruleId=${rule.id}`);
-      
-      if (!response.body) {
-        throw new Error('No response body');
+    
+    await streamFromUrl(
+      `/api/settings/price-rules/apply-local-stream?shopId=${currentShop.id}&ruleId=${rule.id}`,
+      {
+        title: `Appliquer aux commandes: ${rule.sku}`,
+        onComplete: () => {
+          fetchData();
+          setApplyingLocal(null);
+        },
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter(line => line.startsWith('data: '));
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            if (data.message === 'DONE') {
-              fetchData();
-            } else {
-              setTerminalLogs(prev => [...prev, data]);
-              setTimeout(() => {
-                if (terminalRef.current) {
-                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-                }
-              }, 10);
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    } catch (err) {
-      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
-    } finally {
-      setApplyingLocal(null);
-    }
+    );
   };
 
   // Appliquer toutes les règles actives sur Shopify
@@ -424,52 +367,28 @@ export default function PriceRulesPage() {
     }
 
     setApplyingAllShopify(true);
-    setTerminalLogs([]);
-    setTerminalOpen(true);
-
-    try {
-      const response = await fetch(`/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=shopify`);
-      
-      if (!response.body) {
-        throw new Error('No response body');
+    
+    await streamFromUrl(
+      `/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=shopify`,
+      {
+        title: 'Appliquer toutes sur Shopify',
+        onComplete: () => {
+          fetchData();
+          setApplyingAllShopify(false);
+        },
+        actions: [
+          {
+            label: 'Importer dans l\'inventaire',
+            color: 'green',
+            icon: <IconDownload size={14} />,
+            onClick: () => syncInventory(),
+          },
+        ],
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter(line => line.startsWith('data: '));
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            if (data.message === 'DONE') {
-              fetchData();
-            } else {
-              setTerminalLogs(prev => [...prev, data]);
-              setTimeout(() => {
-                if (terminalRef.current) {
-                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-                }
-              }, 10);
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    } catch (err) {
-      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
-    } finally {
-      setApplyingAllShopify(false);
-    }
+    );
   };
 
-  // Appliquer toutes les règles actives en local
+  // Appliquer toutes les règles actives aux commandes
   const applyAllLocal = async () => {
     if (!currentShop) return;
     
@@ -484,49 +403,17 @@ export default function PriceRulesPage() {
     }
 
     setApplyingAllLocal(true);
-    setTerminalLogs([]);
-    setTerminalOpen(true);
-
-    try {
-      const response = await fetch(`/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=local`);
-      
-      if (!response.body) {
-        throw new Error('No response body');
+    
+    await streamFromUrl(
+      `/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=local`,
+      {
+        title: 'Appliquer aux commandes',
+        onComplete: () => {
+          fetchData();
+          setApplyingAllLocal(false);
+        },
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter(line => line.startsWith('data: '));
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            if (data.message === 'DONE') {
-              fetchData();
-            } else {
-              setTerminalLogs(prev => [...prev, data]);
-              setTimeout(() => {
-                if (terminalRef.current) {
-                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-                }
-              }, 10);
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-      }
-    } catch (err) {
-      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
-    } finally {
-      setApplyingAllLocal(false);
-    }
+    );
   };
 
   const toggleRuleActive = async (rule: PriceRule) => {
@@ -627,73 +514,6 @@ export default function PriceRulesPage() {
               </Button>
             </Group>
           </Group>
-        </Paper>
-      )}
-
-      {/* Terminal de logs */}
-      {terminalOpen && (
-        <Paper 
-          withBorder 
-          radius="md" 
-          mb="lg"
-          style={{ 
-            backgroundColor: '#1e1e1e',
-            overflow: 'hidden',
-          }}
-        >
-          <Group 
-            justify="space-between" 
-            p="xs" 
-            style={{ 
-              backgroundColor: '#2d2d2d',
-              borderBottom: '1px solid #3d3d3d',
-            }}
-          >
-            <Group gap="xs">
-              <IconTerminal2 size={16} color="#888" />
-              <Text size="sm" c="dimmed">Console</Text>
-            </Group>
-            <ActionIcon 
-              variant="subtle" 
-              color="gray" 
-              size="sm"
-              onClick={() => setTerminalOpen(false)}
-            >
-              <IconX size={14} />
-            </ActionIcon>
-          </Group>
-          <div
-            ref={terminalRef}
-            style={{
-              height: 300,
-              overflowY: 'auto',
-              padding: '0.75rem',
-              fontFamily: 'monospace',
-              fontSize: '0.8rem',
-              lineHeight: 1.6,
-            }}
-          >
-            {terminalLogs.map((log, index) => (
-              <div 
-                key={index}
-                style={{
-                  color: log.type === 'error' ? '#f87171' 
-                    : log.type === 'success' ? '#4ade80'
-                    : log.type === 'progress' ? '#60a5fa'
-                    : '#a1a1aa',
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {log.message}
-              </div>
-            ))}
-            {applying && (
-              <div style={{ color: '#fbbf24' }}>
-                <Loader size={12} color="yellow" style={{ display: 'inline', marginRight: 8 }} />
-                En cours...
-              </div>
-            )}
-          </div>
         </Paper>
       )}
 

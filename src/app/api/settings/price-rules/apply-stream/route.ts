@@ -57,9 +57,14 @@ const GET_VARIANTS_BY_SKU_QUERY = `
   }
 `;
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { shopId, ruleId } = body;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const shopId = searchParams.get('shopId');
+  const ruleId = searchParams.get('ruleId');
+
+  if (!shopId || !ruleId) {
+    return new Response('Missing shopId or ruleId', { status: 400 });
+  }
 
   const encoder = new TextEncoder();
   

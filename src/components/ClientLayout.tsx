@@ -5,6 +5,8 @@ import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { QueryClientProvider } from '@/state/QueryClientProvider';
+import { TerminalProvider } from '@/contexts/TerminalContext';
+import { TerminalFloating } from '@/components/Terminal/TerminalFloating';
 import { IvyLayout } from '@/layout/IvyLayout';
 import { ParametresLayout } from '@/layout/ParametresLayout';
 import { TopNavbar } from '@/components/TopNavbar/TopNavbar';
@@ -26,16 +28,19 @@ export function ClientLayout({ theme, children }: ClientLayoutProps) {
       <ModalsProvider>
         <Notifications />
         <QueryClientProvider>
-          {!isAuthPage && <TopNavbar />}
-          {isAuthPage ? (
-            children
-          ) : isParametresPage ? (
-            <ParametresLayout>{children}</ParametresLayout>
-          ) : isIvySection ? (
-            <IvyLayout>{children}</IvyLayout>
-          ) : (
-            <div style={{ padding: '2rem' }}>{children}</div>
-          )}
+          <TerminalProvider>
+            {!isAuthPage && <TopNavbar />}
+            {isAuthPage ? (
+              children
+            ) : isParametresPage ? (
+              <ParametresLayout>{children}</ParametresLayout>
+            ) : isIvySection ? (
+              <IvyLayout>{children}</IvyLayout>
+            ) : (
+              <div style={{ padding: '2rem' }}>{children}</div>
+            )}
+            <TerminalFloating />
+          </TerminalProvider>
         </QueryClientProvider>
       </ModalsProvider>
     </MantineProvider>
