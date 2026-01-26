@@ -24,8 +24,8 @@ const UPDATE_INVENTORY_COST_MUTATION = `
   }
 `;
 
-const GET_VARIANTS_BY_SKU_QUERY = `
-  query getVariantsBySku($query: String!, $cursor: String) {
+const GET_VARIANTS_BY_PRODUCT_TYPE_QUERY = `
+  query getVariantsByProductType($query: String!, $cursor: String) {
     productVariants(first: 100, query: $query, after: $cursor) {
       pageInfo {
         hasNextPage
@@ -105,11 +105,14 @@ export async function GET(request: NextRequest) {
           return;
         }
 
-        send(`✓ Règle: ${rule.sku} (base: ${rule.base_price}€)`, 'success');
-        
-        if (rule.product_type) {
-          send(`  └─ Type de produit: ${rule.product_type}`, 'info');
+        // Vérifier que la règle a un product_type (obligatoire maintenant)
+        if (!rule.product_type) {
+          send('❌ La règle doit avoir un type de produit défini', 'error');
+          controller.close();
+          return;
         }
+
+        send(`✓ Règle: ${rule.product_type} (base: ${rule.base_price}€)`, 'success');
         
         if (rule.modifiers?.length > 0) {
           send(`  └─ ${rule.modifiers.length} modificateur(s) métachamp`, 'info');
@@ -126,8 +129,8 @@ export async function GET(request: NextRequest) {
           accessToken: shop.shopify_token,
         });
 
-        // Récupérer toutes les variantes
-        send('📦 Récupération des variantes Shopify...', 'info');
+        // Récupérer toutes les variantes par type de produit
+        send(`📦 Récupération des variantes (${rule.product_type})...`, 'info');
         
         let allVariants: any[] = [];
         let cursor: string | null = null;
@@ -136,8 +139,8 @@ export async function GET(request: NextRequest) {
 
         while (hasNextPage) {
           pageNum++;
-          const variantsResult: any = await shopifyClient.request(GET_VARIANTS_BY_SKU_QUERY, {
-            variables: { query: `sku:${rule.sku}`, cursor },
+          const variantsResult: any = await shopifyClient.request(GET_VARIANTS_BY_PRODUCT_TYPE_QUERY, {
+            variables: { query: `product_type:"${rule.product_type}"`, cursor },
           });
 
           const pageData: any = variantsResult.data?.productVariants;
@@ -151,36 +154,20 @@ export async function GET(request: NextRequest) {
         }
 
         if (allVariants.length === 0) {
-          send('⚠️ Aucune variante trouvée avec ce SKU', 'error');
+          send(`⚠️ Aucune variante trouvée pour le type "${rule.product_type}"`, 'error');
           controller.close();
           return;
         }
 
-        // Filtrer par type de produit si spécifié
-        let filteredVariants = allVariants;
-        if (rule.product_type) {
-          filteredVariants = allVariants.filter((v: any) => 
-            v.product?.productType?.toLowerCase() === rule.product_type.toLowerCase()
-          );
-          send(`  └─ Filtré par type "${rule.product_type}": ${filteredVariants.length} variante(s)`, 'info');
-        }
-
-        if (filteredVariants.length === 0) {
-          send('⚠️ Aucune variante ne correspond aux critères', 'error');
-          controller.close();
-          return;
-        }
-
-        send(`✓ ${filteredVariants.length} variante(s) à traiter`, 'success');
+        send(`✓ ${allVariants.length} variante(s) à traiter`, 'success');
         send('', 'info');
         send('🔄 Application des modifications...', 'info');
 
         let updatedCount = 0;
         let errorCount = 0;
-        let skippedCount = 0;
 
-        for (let i = 0; i < filteredVariants.length; i++) {
-          const variant = filteredVariants[i];
+        for (let i = 0; i < allVariants.length; i++) {
+          const variant = allVariants[i];
           
           try {
             // Calculer le coût
@@ -230,11 +217,11 @@ export async function GET(request: NextRequest) {
 
             if (updateResult.data?.inventoryItemUpdate?.userErrors?.length > 0) {
               const err = updateResult.data.inventoryItemUpdate.userErrors[0].message;
-              send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
+              send(`  ❌ [${i + 1}/${allVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
               errorCount++;
             } else {
               const calcStr = costParts.length > 1 ? ` (${costParts.join(' ')})` : '';
-              send(`  ✓ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
+              send(`  ✓ [${i + 1}/${allVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
               updatedCount++;
             }
 
@@ -242,7 +229,7 @@ export async function GET(request: NextRequest) {
             await new Promise(resolve => setTimeout(resolve, 50));
 
           } catch (err) {
-            send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku}: Erreur`, 'error');
+            send(`  ❌ [${i + 1}/${allVariants.length}] ${variant.sku}: Erreur`, 'error');
             errorCount++;
           }
         }

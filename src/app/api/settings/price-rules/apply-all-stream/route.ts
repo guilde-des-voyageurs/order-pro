@@ -7,8 +7,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const GET_VARIANTS_BY_SKU_QUERY = `
-  query getVariantsBySku($query: String!, $cursor: String) {
+const GET_VARIANTS_BY_PRODUCT_TYPE_QUERY = `
+  query getVariantsByProductType($query: String!, $cursor: String) {
     productVariants(first: 100, query: $query, after: $cursor) {
       pageInfo {
         hasNextPage
@@ -151,21 +151,24 @@ async function applyAllOnShopify(
 
   for (const rule of rules) {
     send(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 'info');
-    send(`📋 Règle: ${rule.sku} (base: ${rule.base_price}€)`, 'info');
     
-    if (rule.product_type) {
-      send(`  └─ Type de produit: ${rule.product_type}`, 'info');
+    // Vérifier que la règle a un product_type
+    if (!rule.product_type) {
+      send(`⚠️ Règle ignorée (pas de type de produit défini)`, 'warning');
+      continue;
     }
+    
+    send(`📋 Règle: ${rule.product_type} (base: ${rule.base_price}€)`, 'info');
 
-    // Récupérer les variantes
+    // Récupérer les variantes par type de produit
     let allVariants: any[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
 
     while (hasNextPage) {
-      const result: any = await shopifyClient.request(GET_VARIANTS_BY_SKU_QUERY, {
+      const result: any = await shopifyClient.request(GET_VARIANTS_BY_PRODUCT_TYPE_QUERY, {
         variables: {
-          query: `sku:${rule.sku}*`,
+          query: `product_type:"${rule.product_type}"`,
           cursor,
         },
       });
@@ -178,23 +181,15 @@ async function applyAllOnShopify(
       cursor = pageData?.pageInfo?.endCursor || null;
     }
 
-    // Filtrer par type de produit si spécifié
-    let filteredVariants = allVariants;
-    if (rule.product_type) {
-      filteredVariants = allVariants.filter((v: any) => 
-        v.product?.productType?.toLowerCase() === rule.product_type.toLowerCase()
-      );
-    }
-
-    if (filteredVariants.length === 0) {
+    if (allVariants.length === 0) {
       send(`  ⚠️ Aucune variante trouvée`, 'warning');
       continue;
     }
 
-    send(`  └─ ${filteredVariants.length} variante(s) à traiter`, 'info');
+    send(`  └─ ${allVariants.length} variante(s) à traiter`, 'info');
 
-    for (let i = 0; i < filteredVariants.length; i++) {
-      const variant = filteredVariants[i];
+    for (let i = 0; i < allVariants.length; i++) {
+      const variant = allVariants[i];
       
       try {
         let cost = rule.base_price;
@@ -301,11 +296,12 @@ async function applyAllLocal(
 
     for (let i = 0; i < updatedLineItems.length; i++) {
       const item = updatedLineItems[i];
-      const itemSku = item.sku || '';
+      const itemProductType = item.product_type || item.variant?.product?.product_type || '';
 
-      // Trouver la règle applicable
+      // Trouver la règle applicable par type de produit
       const matchingRule = rules.find(rule => 
-        itemSku.toUpperCase().startsWith(rule.sku.toUpperCase())
+        rule.product_type && 
+        itemProductType.toLowerCase() === rule.product_type.toLowerCase()
       );
 
       if (matchingRule) {
@@ -354,7 +350,7 @@ async function applyAllLocal(
           totalOrderItemsUpdated++;
           
           const calcStr = costParts.length > 1 ? ` (${costParts.join(' ')})` : '';
-          send(`  ✓ ${order.name} - ${itemSku} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
+          send(`  ✓ ${order.name} - ${item.sku || item.title} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
         }
       }
     }

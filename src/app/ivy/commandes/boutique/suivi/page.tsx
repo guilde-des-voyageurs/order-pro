@@ -10,8 +10,11 @@ import {
   Group, 
   Paper, 
   Badge,
-  Center
+  Center,
+  ActionIcon,
+  Tooltip
 } from '@mantine/core';
+import { IconCheckbox, IconSquare } from '@tabler/icons-react';
 import { transformColor, loadColorMappingsFromSupabase } from '@/utils/color-transformer';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { generateVariantId, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
@@ -184,6 +187,65 @@ export default function SuiviInternePage() {
     setSelectedOrder(null);
   };
 
+  const checkAllForSku = async (sku: string, check: boolean) => {
+    if (!currentShop) return;
+    
+    const variants = variantsBySku.get(sku);
+    if (!variants) return;
+
+    // Collecter tous les variantIds pour ce SKU
+    const allVariantIds: { variantId: string; orderId: string; color: string; size: string; productIndex: number; quantityIndex: number }[] = [];
+    
+    variants.forEach(group => {
+      group.variants.forEach(v => {
+        allVariantIds.push({
+          variantId: v.variantId,
+          orderId: v.orderId,
+          color: group.color,
+          size: group.size,
+          productIndex: v.productIndex,
+          quantityIndex: v.quantityIndex
+        });
+      });
+    });
+
+    // Upsert tous les checks en batch
+    const upsertData = allVariantIds.map(v => ({
+      id: v.variantId,
+      shop_id: currentShop.id,
+      order_id: v.orderId,
+      sku,
+      color: v.color || 'no-color',
+      size: v.size || 'no-size',
+      product_index: v.productIndex,
+      quantity_index: v.quantityIndex,
+      checked: check,
+    }));
+
+    await supabase
+      .from('line_item_checks')
+      .upsert(upsertData, { onConflict: 'id' });
+
+    // Mettre à jour les compteurs de progression pour chaque commande affectée
+    const orderIds = [...new Set(allVariantIds.map(v => v.orderId))];
+    for (const orderId of orderIds) {
+      const { count } = await supabase
+        .from('line_item_checks')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', currentShop.id)
+        .eq('order_id', orderId)
+        .eq('checked', true);
+
+      await supabase
+        .from('order_progress')
+        .upsert({
+          shop_id: currentShop.id,
+          order_id: orderId,
+          checked_count: count || 0,
+        }, { onConflict: 'shop_id,order_id' });
+    }
+  };
+
   const renderVariantsTable = (variants: GroupedVariant[]) => {
     // Trier les variantes par couleur puis par taille
     const sortedVariants = [...variants].sort((a, b) => {
@@ -300,12 +362,34 @@ export default function SuiviInternePage() {
             .sort(([skuA], [skuB]) => skuA.localeCompare(skuB))
             .map(([sku, variants]) => (
               <Stack key={sku} gap="xs">
-                <Title order={4} className={styles.skuTitle}>
-                  {sku}
-                  <Badge ml="sm" variant="light" color="gray">
-                    {variants.reduce((sum, g) => sum + g.totalQuantity, 0)} articles
-                  </Badge>
-                </Title>
+                <Group gap="sm">
+                  <Title order={4} className={styles.skuTitle}>
+                    {sku}
+                    <Badge ml="sm" variant="light" color="gray">
+                      {variants.reduce((sum, g) => sum + g.totalQuantity, 0)} articles
+                    </Badge>
+                  </Title>
+                  <Tooltip label="Tout cocher">
+                    <ActionIcon 
+                      variant="light" 
+                      color="green" 
+                      size="sm"
+                      onClick={() => checkAllForSku(sku, true)}
+                    >
+                      <IconCheckbox size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Tout décocher">
+                    <ActionIcon 
+                      variant="light" 
+                      color="gray" 
+                      size="sm"
+                      onClick={() => checkAllForSku(sku, false)}
+                    >
+                      <IconSquare size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
                 {renderVariantsTable(variants)}
               </Stack>
             ))}

@@ -901,15 +901,6 @@ export default function PriceRulesPage() {
             </Stack>
           </Paper>
 
-          <Paper withBorder p="md" radius="md" bg="gray.0">
-            <Group justify="space-between">
-              <Text>Prix total calculé :</Text>
-              <Text fw={700} size="lg" c="green">
-                {(formBasePrice + formModifiers.reduce((sum, m) => sum + m.amount, 0) + formOptionModifiers.reduce((sum, m) => sum + m.amount, 0)).toFixed(2)} €
-              </Text>
-            </Group>
-          </Paper>
-
           <Group justify="flex-end" mt="md">
             <Button variant="light" onClick={closeModal}>
               Annuler
