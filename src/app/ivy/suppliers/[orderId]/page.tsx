@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Title, Text, Paper, Table, Button, Group, Badge, ActionIcon, Modal, NumberInput, Checkbox, Loader, Center, Stack, Textarea, Divider, Progress, TextInput, SimpleGrid } from '@mantine/core';
-import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage, IconMinus, IconRefresh } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconDeviceFloppy, IconCheck, IconLock, IconSearch, IconPackage, IconMinus, IconRefresh, IconTag } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
@@ -33,6 +33,7 @@ interface OrderItem {
   line_total: number;
   is_validated: boolean;
   validated_at: string | null;
+  metafields?: Record<string, string>;
 }
 
 interface SupplierOrder {
@@ -356,6 +357,53 @@ export default function OrderDetailPage() {
     }
   };
 
+  // Rafraîchir les métachamps de tous les articles
+  const refreshMetafields = async () => {
+    if (!currentShop || !orderId) return;
+    
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/suppliers/orders/${orderId}/items`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: currentShop.id,
+          action: 'refresh_metafields',
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Refresh metafields response:', data);
+        notifications.show({
+          title: 'Succès',
+          message: data.message || 'Métachamps mis à jour',
+          color: data.debug?.variantsWithMetafields > 0 ? 'green' : 'orange',
+        });
+        if (data.debug?.variantsWithMetafields === 0) {
+          notifications.show({
+            title: 'Attention',
+            message: `Aucun métachamp trouvé. Vérifiez la config: ${JSON.stringify(data.debug?.configuredMetafields)}`,
+            color: 'orange',
+            autoClose: 10000,
+          });
+        }
+        fetchOrder();
+      } else {
+        throw new Error('Failed to refresh');
+      }
+    } catch (err) {
+      console.error('Error refreshing metafields:', err);
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de rafraîchir les métachamps',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Sauvegarder les modifications de la commande
   const saveOrder = async () => {
     if (!currentShop || !order) return;
@@ -568,6 +616,16 @@ export default function OrderDetailPage() {
                 Recalculer les prix
               </Button>
               <Button
+                variant="light"
+                color="violet"
+                leftSection={<IconTag size={18} />}
+                onClick={refreshMetafields}
+                loading={saving}
+                disabled={items.length === 0}
+              >
+                Rafraîchir métachamps
+              </Button>
+              <Button
                 leftSection={<IconDeviceFloppy size={18} />}
                 onClick={saveOrder}
                 loading={saving}
@@ -671,6 +729,7 @@ export default function OrderDetailPage() {
                   <Table.Th>Produit</Table.Th>
                   <Table.Th>SKU</Table.Th>
                   <Table.Th>Variante</Table.Th>
+                  <Table.Th>Métachamps</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Qté</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Coût unit.</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Total validé</Table.Th>
@@ -684,6 +743,7 @@ export default function OrderDetailPage() {
                   const validatedTotal = variantGroup.items.filter(i => i.is_validated).reduce((sum, i) => sum + i.line_total, 0);
                   const allValidated = validatedCount === variantGroup.items.length;
                   const someValidated = validatedCount > 0 && !allValidated;
+                  const metafields = firstItem.metafields || {};
                   
                   return (
                     <Table.Tr key={variantGroup.key} className={allValidated ? styles.validatedRow : ''}>
@@ -705,6 +765,19 @@ export default function OrderDetailPage() {
                         <Badge variant="light" color="gray">{firstItem.sku || '-'}</Badge>
                       </Table.Td>
                       <Table.Td>{firstItem.variant_title || '-'}</Table.Td>
+                      <Table.Td>
+                        {Object.keys(metafields).length > 0 ? (
+                          <Group gap={4}>
+                            {Object.entries(metafields).map(([key, value]) => (
+                              <Badge key={key} variant="light" color="violet" size="sm">
+                                {key}: {value}
+                              </Badge>
+                            ))}
+                          </Group>
+                        ) : (
+                          <Text size="xs" c="dimmed">-</Text>
+                        )}
+                      </Table.Td>
                       <Table.Td style={{ textAlign: 'right' }}>
                         <Text size="sm" c={someValidated ? 'orange' : undefined}>
                           {validatedCount}/{variantGroup.items.length}

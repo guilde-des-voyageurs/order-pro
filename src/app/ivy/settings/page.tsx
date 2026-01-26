@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Title, Text, Paper, Stack, Table, TextInput, Button, Group, ActionIcon, Badge, ColorSwatch, Modal, Loader, Center } from '@mantine/core';
-import { IconPlus, IconTrash, IconEdit, IconPalette } from '@tabler/icons-react';
+import { Title, Text, Paper, Stack, Table, TextInput, Button, Group, ActionIcon, Badge, ColorSwatch, Modal, Loader, Center, Tabs } from '@mantine/core';
+import { IconPlus, IconTrash, IconEdit, IconPalette, IconTag } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { useShop } from '@/context/ShopContext';
@@ -12,6 +12,13 @@ interface ColorRule {
   id?: string;
   color_name: string;
   hex_value: string;
+}
+
+interface MetafieldConfig {
+  id?: string;
+  namespace: string;
+  key: string;
+  display_name: string;
 }
 
 export default function SettingsPage() {
@@ -26,6 +33,11 @@ export default function SettingsPage() {
   
   // Recherche
   const [colorSearch, setColorSearch] = useState('');
+  
+  // Métachamps
+  const [metafields, setMetafields] = useState<MetafieldConfig[]>([]);
+  const [editingMetafield, setEditingMetafield] = useState<MetafieldConfig | null>(null);
+  const [metafieldModalOpened, { open: openMetafieldModal, close: closeMetafieldModal }] = useDisclosure(false);
 
   // Charger les règles depuis Supabase
   const fetchRules = useCallback(async () => {
@@ -33,10 +45,19 @@ export default function SettingsPage() {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/settings?shopId=${currentShop.id}`);
-      if (response.ok) {
-        const data = await response.json();
+      const [settingsRes, metafieldsRes] = await Promise.all([
+        fetch(`/api/settings?shopId=${currentShop.id}`),
+        fetch(`/api/settings/metafields?shopId=${currentShop.id}`),
+      ]);
+      
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
         setColorRules(data.colorRules || []);
+      }
+      
+      if (metafieldsRes.ok) {
+        const data = await metafieldsRes.json();
+        setMetafields(data.metafields || []);
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
@@ -112,6 +133,72 @@ export default function SettingsPage() {
     }
   };
 
+  // Sauvegarder un métachamp
+  const saveMetafield = async (metafield: MetafieldConfig) => {
+    if (!currentShop) return;
+    
+    setSaving(true);
+    try {
+      const response = await fetch('/api/settings/metafields', {
+        method: metafield.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: metafield.id,
+          shopId: currentShop.id,
+          namespace: metafield.namespace,
+          key: metafield.key,
+          displayName: metafield.display_name,
+        }),
+      });
+
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: 'Métachamp sauvegardé',
+          color: 'green',
+        });
+        closeMetafieldModal();
+        fetchRules();
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (err) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de sauvegarder le métachamp',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Supprimer un métachamp
+  const deleteMetafield = async (id: string) => {
+    if (!currentShop) return;
+    
+    try {
+      const response = await fetch(`/api/settings/metafields?id=${id}&shopId=${currentShop.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        notifications.show({
+          title: 'Succès',
+          message: 'Métachamp supprimé',
+          color: 'green',
+        });
+        fetchRules();
+      }
+    } catch (err) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Impossible de supprimer le métachamp',
+        color: 'red',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Center h={400}>
@@ -124,89 +211,171 @@ export default function SettingsPage() {
     <div className={styles.container}>
       <Title order={2} mb="lg">Options Globales</Title>
       
-      <Paper withBorder p="md" radius="md">
-        <Group justify="space-between" mb="md">
-          <Group>
-            <IconPalette size={20} />
-            <Text fw={600}>Mapping des couleurs</Text>
-          </Group>
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => {
-              setEditingColor({ color_name: '', hex_value: '#000000' });
-              openColorModal();
-            }}
-          >
-            Ajouter une couleur
-          </Button>
-        </Group>
+      <Tabs defaultValue="colors">
+        <Tabs.List mb="lg">
+          <Tabs.Tab value="colors" leftSection={<IconPalette size={16} />}>
+            Couleurs ({colorRules.length})
+          </Tabs.Tab>
+          <Tabs.Tab value="metafields" leftSection={<IconTag size={16} />}>
+            Métachamps ({metafields.length})
+          </Tabs.Tab>
+        </Tabs.List>
 
-        {colorRules.length > 0 && (
-          <TextInput
-            placeholder="Rechercher une couleur..."
-            value={colorSearch}
-            onChange={(e) => setColorSearch(e.target.value)}
-            mb="md"
-          />
-        )}
+        <Tabs.Panel value="colors">
+          <Paper withBorder p="md" radius="md">
+            <Group justify="space-between" mb="md">
+              <Text fw={600}>Mapping des couleurs</Text>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => {
+                  setEditingColor({ color_name: '', hex_value: '#000000' });
+                  openColorModal();
+                }}
+              >
+                Ajouter une couleur
+              </Button>
+            </Group>
 
-        {colorRules.length > 0 ? (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Couleur</Table.Th>
-                <Table.Th>Nom</Table.Th>
-                <Table.Th>Code Hex</Table.Th>
-                <Table.Th style={{ width: 100 }}>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {colorRules
-                .filter(rule => 
-                  colorSearch === '' || 
-                  rule.color_name.toLowerCase().includes(colorSearch.toLowerCase()) ||
-                  rule.hex_value.toLowerCase().includes(colorSearch.toLowerCase())
-                )
-                .map((rule) => (
-                <Table.Tr key={rule.id || rule.color_name}>
-                  <Table.Td>
-                    <ColorSwatch color={rule.hex_value} size={24} />
-                  </Table.Td>
-                  <Table.Td>{rule.color_name}</Table.Td>
-                  <Table.Td>
-                    <Badge variant="light" color="gray">{rule.hex_value}</Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <ActionIcon
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => {
-                          setEditingColor(rule);
-                          openColorModal();
-                        }}
-                      >
-                        <IconEdit size={16} />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => rule.id && deleteColorRule(rule.id)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        ) : (
-          <Text c="dimmed" ta="center" py="xl">
-            Aucune règle de couleur définie.
-          </Text>
-        )}
-      </Paper>
+            {colorRules.length > 0 && (
+              <TextInput
+                placeholder="Rechercher une couleur..."
+                value={colorSearch}
+                onChange={(e) => setColorSearch(e.target.value)}
+                mb="md"
+              />
+            )}
+
+            {colorRules.length > 0 ? (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Couleur</Table.Th>
+                    <Table.Th>Nom</Table.Th>
+                    <Table.Th>Code Hex</Table.Th>
+                    <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {colorRules
+                    .filter(rule => 
+                      colorSearch === '' || 
+                      rule.color_name.toLowerCase().includes(colorSearch.toLowerCase()) ||
+                      rule.hex_value.toLowerCase().includes(colorSearch.toLowerCase())
+                    )
+                    .map((rule) => (
+                    <Table.Tr key={rule.id || rule.color_name}>
+                      <Table.Td>
+                        <ColorSwatch color={rule.hex_value} size={24} />
+                      </Table.Td>
+                      <Table.Td>{rule.color_name}</Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="gray">{rule.hex_value}</Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            onClick={() => {
+                              setEditingColor(rule);
+                              openColorModal();
+                            }}
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            onClick={() => rule.id && deleteColorRule(rule.id)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                Aucune règle de couleur définie.
+              </Text>
+            )}
+          </Paper>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="metafields">
+          <Paper withBorder p="md" radius="md">
+            <Group justify="space-between" mb="md">
+              <Text fw={600}>Métachamps à récupérer pour les commandes batch</Text>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => {
+                  setEditingMetafield({ namespace: '', key: '', display_name: '' });
+                  openMetafieldModal();
+                }}
+              >
+                Ajouter un métachamp
+              </Button>
+            </Group>
+
+            <Text size="sm" c="dimmed" mb="md">
+              Ces métachamps seront récupérés depuis Shopify lors de l'ajout d'articles aux commandes fournisseur.
+            </Text>
+
+            {metafields.length > 0 ? (
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Nom affiché</Table.Th>
+                    <Table.Th>Namespace</Table.Th>
+                    <Table.Th>Clé</Table.Th>
+                    <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {metafields.map((mf) => (
+                    <Table.Tr key={mf.id}>
+                      <Table.Td fw={500}>{mf.display_name}</Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="blue">{mf.namespace}</Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="gray">{mf.key}</Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            onClick={() => {
+                              setEditingMetafield(mf);
+                              openMetafieldModal();
+                            }}
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            onClick={() => mf.id && deleteMetafield(mf.id)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                Aucun métachamp configuré. Ajoutez-en pour les récupérer lors des commandes batch.
+              </Text>
+            )}
+          </Paper>
+        </Tabs.Panel>
+      </Tabs>
 
       {/* Modal édition couleur */}
       <Modal
@@ -239,6 +408,49 @@ export default function SettingsPage() {
               <Button 
                 onClick={() => saveColorRule(editingColor)}
                 loading={saving}
+              >
+                Sauvegarder
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      {/* Modal édition métachamp */}
+      <Modal
+        opened={metafieldModalOpened}
+        onClose={closeMetafieldModal}
+        title={editingMetafield?.id ? 'Modifier le métachamp' : 'Ajouter un métachamp'}
+      >
+        {editingMetafield && (
+          <Stack>
+            <TextInput
+              label="Nom affiché"
+              placeholder="ex: Couleur saisonnière"
+              value={editingMetafield.display_name}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, display_name: e.target.value })}
+            />
+            <TextInput
+              label="Namespace"
+              placeholder="ex: custom, global"
+              value={editingMetafield.namespace}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, namespace: e.target.value })}
+            />
+            <TextInput
+              label="Clé"
+              placeholder="ex: seasonal_color"
+              value={editingMetafield.key}
+              onChange={(e) => setEditingMetafield({ ...editingMetafield, key: e.target.value })}
+            />
+            <Text size="xs" c="dimmed">
+              Le namespace et la clé correspondent aux identifiants du métachamp dans Shopify.
+            </Text>
+            <Group justify="flex-end" mt="md">
+              <Button variant="subtle" onClick={closeMetafieldModal}>Annuler</Button>
+              <Button 
+                onClick={() => saveMetafield(editingMetafield)}
+                loading={saving}
+                disabled={!editingMetafield.namespace || !editingMetafield.key}
               >
                 Sauvegarder
               </Button>

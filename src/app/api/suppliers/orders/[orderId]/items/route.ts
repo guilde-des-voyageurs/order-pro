@@ -19,23 +19,44 @@ export async function POST(
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Récupérer les variantes avec leur coût Shopify
+    // Récupérer les variantes avec leur coût et shopify_id
     const variantIds = items.map((item: any) => item.variant_id).filter(Boolean);
     const { data: variants } = await supabase
       .from('product_variants')
-      .select('id, cost')
+      .select('id, cost, shopify_id')
       .in('id', variantIds);
 
     const variantCostMap: Record<string, number> = {};
+    const variantShopifyIdMap: Record<string, string> = {};
     variants?.forEach((v: any) => {
       variantCostMap[v.id] = v.cost || 0;
+      variantShopifyIdMap[v.id] = v.shopify_id;
     });
+
+    // Récupérer les métachamps configurés pour ce shop
+    const { data: metafieldConfigs } = await supabase
+      .from('metafield_config')
+      .select('namespace, key, display_name')
+      .eq('shop_id', shopId)
+      .eq('is_active', true);
+
+    // Récupérer les métachamps des variantes via GraphQL si configurés
+    let variantMetafieldsMap: Record<string, Record<string, string>> = {};
+    if (metafieldConfigs && metafieldConfigs.length > 0) {
+      variantMetafieldsMap = await fetchVariantMetafields(
+        shopId, 
+        Object.values(variantShopifyIdMap), 
+        metafieldConfigs
+      );
+    }
 
     // Préparer les articles à insérer (UNE LIGNE PAR UNITÉ pour suivi individuel)
     const itemsToInsert: any[] = [];
     for (const item of items) {
       const unitPrice = variantCostMap[item.variant_id] || 0;
       const quantity = item.quantity || 1;
+      const shopifyId = variantShopifyIdMap[item.variant_id];
+      const metafields = shopifyId ? (variantMetafieldsMap[shopifyId] || {}) : {};
       
       // Créer une ligne par unité
       for (let i = 0; i < quantity; i++) {
@@ -48,6 +69,7 @@ export async function POST(
           quantity: 1, // Toujours 1 par ligne
           unit_price: unitPrice,
           line_total: unitPrice, // = unitPrice * 1
+          metafields: metafields,
         });
       }
     }
@@ -140,6 +162,90 @@ export async function PUT(
       return NextResponse.json({ 
         message: `${updatedCount} articles mis à jour`,
         updatedCount 
+      });
+    }
+
+    // Action spéciale : rafraîchir les métachamps de tous les articles
+    if (action === 'refresh_metafields') {
+      if (!shopId || !orderId) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Récupérer tous les articles de la commande avec leur variant_id
+      const { data: orderItems } = await supabase
+        .from('supplier_order_items')
+        .select('id, variant_id')
+        .eq('order_id', orderId);
+
+      if (!orderItems || orderItems.length === 0) {
+        return NextResponse.json({ message: 'No items to update' });
+      }
+
+      // Récupérer les shopify_ids des variantes
+      const variantIds = [...new Set(orderItems.map(i => i.variant_id).filter(Boolean))];
+      const { data: variants } = await supabase
+        .from('product_variants')
+        .select('id, shopify_id')
+        .in('id', variantIds);
+
+      const variantShopifyIdMap: Record<string, string> = {};
+      variants?.forEach(v => {
+        variantShopifyIdMap[v.id] = v.shopify_id;
+      });
+
+      // Récupérer les métachamps configurés
+      const { data: metafieldConfigs } = await supabase
+        .from('metafield_config')
+        .select('namespace, key, display_name')
+        .eq('shop_id', shopId)
+        .eq('is_active', true);
+
+      if (!metafieldConfigs || metafieldConfigs.length === 0) {
+        return NextResponse.json({ message: 'Aucun métachamp configuré' });
+      }
+
+      // Récupérer les métachamps via GraphQL
+      const graphqlDebugInfo: { rawResponse?: any } = {};
+      const variantMetafieldsMap = await fetchVariantMetafields(
+        shopId,
+        Object.values(variantShopifyIdMap),
+        metafieldConfigs,
+        graphqlDebugInfo
+      );
+
+      // Mettre à jour chaque article avec ses métachamps
+      let updatedCount = 0;
+      for (const item of orderItems) {
+        if (!item.variant_id) continue;
+        
+        const shopifyId = variantShopifyIdMap[item.variant_id];
+        const metafields = shopifyId ? (variantMetafieldsMap[shopifyId] || {}) : {};
+
+        await supabase
+          .from('supplier_order_items')
+          .update({ 
+            metafields,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+
+        updatedCount++;
+      }
+
+      // Compter combien ont des métachamps non-vides
+      const withMetafields = Object.values(variantMetafieldsMap).filter(m => Object.keys(m).length > 0).length;
+      
+      return NextResponse.json({ 
+        message: `${updatedCount} articles traités, ${withMetafields} variantes avec métachamps`,
+        updatedCount,
+        debug: {
+          configuredMetafields: metafieldConfigs,
+          variantsChecked: Object.keys(variantShopifyIdMap).length,
+          variantShopifyIds: Object.values(variantShopifyIdMap),
+          variantsWithMetafields: withMetafields,
+          metafieldsMap: variantMetafieldsMap,
+          graphqlRawResponse: graphqlDebugInfo.rawResponse,
+        }
       });
     }
 
@@ -273,4 +379,113 @@ async function updateOrderTotals(orderId: string, shopId: string) {
     })
     .eq('id', orderId)
     .eq('shop_id', shopId);
+}
+
+// Récupérer les métachamps des variantes via GraphQL
+async function fetchVariantMetafields(
+  shopId: string,
+  variantShopifyIds: string[],
+  metafieldConfigs: Array<{ namespace: string; key: string; display_name: string }>,
+  debugInfo?: { rawResponse?: any }
+): Promise<Record<string, Record<string, string>>> {
+  try {
+    // Récupérer les infos du shop
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('shopify_url, shopify_token')
+      .eq('id', shopId)
+      .single();
+
+    if (!shop) return {};
+
+    // Construire les GIDs des variantes
+    const variantGids = variantShopifyIds.map(id => `gid://shopify/ProductVariant/${id}`);
+
+    // Requête GraphQL pour récupérer tous les métachamps
+    const allMetafieldsQuery = `
+      query GetVariantMetafields($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on ProductVariant {
+            id
+            sku
+            metafields(first: 50) {
+              edges {
+                node {
+                  namespace
+                  key
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await fetch(
+      `https://${shop.shopify_url}/admin/api/2024-01/graphql.json`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': shop.shopify_token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: allMetafieldsQuery,
+          variables: { ids: variantGids },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('GraphQL request failed:', response.status);
+      return {};
+    }
+
+    const data = await response.json();
+    
+    // Stocker la réponse brute pour debug
+    if (debugInfo) {
+      debugInfo.rawResponse = data;
+    }
+    
+    if (data.errors) {
+      console.error('GraphQL errors:', data.errors);
+      return {};
+    }
+
+    // Construire le map des métachamps par variant shopify_id
+    const result: Record<string, Record<string, string>> = {};
+    
+    // Créer un set des métachamps configurés pour filtrage rapide
+    const configuredKeys = new Set(metafieldConfigs.map(c => `${c.namespace}.${c.key}`));
+    
+    for (const node of data.data?.nodes || []) {
+      if (!node?.id) continue;
+      
+      // Extraire le shopify_id du GID
+      const shopifyId = node.id.replace('gid://shopify/ProductVariant/', '');
+      
+      result[shopifyId] = {};
+      
+      // Parcourir les edges de metafields
+      for (const edge of node.metafields?.edges || []) {
+        const mf = edge.node;
+        if (mf && mf.value) {
+          const fullKey = `${mf.namespace}.${mf.key}`;
+          // Ne garder que les métachamps configurés
+          if (configuredKeys.has(fullKey)) {
+            const config = metafieldConfigs.find(c => c.namespace === mf.namespace && c.key === mf.key);
+            const displayName = config?.display_name || fullKey;
+            result[shopifyId][displayName] = mf.value;
+          }
+        }
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching variant metafields:', error);
+    return {};
+  }
 }
