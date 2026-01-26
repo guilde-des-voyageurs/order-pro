@@ -16,12 +16,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing shopId' }, { status: 400 });
     }
 
-    // Récupérer les règles avec leurs modificateurs
+    // Récupérer les règles avec leurs modificateurs et options
     const { data: rules, error } = await supabase
       .from('price_rules')
       .select(`
         *,
-        modifiers:price_rule_modifiers(*)
+        modifiers:price_rule_modifiers(*),
+        option_modifiers:price_rule_option_modifiers(*)
       `)
       .eq('shop_id', shopId)
       .order('sku', { ascending: true });
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { shopId, sku, basePrice, description, modifiers } = body;
+    const { shopId, sku, basePrice, description, productType, modifiers, optionModifiers } = body;
 
     if (!shopId || !sku) {
       return NextResponse.json({ error: 'Missing shopId or sku' }, { status: 400 });
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
         sku,
         base_price: basePrice || 0,
         description: description || null,
+        product_type: productType || null,
       })
       .select()
       .single();
@@ -87,12 +89,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Ajouter les modificateurs d'options si présents
+    if (optionModifiers && optionModifiers.length > 0) {
+      const optionModifiersToInsert = optionModifiers.map((mod: any) => ({
+        price_rule_id: rule.id,
+        option_name: mod.optionName,
+        option_value: mod.optionValue,
+        modifier_amount: mod.amount || 0,
+      }));
+
+      const { error: optModError } = await supabase
+        .from('price_rule_option_modifiers')
+        .insert(optionModifiersToInsert);
+
+      if (optModError) {
+        console.error('Error inserting option modifiers:', optModError);
+      }
+    }
+
     // Récupérer la règle complète avec modificateurs
     const { data: fullRule } = await supabase
       .from('price_rules')
       .select(`
         *,
-        modifiers:price_rule_modifiers(*)
+        modifiers:price_rule_modifiers(*),
+        option_modifiers:price_rule_option_modifiers(*)
       `)
       .eq('id', rule.id)
       .single();
@@ -109,7 +130,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, sku, basePrice, description, isActive, modifiers } = body;
+    const { id, sku, basePrice, description, isActive, productType, modifiers, optionModifiers } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Missing rule id' }, { status: 400 });
@@ -124,6 +145,7 @@ export async function PUT(request: NextRequest) {
     if (basePrice !== undefined) updateData.base_price = basePrice;
     if (description !== undefined) updateData.description = description;
     if (isActive !== undefined) updateData.is_active = isActive;
+    if (productType !== undefined) updateData.product_type = productType;
 
     const { error: ruleError } = await supabase
       .from('price_rules')
@@ -158,12 +180,36 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Mettre à jour les modificateurs d'options si fournis
+    if (optionModifiers !== undefined) {
+      // Supprimer les anciens
+      await supabase
+        .from('price_rule_option_modifiers')
+        .delete()
+        .eq('price_rule_id', id);
+
+      // Ajouter les nouveaux
+      if (optionModifiers.length > 0) {
+        const optionModifiersToInsert = optionModifiers.map((mod: any) => ({
+          price_rule_id: id,
+          option_name: mod.optionName,
+          option_value: mod.optionValue,
+          modifier_amount: mod.amount || 0,
+        }));
+
+        await supabase
+          .from('price_rule_option_modifiers')
+          .insert(optionModifiersToInsert);
+      }
+    }
+
     // Récupérer la règle mise à jour
     const { data: fullRule } = await supabase
       .from('price_rules')
       .select(`
         *,
-        modifiers:price_rule_modifiers(*)
+        modifiers:price_rule_modifiers(*),
+        option_modifiers:price_rule_option_modifiers(*)
       `)
       .eq('id', id)
       .single();

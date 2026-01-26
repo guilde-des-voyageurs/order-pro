@@ -24,14 +24,27 @@ interface Modifier {
   modifier_amount?: number;
 }
 
+interface OptionModifier {
+  id?: string;
+  optionName: string;
+  optionValue: string;
+  amount: number;
+  // Champs retournés par l'API (noms DB)
+  option_name?: string;
+  option_value?: string;
+  modifier_amount?: number;
+}
+
 interface PriceRule {
   id?: string;
   sku: string;
   base_price: number;
   description: string | null;
+  product_type: string | null;
   is_active: boolean;
   last_applied_at: string | null;
   modifiers: Modifier[];
+  option_modifiers: OptionModifier[];
 }
 
 interface MetafieldConfig {
@@ -60,13 +73,20 @@ export default function PriceRulesPage() {
   const [formSku, setFormSku] = useState('');
   const [formBasePrice, setFormBasePrice] = useState<number>(0);
   const [formDescription, setFormDescription] = useState('');
+  const [formProductType, setFormProductType] = useState('');
   const [formModifiers, setFormModifiers] = useState<Modifier[]>([]);
+  const [formOptionModifiers, setFormOptionModifiers] = useState<OptionModifier[]>([]);
 
-  // État pour ajouter un nouveau modificateur
+  // État pour ajouter un nouveau modificateur métachamp
   const [newModifierNamespace, setNewModifierNamespace] = useState('');
   const [newModifierKey, setNewModifierKey] = useState('');
   const [newModifierValue, setNewModifierValue] = useState('');
   const [newModifierAmount, setNewModifierAmount] = useState<number>(0);
+
+  // État pour ajouter un nouveau modificateur d'option
+  const [newOptionName, setNewOptionName] = useState('');
+  const [newOptionValue, setNewOptionValue] = useState('');
+  const [newOptionAmount, setNewOptionAmount] = useState<number>(0);
 
   const fetchData = useCallback(async () => {
     if (!currentShop) return;
@@ -102,11 +122,16 @@ export default function PriceRulesPage() {
     setFormSku('');
     setFormBasePrice(0);
     setFormDescription('');
+    setFormProductType('');
     setFormModifiers([]);
+    setFormOptionModifiers([]);
     setNewModifierNamespace('');
     setNewModifierKey('');
     setNewModifierValue('');
     setNewModifierAmount(0);
+    setNewOptionName('');
+    setNewOptionValue('');
+    setNewOptionAmount(0);
   };
 
   const openCreateModal = () => {
@@ -120,10 +145,16 @@ export default function PriceRulesPage() {
     setFormSku(rule.sku);
     setFormBasePrice(rule.base_price);
     setFormDescription(rule.description || '');
+    setFormProductType(rule.product_type || '');
     setFormModifiers(rule.modifiers.map(m => ({
       namespace: m.metafield_namespace || m.namespace,
       key: m.metafield_key || m.key,
       value: m.metafield_value || m.value,
+      amount: m.modifier_amount || m.amount,
+    })));
+    setFormOptionModifiers((rule.option_modifiers || []).map(m => ({
+      optionName: m.option_name || m.optionName,
+      optionValue: m.option_value || m.optionValue,
       amount: m.modifier_amount || m.amount,
     })));
     openModal();
@@ -154,6 +185,30 @@ export default function PriceRulesPage() {
     setFormModifiers(formModifiers.filter((_, i) => i !== index));
   };
 
+  const addOptionModifier = () => {
+    if (!newOptionName || !newOptionValue) {
+      notifications.show({
+        title: 'Erreur',
+        message: 'Veuillez remplir le nom et la valeur de l\'option',
+        color: 'red',
+      });
+      return;
+    }
+
+    setFormOptionModifiers([...formOptionModifiers, {
+      optionName: newOptionName,
+      optionValue: newOptionValue,
+      amount: newOptionAmount,
+    }]);
+
+    setNewOptionValue('');
+    setNewOptionAmount(0);
+  };
+
+  const removeOptionModifier = (index: number) => {
+    setFormOptionModifiers(formOptionModifiers.filter((_, i) => i !== index));
+  };
+
   const saveRule = async () => {
     if (!currentShop || !formSku.trim()) {
       notifications.show({
@@ -174,14 +229,18 @@ export default function PriceRulesPage() {
             sku: formSku,
             basePrice: formBasePrice,
             description: formDescription || null,
+            productType: formProductType || null,
             modifiers: formModifiers,
+            optionModifiers: formOptionModifiers,
           }
         : {
             shopId: currentShop.id,
             sku: formSku,
             basePrice: formBasePrice,
             description: formDescription || null,
+            productType: formProductType || null,
             modifiers: formModifiers,
+            optionModifiers: formOptionModifiers,
           };
 
       const response = await fetch(url, {
@@ -369,7 +428,11 @@ export default function PriceRulesPage() {
       const amount = m.modifier_amount || m.amount || 0;
       return sum + amount;
     }, 0);
-    return rule.base_price + modifiersTotal;
+    const optionModifiersTotal = (rule.option_modifiers || []).reduce((sum, m) => {
+      const amount = m.modifier_amount || m.amount || 0;
+      return sum + amount;
+    }, 0);
+    return rule.base_price + modifiersTotal + optionModifiersTotal;
   };
 
   // Options pour le select des métachamps
@@ -493,6 +556,9 @@ export default function PriceRulesPage() {
                       {rule.description && (
                         <Text size="xs" c="dimmed">{rule.description}</Text>
                       )}
+                      {rule.product_type && (
+                        <Text size="xs" c="blue">Type: {rule.product_type}</Text>
+                      )}
                     </div>
                   </Group>
                   <Group gap="xs">
@@ -501,7 +567,12 @@ export default function PriceRulesPage() {
                     </Badge>
                     {rule.modifiers.length > 0 && (
                       <Badge color="violet" variant="light">
-                        +{rule.modifiers.length} modificateur(s)
+                        +{rule.modifiers.length} métachamp(s)
+                      </Badge>
+                    )}
+                    {(rule.option_modifiers || []).length > 0 && (
+                      <Badge color="orange" variant="light">
+                        +{rule.option_modifiers.length} option(s)
                       </Badge>
                     )}
                     <Badge color="green" variant="filled">
@@ -533,6 +604,39 @@ export default function PriceRulesPage() {
                             <Table.Td>
                               <Badge variant="outline">
                                 {mod.metafield_value || mod.value}
+                              </Badge>
+                            </Table.Td>
+                            <Table.Td style={{ textAlign: 'right' }}>
+                              <Text fw={500} c={(mod.modifier_amount || mod.amount) >= 0 ? 'green' : 'red'}>
+                                {(mod.modifier_amount || mod.amount) >= 0 ? '+' : ''}
+                                {(mod.modifier_amount || mod.amount).toFixed(2)} €
+                              </Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        ))}
+                      </Table.Tbody>
+                    </Table>
+                  )}
+
+                  {/* Tableau des modificateurs d'options */}
+                  {(rule.option_modifiers || []).length > 0 && (
+                    <Table>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Option</Table.Th>
+                          <Table.Th>Valeur</Table.Th>
+                          <Table.Th style={{ textAlign: 'right' }}>Majoration</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {rule.option_modifiers.map((mod, index) => (
+                          <Table.Tr key={index}>
+                            <Table.Td>
+                              {mod.option_name || mod.optionName}
+                            </Table.Td>
+                            <Table.Td>
+                              <Badge variant="outline" color="orange">
+                                {mod.option_value || mod.optionValue}
                               </Badge>
                             </Table.Td>
                             <Table.Td style={{ textAlign: 'right' }}>
@@ -637,6 +741,14 @@ export default function PriceRulesPage() {
             onChange={(e) => setFormDescription(e.target.value)}
           />
 
+          <TextInput
+            label="Type de produit (optionnel)"
+            placeholder="Ex: T-shirt, Sweat, Hoodie..."
+            value={formProductType}
+            onChange={(e) => setFormProductType(e.target.value)}
+            description="Filtre les variantes par type de produit Shopify"
+          />
+
           <Paper withBorder p="md" radius="md">
             <Text fw={600} mb="md">Modificateurs par métachamp</Text>
 
@@ -720,11 +832,83 @@ export default function PriceRulesPage() {
             )}
           </Paper>
 
+          {/* Modificateurs par option (couleur, taille) */}
+          <Paper withBorder p="md" radius="md">
+            <Text fw={600} mb="md">Modificateurs par option (Couleur, Taille...)</Text>
+
+            {formOptionModifiers.length > 0 && (
+              <Table mb="md">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Option</Table.Th>
+                    <Table.Th>Valeur</Table.Th>
+                    <Table.Th>Majoration</Table.Th>
+                    <Table.Th></Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {formOptionModifiers.map((mod, index) => (
+                    <Table.Tr key={index}>
+                      <Table.Td>{mod.optionName}</Table.Td>
+                      <Table.Td>{mod.optionValue}</Table.Td>
+                      <Table.Td>{mod.amount >= 0 ? '+' : ''}{mod.amount.toFixed(2)} €</Table.Td>
+                      <Table.Td>
+                        <ActionIcon
+                          variant="light"
+                          color="red"
+                          size="sm"
+                          onClick={() => removeOptionModifier(index)}
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
+
+            <Stack gap="xs">
+              <Group grow>
+                <TextInput
+                  label="Nom de l'option"
+                  placeholder="Ex: Color, Size, Couleur, Taille..."
+                  value={newOptionName}
+                  onChange={(e) => setNewOptionName(e.target.value)}
+                  description="Le nom exact de l'option dans Shopify"
+                />
+                <TextInput
+                  label="Valeur"
+                  placeholder="Ex: XXL, French Navy..."
+                  value={newOptionValue}
+                  onChange={(e) => setNewOptionValue(e.target.value)}
+                />
+                <NumberInput
+                  label="Majoration (€)"
+                  placeholder="0.00"
+                  value={newOptionAmount}
+                  onChange={(val) => setNewOptionAmount(typeof val === 'number' ? val : 0)}
+                  decimalScale={2}
+                  fixedDecimalScale
+                  step={0.5}
+                />
+              </Group>
+              <Button
+                variant="light"
+                leftSection={<IconPlus size={14} />}
+                onClick={addOptionModifier}
+                disabled={!newOptionName || !newOptionValue}
+              >
+                Ajouter ce modificateur d'option
+              </Button>
+            </Stack>
+          </Paper>
+
           <Paper withBorder p="md" radius="md" bg="gray.0">
             <Group justify="space-between">
               <Text>Prix total calculé :</Text>
               <Text fw={700} size="lg" c="green">
-                {(formBasePrice + formModifiers.reduce((sum, m) => sum + m.amount, 0)).toFixed(2)} €
+                {(formBasePrice + formModifiers.reduce((sum, m) => sum + m.amount, 0) + formOptionModifiers.reduce((sum, m) => sum + m.amount, 0)).toFixed(2)} €
               </Text>
             </Group>
           </Paper>

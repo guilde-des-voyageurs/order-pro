@@ -35,6 +35,13 @@ const GET_VARIANTS_BY_SKU_QUERY = `
         id
         sku
         title
+        selectedOptions {
+          name
+          value
+        }
+        product {
+          productType
+        }
         inventoryItem {
           id
         }
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
         // Récupérer la règle
         const { data: rule, error: ruleError } = await supabase
           .from('price_rules')
-          .select(`*, modifiers:price_rule_modifiers(*)`)
+          .select(`*, modifiers:price_rule_modifiers(*), option_modifiers:price_rule_option_modifiers(*)`)
           .eq('id', ruleId)
           .single();
 
@@ -95,8 +102,16 @@ export async function POST(request: NextRequest) {
 
         send(`✓ Règle: ${rule.sku} (base: ${rule.base_price}€)`, 'success');
         
+        if (rule.product_type) {
+          send(`  └─ Type de produit: ${rule.product_type}`, 'info');
+        }
+        
         if (rule.modifiers?.length > 0) {
-          send(`  └─ ${rule.modifiers.length} modificateur(s) configuré(s)`, 'info');
+          send(`  └─ ${rule.modifiers.length} modificateur(s) métachamp`, 'info');
+        }
+        
+        if (rule.option_modifiers?.length > 0) {
+          send(`  └─ ${rule.option_modifiers.length} modificateur(s) d'option`, 'info');
         }
 
         // Créer le client Shopify
@@ -136,22 +151,40 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        send(`✓ ${allVariants.length} variante(s) trouvée(s)`, 'success');
+        // Filtrer par type de produit si spécifié
+        let filteredVariants = allVariants;
+        if (rule.product_type) {
+          filteredVariants = allVariants.filter((v: any) => 
+            v.product?.productType?.toLowerCase() === rule.product_type.toLowerCase()
+          );
+          send(`  └─ Filtré par type "${rule.product_type}": ${filteredVariants.length} variante(s)`, 'info');
+        }
+
+        if (filteredVariants.length === 0) {
+          send('⚠️ Aucune variante ne correspond aux critères', 'error');
+          controller.close();
+          return;
+        }
+
+        send(`✓ ${filteredVariants.length} variante(s) à traiter`, 'success');
         send('', 'info');
         send('🔄 Application des modifications...', 'info');
 
         let updatedCount = 0;
         let errorCount = 0;
+        let skippedCount = 0;
 
-        for (let i = 0; i < allVariants.length; i++) {
-          const variant = allVariants[i];
+        for (let i = 0; i < filteredVariants.length; i++) {
+          const variant = filteredVariants[i];
           
           try {
             // Calculer le coût
             let cost = rule.base_price;
             const metafields = variant.metafields?.nodes || [];
+            const selectedOptions = variant.selectedOptions || [];
             const appliedModifiers: string[] = [];
             
+            // Appliquer les modificateurs de métachamps
             for (const modifier of rule.modifiers || []) {
               const match = metafields.find(
                 (mf: any) => 
@@ -166,6 +199,21 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // Appliquer les modificateurs d'options (couleur, taille, etc.)
+            for (const optMod of rule.option_modifiers || []) {
+              const match = selectedOptions.find(
+                (opt: any) => 
+                  opt.name.toLowerCase() === optMod.option_name.toLowerCase() &&
+                  opt.value.toLowerCase() === optMod.option_value.toLowerCase()
+              );
+
+              if (match) {
+                cost += optMod.modifier_amount;
+                const sign = optMod.modifier_amount >= 0 ? '+' : '';
+                appliedModifiers.push(`${sign}${optMod.modifier_amount}€ (${optMod.option_value})`);
+              }
+            }
+
             // Mettre à jour sur Shopify
             const updateResult: any = await shopifyClient.request(UPDATE_INVENTORY_COST_MUTATION, {
               variables: {
@@ -176,11 +224,11 @@ export async function POST(request: NextRequest) {
 
             if (updateResult.data?.inventoryItemUpdate?.userErrors?.length > 0) {
               const err = updateResult.data.inventoryItemUpdate.userErrors[0].message;
-              send(`  ❌ [${i + 1}/${allVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
+              send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
               errorCount++;
             } else {
               const modifiersStr = appliedModifiers.length > 0 ? ` ${appliedModifiers.join(' ')}` : '';
-              send(`  ✓ [${i + 1}/${allVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${modifiersStr}`, 'progress');
+              send(`  ✓ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${modifiersStr}`, 'progress');
               updatedCount++;
             }
 
@@ -188,7 +236,7 @@ export async function POST(request: NextRequest) {
             await new Promise(resolve => setTimeout(resolve, 50));
 
           } catch (err) {
-            send(`  ❌ [${i + 1}/${allVariants.length}] ${variant.sku}: Erreur`, 'error');
+            send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku}: Erreur`, 'error');
             errorCount++;
           }
         }
