@@ -37,9 +37,13 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
       
       if (response.ok) {
         const data = await response.json();
+        const newCount = data.newOrdersCount || 0;
+        
         notifications.show({
           title: 'Synchronisation terminée',
-          message: `${data.ordersCount || 0} commande(s) synchronisée(s)`,
+          message: newCount > 0 
+            ? `${newCount} nouvelle(s) commande(s) importée(s)` 
+            : 'Aucune nouvelle commande',
           color: 'green',
         });
         // Déclencher un refresh de la page si on est sur les commandes boutique

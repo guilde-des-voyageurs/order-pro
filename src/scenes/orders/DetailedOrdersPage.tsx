@@ -18,18 +18,25 @@ import { colorMappings } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { IconMessage, IconAlertTriangle, IconArrowsSort, IconCheck } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ShopifyOrder } from '@/types/shopify';
 import * as ordersService from '@/supabase/services/orders';
 import { useShop } from '@/context/ShopContext';
+
+interface MetafieldConfig {
+  namespace: string;
+  key: string;
+  display_name: string;
+}
 
 interface OrderRowProps {
   order: ShopifyOrder;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  metafieldConfigs: MetafieldConfig[];
 }
 
-function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
+function OrderRow({ order, isSelected, onSelect, metafieldConfigs }: OrderRowProps) {
   const clipboard = useClipboard();
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   const [isMarkingAsFulfilled, setIsMarkingAsFulfilled] = useState(false);
@@ -161,41 +168,26 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                             {item.variantTitle.split(' / ').map((variant) => transformColor(variant)).join(' / ')}
                           </Text>
                         )}
-                        <Group gap="xs">
-                          {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                            <Badge
-                              variant="light"
-                              color="gray"
-                              radius="xl"
-                              size="lg"
-                              styles={{
-                                root: {
-                                  fontWeight: 400,
-                                  color: 'var(--mantine-color-dark-6)'
-                                }
-                              }}
-                            >
-                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}
-                            </Badge>
-                          )}
-                          {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
-                            <Badge
-                              variant="light"
-                              color="gray"
-                              radius="xl"
-                              size="lg"
-                              styles={{
-                                root: {
-                                  fontWeight: 400,
-                                  color: 'var(--mantine-color-dark-6)'
-                                }
-                              }}
-                            >
-                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}
-                            </Badge>
-                          )}
-                        </Group>
                       </Group>
+                      {item.variant?.metafields && item.variant.metafields.length > 0 && metafieldConfigs.length > 0 && (
+                        <Group gap="xs" mt="xs">
+                          {item.variant.metafields
+                            .filter((mf: any) => metafieldConfigs.some(cfg => cfg.namespace === mf.namespace && cfg.key === mf.key))
+                            .map((mf: any, mfIndex: number) => {
+                              const config = metafieldConfigs.find(cfg => cfg.namespace === mf.namespace && cfg.key === mf.key);
+                              return (
+                                <Badge
+                                  key={mfIndex}
+                                  variant="light" 
+                                  color="violet" 
+                                  size="md"
+                                >
+                                  {config?.display_name || mf.key} : {mf.value}
+                                </Badge>
+                              );
+                            })}
+                        </Group>
+                      )}
                     </div>
                     <Group gap="xs" className={styles.productActions}>
                       <Badge color={item.isCancelled ? 'red' : 'blue'}>
@@ -236,101 +228,6 @@ function OrderRow({ order, isSelected, onSelect }: OrderRowProps) {
                       )})}
                     </Group>
                   </div>
-                  {(item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') || 
-                    item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')) && (
-                    <Box mt="md" px="md">
-                      <Group gap="xs">
-                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression') && (
-                                <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
-                                  <Badge
-                                    variant="light" 
-                                    color="gray" 
-                                    radius="xl" 
-                                    size="lg"
-                                    fullWidth
-                                    styles={{ 
-                                      root: { 
-                                        whiteSpace: 'normal',
-                                        height: 'auto',
-                                        textAlign: 'left',
-                                        lineHeight: 1.5,
-                                        fontWeight: 400,
-                                        color: 'var(--mantine-color-dark-6)',
-                                        cursor: 'pointer',
-                                        maxWidth: '20vw',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        '&:hover': {
-                                          opacity: 0.8
-                                        }
-                                      } 
-                                    }}
-                                    onClick={() => {
-                                      const cleanTitle = item.title
-                                        .replace(/^(.+?)\s*\|.*$/, '$1')
-                                        .trim()
-                                        .toUpperCase();
-                                        const path = `/Utilisateurs/Mac/Desktop/NAS Runes de Chene/PRODUCTION/MOTIFS/${cleanTitle}`;
-
-                                      clipboard.copy(path);
-                                    }}
-                                  >
-                                    <Text span fw={700} inherit>
-                                      RECTO : {item.title
-                                        .replace(/^(.+?)\s*\|.*$/, '$1')
-                                        .trim()
-                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value}{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'fichier_d_impression')?.value?.toUpperCase()?.includes('MARQUE') ? '_UNI' : `_${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}`}
-                                    </Text>
-                                  </Badge>
-                                </Tooltip>
-                              )}
-                              {item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression') && (
-                                <Tooltip label="Cliquer pour copier le chemin d'accès local" position="right">
-                                  <Badge
-                                    variant="light" 
-                                    color="gray" 
-                                    radius="xl" 
-                                    size="lg"
-                                    fullWidth
-                                    styles={{ 
-                                      root: { 
-                                        whiteSpace: 'normal',
-                                        height: 'auto',
-                                        textAlign: 'left',
-                                        lineHeight: 1.5,
-                                        fontWeight: 400,
-                                        color: 'var(--mantine-color-dark-6)',
-                                        cursor: 'pointer',
-                                        maxWidth: '20vw',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        '&:hover': {
-                                          opacity: 0.8
-                                        }
-                                      } 
-                                    }}
-                                    onClick={() => {
-                                      const cleanTitle = item.title
-                                        .replace(/^(.+?)\s*\|.*$/, '$1')
-                                        .trim()
-                                        .toUpperCase();
-                                        const path = `/Utilisateurs/Mac/Desktop/NAS Runes de Chene/PRODUCTION/MOTIFS/${cleanTitle}`;
-
-                                      clipboard.copy(path);
-                                    }}
-                                  >
-                                    <Text span fw={700} inherit>
-                                      VERSO : {item.title
-                                        .replace(/^(.+?)\s*\|.*$/, '$1')
-                                        .trim()
-                                        .toUpperCase()}_{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value}{item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'verso_impression')?.value?.toUpperCase()?.includes('MARQUE') ? '_UNI' : `_${item.variant?.metafields?.find(m => m.namespace === 'custom' && m.key === 'taille_d_impression')?.value || ''}`}
-                                    </Text>
-                                  </Badge>
-                                </Tooltip>
-                              )}
-                      </Group>
-                    </Box>
-                  )}
                 </Paper>
               ))}
             </div>
@@ -352,15 +249,17 @@ function OrdersSection({
   onSelect, 
   type,
   isReversed,
-  toggleOrder 
+  toggleOrder,
+  metafieldConfigs 
 }: { 
   title: string;
   orders: ShopifyOrder[];
   selectedOrder: ShopifyOrder | undefined;
   onSelect: (id: string) => void;
-  type: string;
+  type: 'pending' | 'archived';
   isReversed: boolean;
   toggleOrder: () => void;
+  metafieldConfigs: MetafieldConfig[];
 }) {
   return (
     <div className={styles.section}>
@@ -395,6 +294,7 @@ function OrdersSection({
               order={order}
               isSelected={selectedOrder?.id === order.id}
               onSelect={onSelect}
+              metafieldConfigs={metafieldConfigs}
             />
           ))}
         </div>
@@ -415,6 +315,36 @@ export function DetailedOrdersPage() {
     isReversed,
     toggleOrder 
   } = useDetailedOrdersPagePresenter();
+  
+  const { currentShop } = useShop();
+  const [printerNotes, setPrinterNotes] = useState<string[]>([]);
+  const [metafieldConfigs, setMetafieldConfigs] = useState<MetafieldConfig[]>([]);
+  
+  const fetchSettings = useCallback(async () => {
+    if (!currentShop) return;
+    try {
+      const [orderSettingsRes, metafieldsRes] = await Promise.all([
+        fetch(`/api/settings/orders?shopId=${currentShop.id}`),
+        fetch(`/api/settings/metafields?shopId=${currentShop.id}`),
+      ]);
+      
+      if (orderSettingsRes.ok) {
+        const data = await orderSettingsRes.json();
+        setPrinterNotes(data.settings?.printer_notes || []);
+      }
+      
+      if (metafieldsRes.ok) {
+        const data = await metafieldsRes.json();
+        setMetafieldConfigs(data.metafields || []);
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+    }
+  }, [currentShop]);
+  
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   if (isLoading) {
     return <Loader />;
@@ -455,19 +385,22 @@ export function DetailedOrdersPage() {
         </Group>
       </Group>
 
-      <Alert 
-        icon={<IconAlertTriangle size={16} />}
-        title="Penser à :"
-        color="gray"
-        variant="light"
-      >
-        <Group gap="sm">
-          <Badge size="lg" variant="light" color="gray">retirer les étiquettes Stanley</Badge>
-          <Badge size="lg" variant="light" color="gray">glisser le mot de remerciement</Badge>
-          <Badge size="lg" variant="light" color="gray">le sticker</Badge>
-          <Badge size="lg" variant="light" color="gray">le Flyer !</Badge>
-        </Group>
-      </Alert>
+      {printerNotes.length > 0 && (
+        <Alert 
+          icon={<IconAlertTriangle size={16} />}
+          title="Penser à :"
+          color="gray"
+          variant="light"
+        >
+          <Group gap="sm">
+            {printerNotes.map((note, index) => (
+              <Badge key={index} size="lg" variant="light" color="gray" style={{ textTransform: 'uppercase' }}>
+                {note}
+              </Badge>
+            ))}
+          </Group>
+        </Alert>
+      )}
 
       <OrdersSection
         title="Commandes en cours"
@@ -477,6 +410,7 @@ export function DetailedOrdersPage() {
         type="pending"
         isReversed={isReversed}
         toggleOrder={toggleOrder}
+        metafieldConfigs={metafieldConfigs}
       />
 
       <OrderDrawer

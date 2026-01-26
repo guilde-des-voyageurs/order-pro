@@ -45,6 +45,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Vérifier si le métachamp existe déjà
+    const { data: existing } = await supabase
+      .from('metafield_config')
+      .select('id')
+      .eq('shop_id', shopId)
+      .eq('namespace', namespace)
+      .eq('key', key)
+      .single();
+
+    if (existing) {
+      return NextResponse.json({ error: 'Ce métachamp existe déjà' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('metafield_config')
       .insert({

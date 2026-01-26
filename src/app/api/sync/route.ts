@@ -47,32 +47,36 @@ export async function POST(request: Request) {
     // On passe les credentials de la boutique
     const allOrders = await fetchOrdersApiAction(shop.shopify_url, shop.shopify_token);
 
-    // Filtrer les commandes avec le tag "no-order-pro"
+    // Filtrer les commandes avec les tags "no-order-pro" ou "no-ivy"
     const orders = allOrders.filter(order => 
-      !order.tags?.some((tag: string) => tag.toLowerCase() === 'no-order-pro')
+      !order.tags?.some((tag: string) => 
+        tag.toLowerCase() === 'no-order-pro' || tag.toLowerCase() === 'no-ivy'
+      )
     );
 
-    // Identifier les commandes "no-order-pro" à supprimer de la base
-    const noOrderProIds = allOrders
-      .filter(order => order.tags?.some((tag: string) => tag.toLowerCase() === 'no-order-pro'))
+    // Identifier les commandes exclues à supprimer de la base
+    const excludedOrderIds = allOrders
+      .filter(order => order.tags?.some((tag: string) => 
+        tag.toLowerCase() === 'no-order-pro' || tag.toLowerCase() === 'no-ivy'
+      ))
       .map(order => order.id);
 
-    if (noOrderProIds.length > 0) {
-      // Supprimer les commandes "no-order-pro" existantes de Supabase
+    if (excludedOrderIds.length > 0) {
+      // Supprimer les commandes exclues existantes de Supabase
       const { error: deleteError } = await supabase
         .from('orders')
         .delete()
         .eq('shop_id', shopId)
-        .in('shopify_id', noOrderProIds);
+        .in('shopify_id', excludedOrderIds);
 
       if (deleteError) {
-        console.error('Error deleting no-order-pro orders:', deleteError);
+        console.error('Error deleting excluded orders:', deleteError);
       } else {
-        console.log(`Deleted ${noOrderProIds.length} orders with "no-order-pro" tag`);
+        console.log(`Deleted ${excludedOrderIds.length} excluded orders`);
       }
     }
 
-    console.log(`Syncing ${orders.length} orders (filtered ${allOrders.length - orders.length} with "no-order-pro" tag)`);
+    console.log(`Syncing ${orders.length} orders (filtered ${allOrders.length - orders.length} excluded)`);
 
     // Transformer et sauvegarder les commandes dans Supabase
     const ordersToInsert = orders.map(order => ({
@@ -92,6 +96,12 @@ export async function POST(request: Request) {
       synced_at: new Date().toISOString(),
     }));
 
+    // Compter les commandes AVANT l'upsert pour savoir combien sont nouvelles
+    const { count: countBefore } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shopId);
+
     // Upsert des commandes (insert ou update si existe déjà)
     const { error: upsertError } = await supabase
       .from('orders')
@@ -100,6 +110,17 @@ export async function POST(request: Request) {
     if (upsertError) {
       throw upsertError;
     }
+    
+    // Compter les commandes APRÈS l'upsert
+    const { count: countAfter } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', shopId);
+    
+    // Le nombre de nouvelles commandes = différence entre avant et après
+    const newOrdersCount = (countAfter || 0) - (countBefore || 0);
+    // Les commandes mises à jour = commandes synchronisées - nouvelles
+    const updatedOrdersCount = orders.length - newOrdersCount;
 
     // Initialiser la progression pour chaque commande
     for (const order of orders) {
@@ -131,7 +152,12 @@ export async function POST(request: Request) {
         .eq('id', syncRecord.id);
     }
 
-    return NextResponse.json({ success: true, ordersCount: orders.length });
+    return NextResponse.json({ 
+      success: true, 
+      ordersCount: orders.length,
+      newOrdersCount,
+      updatedOrdersCount 
+    });
   } catch (error) {
     console.error('Error syncing orders:', error);
     return NextResponse.json(
