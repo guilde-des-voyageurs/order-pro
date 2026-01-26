@@ -227,6 +227,13 @@ export async function POST(request: NextRequest) {
               send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
               errorCount++;
             } else {
+              // Mettre à jour aussi le coût local dans product_variants
+              const variantShopifyId = variant.id.replace('gid://shopify/ProductVariant/', '');
+              await supabase
+                .from('product_variants')
+                .update({ cost: cost })
+                .eq('shopify_id', variantShopifyId);
+
               const modifiersStr = appliedModifiers.length > 0 ? ` ${appliedModifiers.join(' ')}` : '';
               send(`  ✓ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${modifiersStr}`, 'progress');
               updatedCount++;

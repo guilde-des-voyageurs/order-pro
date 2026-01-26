@@ -60,6 +60,8 @@ export default function PriceRulesPage() {
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [applyingLocal, setApplyingLocal] = useState<string | null>(null);
+  const [applyingAllShopify, setApplyingAllShopify] = useState(false);
+  const [applyingAllLocal, setApplyingAllLocal] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState<Array<{message: string, type: string, timestamp: string}>>([]);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -362,40 +364,168 @@ export default function PriceRulesPage() {
     if (!currentShop || !rule.id) return;
 
     setApplyingLocal(rule.id);
-    try {
-      const response = await fetch('/api/settings/price-rules/apply-local', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shopId: currentShop.id,
-          ruleId: rule.id,
-        }),
-      });
+    setTerminalLogs([]);
+    setTerminalOpen(true);
 
-      if (response.ok) {
-        const data = await response.json();
-        notifications.show({
-          title: 'Succès',
-          message: `${data.updatedItemsCount} article(s) mis à jour dans ${data.updatedOrdersCount} commande(s)`,
-          color: 'green',
-        });
-        fetchData();
-      } else {
-        const error = await response.json();
-        notifications.show({
-          title: 'Erreur',
-          message: error.error || 'Impossible d\'appliquer la règle',
-          color: 'red',
-        });
+    try {
+      const response = await fetch(`/api/settings/price-rules/apply-local-stream?shopId=${currentShop.id}&ruleId=${rule.id}`);
+      
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            if (data.message === 'DONE') {
+              fetchData();
+            } else {
+              setTerminalLogs(prev => [...prev, data]);
+              setTimeout(() => {
+                if (terminalRef.current) {
+                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                }
+              }, 10);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
       }
     } catch (err) {
-      notifications.show({
-        title: 'Erreur',
-        message: 'Impossible d\'appliquer la règle en local',
-        color: 'red',
-      });
+      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
     } finally {
       setApplyingLocal(null);
+    }
+  };
+
+  // Appliquer toutes les règles actives sur Shopify
+  const applyAllShopify = async () => {
+    if (!currentShop) return;
+    
+    const activeRules = rules.filter(r => r.is_active);
+    if (activeRules.length === 0) {
+      notifications.show({
+        title: 'Attention',
+        message: 'Aucune règle active à appliquer',
+        color: 'orange',
+      });
+      return;
+    }
+
+    setApplyingAllShopify(true);
+    setTerminalLogs([]);
+    setTerminalOpen(true);
+
+    try {
+      const response = await fetch(`/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=shopify`);
+      
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            if (data.message === 'DONE') {
+              fetchData();
+            } else {
+              setTerminalLogs(prev => [...prev, data]);
+              setTimeout(() => {
+                if (terminalRef.current) {
+                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                }
+              }, 10);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    } catch (err) {
+      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
+    } finally {
+      setApplyingAllShopify(false);
+    }
+  };
+
+  // Appliquer toutes les règles actives en local
+  const applyAllLocal = async () => {
+    if (!currentShop) return;
+    
+    const activeRules = rules.filter(r => r.is_active);
+    if (activeRules.length === 0) {
+      notifications.show({
+        title: 'Attention',
+        message: 'Aucune règle active à appliquer',
+        color: 'orange',
+      });
+      return;
+    }
+
+    setApplyingAllLocal(true);
+    setTerminalLogs([]);
+    setTerminalOpen(true);
+
+    try {
+      const response = await fetch(`/api/settings/price-rules/apply-all-stream?shopId=${currentShop.id}&target=local`);
+      
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            if (data.message === 'DONE') {
+              fetchData();
+            } else {
+              setTerminalLogs(prev => [...prev, data]);
+              setTimeout(() => {
+                if (terminalRef.current) {
+                  terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                }
+              }, 10);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    } catch (err) {
+      setTerminalLogs(prev => [...prev, { message: `❌ Erreur: ${err}`, type: 'error', timestamp: new Date().toISOString() }]);
+    } finally {
+      setApplyingAllLocal(false);
     }
   };
 
@@ -458,10 +588,47 @@ export default function PriceRulesPage() {
             Définissez des règles de calcul de coût basées sur le SKU et les métachamps
           </Text>
         </div>
-        <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
-          Nouvelle règle
-        </Button>
+        <Group gap="xs">
+          <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
+            Nouvelle règle
+          </Button>
+        </Group>
       </Group>
+
+      {/* Boutons d'application globale */}
+      {rules.filter(r => r.is_active).length > 0 && (
+        <Paper withBorder p="md" radius="md" mb="lg" bg="gray.0">
+          <Group justify="space-between">
+            <div>
+              <Text fw={600}>Appliquer toutes les règles actives</Text>
+              <Text size="sm" c="dimmed">
+                {rules.filter(r => r.is_active).length} règle(s) active(s)
+              </Text>
+            </div>
+            <Group gap="xs">
+              <Button
+                leftSection={applyingAllLocal ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
+                color="blue"
+                variant="light"
+                onClick={applyAllLocal}
+                loading={applyingAllLocal}
+                disabled={applyingAllShopify}
+              >
+                Appliquer toutes en local
+              </Button>
+              <Button
+                leftSection={applyingAllShopify ? <Loader size={14} /> : <IconPlayerPlay size={16} />}
+                color="green"
+                onClick={applyAllShopify}
+                loading={applyingAllShopify}
+                disabled={applyingAllLocal}
+              >
+                Appliquer toutes sur Shopify
+              </Button>
+            </Group>
+          </Group>
+        </Paper>
+      )}
 
       {/* Terminal de logs */}
       {terminalOpen && (
@@ -575,9 +742,6 @@ export default function PriceRulesPage() {
                         +{rule.option_modifiers.length} option(s)
                       </Badge>
                     )}
-                    <Badge color="green" variant="filled">
-                      Total max: {calculateTotalPrice(rule).toFixed(2)} €
-                    </Badge>
                   </Group>
                 </Group>
               </Accordion.Control>
