@@ -1,0 +1,28 @@
+.pageContainer {
+  padding: 0;
+}
+
+.tableContainer {
+  overflow: hidden;
+}
+
+.tableRow {
+  &:hover {
+    background-color: var(--mantine-color-gray-0);
+  }
+}
+
+.skuTitle {
+  display: flex;
+  align-items: center;
+}
+
+.orderNumber {
+  cursor: pointer;
+  color: var(--mantine-color-blue-6);
+  font-size: 0.85rem;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
