@@ -200,7 +200,7 @@ async function applyAllOnShopify(
         let cost = rule.base_price;
         const metafields = variant.metafields?.nodes || [];
         const selectedOptions = variant.selectedOptions || [];
-        const appliedModifiers: string[] = [];
+        const costParts: string[] = [`${rule.base_price}€`];
 
         // Appliquer les modificateurs de métachamps
         for (const modifier of rule.modifiers || []) {
@@ -213,7 +213,8 @@ async function applyAllOnShopify(
 
           if (match) {
             cost += modifier.modifier_amount;
-            appliedModifiers.push(`+${modifier.modifier_amount}€`);
+            const sign = modifier.modifier_amount >= 0 ? '+' : '';
+            costParts.push(`${sign}${modifier.modifier_amount}€ (${modifier.metafield_value})`);
           }
         }
 
@@ -228,7 +229,7 @@ async function applyAllOnShopify(
           if (match) {
             cost += optMod.modifier_amount;
             const sign = optMod.modifier_amount >= 0 ? '+' : '';
-            appliedModifiers.push(`${sign}${optMod.modifier_amount}€`);
+            costParts.push(`${sign}${optMod.modifier_amount}€ (${optMod.option_value})`);
           }
         }
 
@@ -244,8 +245,8 @@ async function applyAllOnShopify(
           send(`    ❌ ${variant.sku} - ${variant.title}`, 'error');
           totalErrors++;
         } else {
-          const modStr = appliedModifiers.length > 0 ? ` ${appliedModifiers.join(' ')}` : '';
-          send(`    ✓ ${variant.sku} → ${cost.toFixed(2)}€${modStr}`, 'progress');
+          const calcStr = costParts.length > 1 ? ` (${costParts.join(' ')})` : '';
+          send(`    ✓ ${variant.sku} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
           totalUpdated++;
         }
 
@@ -309,9 +310,11 @@ async function applyAllLocal(
 
       if (matchingRule) {
         let cost = matchingRule.base_price;
+        const costParts: string[] = [`${matchingRule.base_price}€`];
 
         // Appliquer les modificateurs de métachamps si disponibles
-        const itemMetafields = item.metafields || [];
+        // Les métachamps sont stockés dans item.variant.metafields (tableau)
+        const itemMetafields = item.variant?.metafields || [];
         for (const modifier of matchingRule.modifiers || []) {
           const match = itemMetafields.find(
             (mf: any) => 
@@ -322,6 +325,8 @@ async function applyAllLocal(
 
           if (match) {
             cost += modifier.modifier_amount;
+            const sign = modifier.modifier_amount >= 0 ? '+' : '';
+            costParts.push(`${sign}${modifier.modifier_amount}€ (${modifier.metafield_value})`);
           }
         }
 
@@ -334,6 +339,8 @@ async function applyAllLocal(
 
           if (match) {
             cost += optMod.modifier_amount;
+            const sign = optMod.modifier_amount >= 0 ? '+' : '';
+            costParts.push(`${sign}${optMod.modifier_amount}€ (${optMod.option_value})`);
           }
         }
 
@@ -345,6 +352,9 @@ async function applyAllLocal(
           };
           orderUpdated = true;
           totalOrderItemsUpdated++;
+          
+          const calcStr = costParts.length > 1 ? ` (${costParts.join(' ')})` : '';
+          send(`  ✓ ${order.name} - ${itemSku} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
         }
       }
     }

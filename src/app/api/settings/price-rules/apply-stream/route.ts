@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
             let cost = rule.base_price;
             const metafields = variant.metafields?.nodes || [];
             const selectedOptions = variant.selectedOptions || [];
-            const appliedModifiers: string[] = [];
+            const costParts: string[] = [`${rule.base_price}€`];
             
             // Appliquer les modificateurs de métachamps
             for (const modifier of rule.modifiers || []) {
@@ -195,7 +195,8 @@ export async function POST(request: NextRequest) {
 
               if (match) {
                 cost += modifier.modifier_amount;
-                appliedModifiers.push(`+${modifier.modifier_amount}€ (${modifier.metafield_value})`);
+                const sign = modifier.modifier_amount >= 0 ? '+' : '';
+                costParts.push(`${sign}${modifier.modifier_amount}€ (${modifier.metafield_value})`);
               }
             }
 
@@ -210,7 +211,7 @@ export async function POST(request: NextRequest) {
               if (match) {
                 cost += optMod.modifier_amount;
                 const sign = optMod.modifier_amount >= 0 ? '+' : '';
-                appliedModifiers.push(`${sign}${optMod.modifier_amount}€ (${optMod.option_value})`);
+                costParts.push(`${sign}${optMod.modifier_amount}€ (${optMod.option_value})`);
               }
             }
 
@@ -227,8 +228,8 @@ export async function POST(request: NextRequest) {
               send(`  ❌ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title}: ${err}`, 'error');
               errorCount++;
             } else {
-              const modifiersStr = appliedModifiers.length > 0 ? ` ${appliedModifiers.join(' ')}` : '';
-              send(`  ✓ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${modifiersStr}`, 'progress');
+              const calcStr = costParts.length > 1 ? ` (${costParts.join(' ')})` : '';
+              send(`  ✓ [${i + 1}/${filteredVariants.length}] ${variant.sku} - ${variant.title} → ${cost.toFixed(2)}€${calcStr}`, 'progress');
               updatedCount++;
             }
 
