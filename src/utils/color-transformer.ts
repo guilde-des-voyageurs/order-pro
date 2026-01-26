@@ -1,30 +1,15 @@
 interface ColorMapping {
-  internalName: string;
+  displayName: string | null;
+  hexValue: string;
 }
 
-// Mapping statique par défaut (fallback si Supabase non disponible)
-export const colorMappings: { [key: string]: ColorMapping } = {
-  'Bleu Azur': { internalName: 'Stargazer' },
-  'Bleu Marine': { internalName: 'French Navy' },
-  'Blanc ancien': { internalName: 'Vintage white' },
-  'Ecru': { internalName: 'Raw' },
-  'Bleu Nuit': { internalName: 'Green Bay' },
-  'Bordeaux': { internalName: 'Burgundy' },
-  'Crème': { internalName: 'Cream' },
-  'Nocturne': { internalName: 'Dusk' },
-  'Kaki': { internalName: 'Khaki' },
-  'Terra Cotta': { internalName: 'Heritage Brown' },
-  'Vert Forêt': { internalName: 'Glazed Green' },
-  'Vert Antique': { internalName: 'Bottle Green' },
-  'Prune': { internalName: 'Red Brown' },
-  'Chocolat': { internalName: 'Mocha' },
-  'Bleu Indien': { internalName: 'India Ink Grey' },
-  'Noir': { internalName: 'Black' },
-  'Mocha': { internalName: 'Mocha' }
-};
+// Mapping statique par défaut - displayName null = pas de transformation
+// Ces couleurs sont uniquement pour avoir une couleur hex par défaut
+export const colorMappings: { [key: string]: ColorMapping } = {};
 
 // Cache pour les mappings dynamiques depuis Supabase
 let dynamicColorMappings: { [key: string]: ColorMapping } | null = null;
+let colorMappingsLoaded = false;
 
 /**
  * Charge les mappings de couleurs depuis Supabase
@@ -34,17 +19,27 @@ export async function loadColorMappingsFromSupabase(shopId: string): Promise<voi
     const response = await fetch(`/api/settings?shopId=${shopId}`);
     if (response.ok) {
       const data = await response.json();
+      dynamicColorMappings = {};
       if (data.colorRules && data.colorRules.length > 0) {
-        dynamicColorMappings = {};
-        data.colorRules.forEach((rule: { color_name: string; hex_value: string }) => {
-          // color_name = français, hex_value = anglais (dans le contexte des mappings)
-          dynamicColorMappings![rule.color_name] = { internalName: rule.hex_value };
+        data.colorRules.forEach((rule: { reception_name: string; display_name: string | null; hex_value: string }) => {
+          dynamicColorMappings![rule.reception_name] = { 
+            displayName: rule.display_name,
+            hexValue: rule.hex_value 
+          };
         });
       }
+      colorMappingsLoaded = true;
     }
   } catch (err) {
     console.error('Error loading color mappings from Supabase:', err);
   }
+}
+
+/**
+ * Vérifie si les mappings ont été chargés
+ */
+export function areColorMappingsLoaded(): boolean {
+  return colorMappingsLoaded;
 }
 
 /**
@@ -55,42 +50,41 @@ export function getActiveColorMappings(): { [key: string]: ColorMapping } {
 }
 
 /**
- * Transforme le nom d'une couleur en ajoutant son nom interne
- * @param color - Le nom de la couleur à transformer
- * @returns Le nom formaté avec le nom interne entre parenthèses
+ * Cherche une correspondance de couleur insensible à la casse
+ */
+function findColorMapping(color: string, mappings: { [key: string]: ColorMapping }): [string, ColorMapping] | undefined {
+  // Normaliser l'entrée (minuscules, sans accents)
+  const normalizedInput = color.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  return Object.entries(mappings).find(([key]) => {
+    const normalizedKey = key.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return normalizedKey === normalizedInput;
+  });
+}
+
+/**
+ * Transforme le nom d'une couleur vers son nom d'affichage (Ivy)
+ * La recherche est insensible à la casse (Bleu Marine = bleu marine = BLEU MARINE)
+ * @param color - Le nom de la couleur à transformer (nom de réception)
+ * @returns Le nom d'affichage si configuré, sinon le nom original
  */
 export function transformColor(color: string): string {
   if (!color) return 'Sans couleur';
   
   const activeMappings = getActiveColorMappings();
   
-  // Chercher une correspondance directe
-  if (activeMappings[color]) {
-    return activeMappings[color].internalName;
-  }
-
   // Nettoyer la couleur (enlever les parenthèses et leur contenu)
   const cleanColor = color.replace(/\s*\([^)]*\)/g, '').trim();
 
-  // Chercher une correspondance avec la couleur nettoyée
-  if (activeMappings[cleanColor]) {
-    return activeMappings[cleanColor].internalName;
-  }
-
-  // Si toujours pas de correspondance, essayer avec la normalisation
-  const normalizedInput = cleanColor.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-  const foundColor = Object.entries(activeMappings).find(([key]) => {
-    const normalizedKey = key.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    return normalizedKey === normalizedInput;
-  });
+  // Chercher une correspondance insensible à la casse
+  const foundColor = findColorMapping(cleanColor, activeMappings);
 
   if (foundColor) {
-    return foundColor[1].internalName;
+    return foundColor[1].displayName || cleanColor;
   }
 
   // Si aucune correspondance n'est trouvée, retourner la couleur originale
@@ -98,25 +92,62 @@ export function transformColor(color: string): string {
 }
 
 /**
- * Transforme le nom anglais d'une couleur vers son nom français
+ * Transforme le nom d'affichage d'une couleur vers son nom de réception
  * Utilisé pour la génération des strings de facturation (règles en français)
- * @param englishColor - Le nom anglais de la couleur
- * @returns Le nom français correspondant
+ * @param displayColor - Le nom d'affichage de la couleur
+ * @returns Le nom de réception correspondant
  */
-export function reverseTransformColor(englishColor: string): string {
-  if (!englishColor) return '';
+export function reverseTransformColor(displayColor: string): string {
+  if (!displayColor) return '';
   
   const activeMappings = getActiveColorMappings();
   
-  // Chercher la correspondance inverse (anglais → français)
+  // Chercher la correspondance inverse (displayName → reception_name)
   const foundEntry = Object.entries(activeMappings).find(([_, mapping]) => 
-    mapping.internalName.toLowerCase() === englishColor.toLowerCase()
+    mapping.displayName?.toLowerCase() === displayColor.toLowerCase()
   );
   
   if (foundEntry) {
-    return foundEntry[0]; // Retourner le nom français
+    return foundEntry[0]; // Retourner le nom de réception
   }
   
   // Si pas de correspondance, retourner la couleur telle quelle
-  return englishColor;
+  return displayColor;
+}
+
+/**
+ * Retourne la couleur hexadécimale associée à un nom de couleur
+ * La recherche est insensible à la casse
+ * @param color - Le nom de la couleur (réception ou affichage)
+ * @returns Le code hexadécimal ou un gris par défaut
+ */
+export function getColorHex(color: string): string {
+  if (!color) return '#808080';
+  
+  const activeMappings = getActiveColorMappings();
+  
+  // Chercher par nom de réception (insensible à la casse)
+  const foundByReception = findColorMapping(color, activeMappings);
+  if (foundByReception) {
+    return foundByReception[1].hexValue;
+  }
+  
+  // Chercher par displayName (insensible à la casse)
+  const normalizedInput = color.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+    
+  const foundByDisplay = Object.entries(activeMappings).find(([_, mapping]) => {
+    if (!mapping.displayName) return false;
+    const normalizedDisplay = mapping.displayName.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return normalizedDisplay === normalizedInput;
+  });
+  
+  if (foundByDisplay) {
+    return foundByDisplay[1].hexValue;
+  }
+  
+  return '#808080';
 }

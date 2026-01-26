@@ -15,7 +15,7 @@ export function TopNavbar() {
   const { signOut } = useAuth();
   
   const isCommandesSection = pathname.startsWith('/ivy/commandes');
-  const isInventaireSection = pathname.startsWith('/ivy/inventaire') || pathname.startsWith('/ivy/parametres');
+  const isInventaireSection = pathname.startsWith('/ivy/inventaire');
 
   const handleLogout = async () => {
     try {
@@ -67,7 +67,7 @@ export function TopNavbar() {
             variant="subtle" 
             color="gray" 
             size="lg"
-            onClick={() => router.push('/ivy/parametres')}
+            onClick={() => router.push('/parametres')}
           >
             <IconSettings size={20} />
           </ActionIcon>

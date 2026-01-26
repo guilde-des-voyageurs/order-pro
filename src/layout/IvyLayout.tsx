@@ -122,6 +122,7 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
           href: '/ivy/inventaire',
           label: 'Tableau de bord',
           icon: IconHome,
+          exact: true,
         },
         {
           href: '/ivy/inventaire/produits',
@@ -165,9 +166,11 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
                 <div className={styles.menu_category_title}>{category.title}</div>
               )}
               <ul>
-                {category.items.map((item) => {
+                {category.items.map((item: any) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  const isActive = item.exact 
+                    ? pathname === item.href 
+                    : pathname === item.href || pathname.startsWith(item.href + '/');
                   return (
                     <li key={item.href}>
                       <Link

@@ -13,8 +13,7 @@ import { DaysElapsed } from '@/components/DaysElapsed/DaysElapsed';
 import { VariantCheckbox } from '@/components/VariantCheckbox';
 import { FinancialStatus } from '@/components/FinancialStatus';
 import styles from './DetailedOrdersPage.module.scss';
-import { transformColor } from '@/utils/color-transformer';
-import { colorMappings } from '@/utils/color-transformer';
+import { transformColor, loadColorMappingsFromSupabase } from '@/utils/color-transformer';
 import { generateVariantId, getSelectedOptions, getColorFromVariant, getSizeFromVariant } from '@/utils/variant-helpers';
 import { encodeFirestoreId } from '@/utils/firebase-helpers';
 import { IconMessage, IconAlertTriangle, IconArrowsSort, IconCheck } from '@tabler/icons-react';
@@ -323,6 +322,9 @@ export function DetailedOrdersPage() {
   const fetchSettings = useCallback(async () => {
     if (!currentShop) return;
     try {
+      // Charger les mappings de couleurs
+      await loadColorMappingsFromSupabase(currentShop.id);
+      
       const [orderSettingsRes, metafieldsRes] = await Promise.all([
         fetch(`/api/settings/orders?shopId=${currentShop.id}`),
         fetch(`/api/settings/metafields?shopId=${currentShop.id}`),

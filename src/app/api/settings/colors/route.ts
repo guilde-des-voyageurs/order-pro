@@ -9,28 +9,44 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { shopId, color_name, hex_value } = body;
+    const { shopId, reception_name, display_name, hex_value } = body;
 
-    if (!shopId || !color_name || !hex_value) {
+    if (!shopId || !reception_name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // Essayer d'abord avec le nouveau schéma (reception_name)
+    let result = await supabase
       .from('color_rules')
       .insert({
         shop_id: shopId,
-        color_name: color_name.toLowerCase().trim(),
-        hex_value,
+        reception_name: reception_name.trim(),
+        display_name: display_name?.trim() || null,
+        hex_value: hex_value || '#808080',
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating color rule:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // Si erreur (colonne n'existe pas), essayer avec l'ancien schéma (color_name)
+    if (result.error && result.error.code === '42703') {
+      console.log('Fallback to old schema (color_name)');
+      result = await supabase
+        .from('color_rules')
+        .insert({
+          shop_id: shopId,
+          color_name: reception_name.trim(),
+          hex_value: display_name?.trim() || hex_value || '#808080',
+        })
+        .select()
+        .single();
     }
 
-    return NextResponse.json(data);
+    if (result.error) {
+      console.error('Error creating color rule:', result.error);
+      return NextResponse.json({ error: result.error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(result.data);
   } catch (error) {
     console.error('Error creating color rule:', error);
     return NextResponse.json({ error: 'Failed to create color rule' }, { status: 500 });
@@ -40,18 +56,20 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, shopId, color_name, hex_value } = body;
+    const { id, shopId, reception_name, display_name, hex_value } = body;
 
     if (!id || !shopId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const updateData: any = {};
+    if (reception_name !== undefined) updateData.reception_name = reception_name.trim();
+    if (display_name !== undefined) updateData.display_name = display_name?.trim() || null;
+    if (hex_value !== undefined) updateData.hex_value = hex_value;
+
     const { data, error } = await supabase
       .from('color_rules')
-      .update({
-        color_name: color_name.toLowerCase().trim(),
-        hex_value,
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('shop_id', shopId)
       .select()

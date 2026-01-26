@@ -5,8 +5,8 @@ import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { QueryClientProvider } from '@/state/QueryClientProvider';
-import { MainLayout } from '@/layout/MainLayout';
 import { IvyLayout } from '@/layout/IvyLayout';
+import { ParametresLayout } from '@/layout/ParametresLayout';
 import { TopNavbar } from '@/components/TopNavbar/TopNavbar';
 import { usePathname } from 'next/navigation';
 
@@ -19,6 +19,7 @@ export function ClientLayout({ theme, children }: ClientLayoutProps) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/onboarding';
   const isIvySection = pathname.startsWith('/ivy');
+  const isParametresPage = pathname.startsWith('/parametres');
 
   return (
     <MantineProvider theme={theme}>
@@ -28,10 +29,12 @@ export function ClientLayout({ theme, children }: ClientLayoutProps) {
           {!isAuthPage && <TopNavbar />}
           {isAuthPage ? (
             children
+          ) : isParametresPage ? (
+            <ParametresLayout>{children}</ParametresLayout>
           ) : isIvySection ? (
             <IvyLayout>{children}</IvyLayout>
           ) : (
-            <MainLayout>{children}</MainLayout>
+            <div style={{ padding: '2rem' }}>{children}</div>
           )}
         </QueryClientProvider>
       </ModalsProvider>
