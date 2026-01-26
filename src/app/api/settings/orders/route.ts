@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       settings: data || {
         printer_notes: [],
         sync_location_ids: [],
+        handling_fee: 0,
       }
     });
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { shopId, printerNotes, syncLocationIds } = body;
+    const { shopId, printerNotes, syncLocationIds, handlingFee } = body;
 
     if (!shopId) {
       return NextResponse.json({ error: 'Missing shopId' }, { status: 400 });
@@ -61,6 +62,10 @@ export async function PUT(request: NextRequest) {
 
     if (syncLocationIds !== undefined) {
       updateData.sync_location_ids = syncLocationIds;
+    }
+
+    if (handlingFee !== undefined) {
+      updateData.handling_fee = handlingFee;
     }
 
     const { data, error } = await supabase

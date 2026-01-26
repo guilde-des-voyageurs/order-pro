@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Title, Text, Paper, Stack, TextInput, Button, Group, ActionIcon, Badge, Loader, Center } from '@mantine/core';
+import { Title, Text, Paper, Stack, TextInput, Button, Group, ActionIcon, Badge, Loader, Center, NumberInput } from '@mantine/core';
 import { IconPlus, IconTrash, IconMapPin } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useShop } from '@/context/ShopContext';
@@ -14,6 +14,7 @@ interface Location {
 interface OrderSettings {
   printer_notes: string[];
   sync_location_ids: string[];
+  handling_fee: number;
 }
 
 export default function CommandesSettingsPage() {
@@ -21,7 +22,7 @@ export default function CommandesSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [orderSettings, setOrderSettings] = useState<OrderSettings>({ printer_notes: [], sync_location_ids: [] });
+  const [orderSettings, setOrderSettings] = useState<OrderSettings>({ printer_notes: [], sync_location_ids: [], handling_fee: 0 });
   const [locations, setLocations] = useState<Location[]>([]);
   const [newPrinterNote, setNewPrinterNote] = useState('');
 
@@ -37,7 +38,7 @@ export default function CommandesSettingsPage() {
       
       if (orderSettingsRes.ok) {
         const data = await orderSettingsRes.json();
-        setOrderSettings(data.settings || { printer_notes: [], sync_location_ids: [] });
+        setOrderSettings(data.settings || { printer_notes: [], sync_location_ids: [], handling_fee: 0 });
       }
       
       if (locationsRes.ok) {
@@ -67,6 +68,7 @@ export default function CommandesSettingsPage() {
           shopId: currentShop.id,
           printerNotes: settings.printer_notes,
           syncLocationIds: settings.sync_location_ids,
+          handlingFee: settings.handling_fee,
         }),
       });
 
@@ -183,6 +185,32 @@ export default function CommandesSettingsPage() {
               Aucun rappel configuré
             </Text>
           )}
+        </Paper>
+
+        {/* Coût de manutention */}
+        <Paper withBorder p="md" radius="md">
+          <Group justify="space-between" mb="md">
+            <div>
+              <Text fw={600}>Coût de manutention</Text>
+              <Text size="sm" c="dimmed">
+                Ce montant sera ajouté à chaque commande dans la facturation
+              </Text>
+            </div>
+          </Group>
+
+          <NumberInput
+            value={orderSettings.handling_fee}
+            onChange={(value) => {
+              const newValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+              saveOrderSettings({ ...orderSettings, handling_fee: newValue });
+            }}
+            suffix=" € HT"
+            decimalScale={2}
+            fixedDecimalScale
+            min={0}
+            step={0.5}
+            w={200}
+          />
         </Paper>
 
         {/* Emplacements à synchroniser */}
