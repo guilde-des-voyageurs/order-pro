@@ -125,12 +125,107 @@ export async function GET(request: NextRequest) {
 
         send(`✓ ${productsToUpsert.length} produits sauvegardés`, 'success');
 
-        // Upsert des variantes
+        // 1. D'abord collecter tous les inventory_item_ids
         send('', 'info');
-        send('📋 Sauvegarde des variantes...', 'info');
+        send('📋 Préparation des variantes...', 'info');
+
+        const inventoryItemIds: number[] = [];
+        const inventoryItemToVariantIndex: Record<string, number[]> = {};
+        
+        let variantIndex = 0;
+        for (const product of allProducts) {
+          const productId = productIdMap[product.id.toString()];
+          if (!productId) continue;
+
+          for (const variant of product.variants || []) {
+            if (variant.inventory_item_id) {
+              inventoryItemIds.push(variant.inventory_item_id);
+              const key = variant.inventory_item_id.toString();
+              if (!inventoryItemToVariantIndex[key]) {
+                inventoryItemToVariantIndex[key] = [];
+              }
+              inventoryItemToVariantIndex[key].push(variantIndex);
+            }
+            variantIndex++;
+          }
+        }
+
+        send(`  └─ ${inventoryItemIds.length} inventory items à récupérer`, 'progress');
+
+        // 2. Récupérer TOUS les coûts depuis inventory_items AVANT l'upsert
+        send('', 'info');
+        send('💰 Récupération des coûts depuis Shopify...', 'info');
+
+        const inventoryItemToCost: Record<string, number> = {};
+        let itemsWithCost = 0;
+        let itemsWithoutCost = 0;
+        const totalBatches = Math.ceil(inventoryItemIds.length / 50);
+        
+        for (let i = 0; i < inventoryItemIds.length; i += 50) {
+          const batchNum = Math.floor(i / 50) + 1;
+          const batch = inventoryItemIds.slice(i, i + 50);
+          
+          send(`  └─ Batch ${batchNum}/${totalBatches} (${batch.length} items)...`, 'progress');
+          
+          // Retry avec backoff exponentiel pour gérer le rate limiting (429)
+          let retries = 0;
+          const maxRetries = 3;
+          let success = false;
+          
+          while (!success && retries <= maxRetries) {
+            // Attendre avant chaque requête (plus longtemps après un retry)
+            const delay = retries === 0 ? 500 : 1000 * Math.pow(2, retries);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            const inventoryResponse = await fetch(
+              `https://${shop.shopify_url}/admin/api/2024-01/inventory_items.json?ids=${batch.join(',')}`,
+              {
+                headers: {
+                  'X-Shopify-Access-Token': shop.shopify_token,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+
+            if (inventoryResponse.ok) {
+              const inventoryData = await inventoryResponse.json();
+              const items = inventoryData.inventory_items || [];
+              
+              for (const item of items) {
+                const cost = item.cost ? parseFloat(item.cost) : 0;
+                inventoryItemToCost[item.id.toString()] = cost;
+                if (cost > 0) {
+                  itemsWithCost++;
+                } else {
+                  itemsWithoutCost++;
+                }
+              }
+              
+              if (items.length < batch.length) {
+                send(`    ⚠️ Reçu ${items.length}/${batch.length} items`, 'warning');
+              }
+              success = true;
+            } else if (inventoryResponse.status === 429) {
+              retries++;
+              if (retries <= maxRetries) {
+                send(`    ⏳ Rate limit, retry ${retries}/${maxRetries}...`, 'warning');
+              } else {
+                send(`    ❌ Batch ${batchNum}: rate limit après ${maxRetries} retries`, 'error');
+              }
+            } else {
+              send(`    ❌ Erreur batch ${batchNum}: ${inventoryResponse.status}`, 'error');
+              break;
+            }
+          }
+        }
+
+        send(`  └─ Total: ${itemsWithCost} avec coût, ${itemsWithoutCost} sans coût`, 'progress');
+
+        // 3. Maintenant créer les variantes AVEC les coûts
+        send('', 'info');
+        send('📋 Sauvegarde des variantes avec coûts...', 'info');
 
         const variantsToUpsert: any[] = [];
-        const inventoryItemIds: number[] = [];
         const inventoryItemToVariantShopifyId: Record<string, string> = {};
 
         for (const product of allProducts) {
@@ -138,6 +233,10 @@ export async function GET(request: NextRequest) {
           if (!productId) continue;
 
           for (const variant of product.variants || []) {
+            // Récupérer le coût depuis notre map
+            const inventoryItemId = variant.inventory_item_id?.toString();
+            const cost = inventoryItemId ? (inventoryItemToCost[inventoryItemId] ?? 0) : 0;
+
             variantsToUpsert.push({
               product_id: productId,
               shopify_id: variant.id.toString(),
@@ -146,66 +245,33 @@ export async function GET(request: NextRequest) {
               option1: variant.option1,
               option2: variant.option2,
               option3: variant.option3,
-              inventory_item_id: variant.inventory_item_id?.toString(),
-              cost: variant.cost ? parseFloat(variant.cost) : 0,
+              inventory_item_id: inventoryItemId,
+              cost: cost,
             });
 
             if (variant.inventory_item_id) {
-              inventoryItemIds.push(variant.inventory_item_id);
               inventoryItemToVariantShopifyId[variant.inventory_item_id.toString()] = variant.id.toString();
             }
           }
         }
 
         // Upsert par batch
+        const variantBatches = Math.ceil(variantsToUpsert.length / 500);
         for (let i = 0; i < variantsToUpsert.length; i += 500) {
+          const batchNum = Math.floor(i / 500) + 1;
           const batch = variantsToUpsert.slice(i, i + 500);
-          await supabase
+          send(`  └─ Batch ${batchNum}/${variantBatches} (${batch.length} variantes)...`, 'progress');
+          
+          const { error } = await supabase
             .from('product_variants')
             .upsert(batch, { onConflict: 'product_id,shopify_id' });
-        }
-
-        send(`✓ ${variantsToUpsert.length} variantes sauvegardées`, 'success');
-
-        // Récupérer les coûts depuis inventory_items
-        send('', 'info');
-        send('💰 Récupération des coûts...', 'info');
-
-        const inventoryItemToCost: Record<string, number> = {};
-        for (let i = 0; i < inventoryItemIds.length; i += 50) {
-          const batch = inventoryItemIds.slice(i, i + 50);
-          const inventoryResponse = await fetch(
-            `https://${shop.shopify_url}/admin/api/2024-01/inventory_items.json?ids=${batch.join(',')}`,
-            {
-              headers: {
-                'X-Shopify-Access-Token': shop.shopify_token,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (inventoryResponse.ok) {
-            const inventoryData = await inventoryResponse.json();
-            for (const item of inventoryData.inventory_items || []) {
-              if (item.cost) {
-                inventoryItemToCost[item.id.toString()] = parseFloat(item.cost);
-              }
-            }
+          
+          if (error) {
+            send(`    ❌ Erreur: ${error.message}`, 'error');
           }
         }
 
-        // Mettre à jour les coûts
-        for (const [inventoryItemId, cost] of Object.entries(inventoryItemToCost)) {
-          const variantShopifyId = inventoryItemToVariantShopifyId[inventoryItemId];
-          if (variantShopifyId) {
-            await supabase
-              .from('product_variants')
-              .update({ cost })
-              .eq('shopify_id', variantShopifyId);
-          }
-        }
-
-        send(`✓ ${Object.keys(inventoryItemToCost).length} coûts mis à jour`, 'success');
+        send(`✓ ${variantsToUpsert.length} variantes sauvegardées avec coûts`, 'success');
 
         // Récupérer les IDs des variantes pour l'inventaire
         const { data: dbVariants } = await supabase
@@ -227,35 +293,63 @@ export async function GET(request: NextRequest) {
         send('📊 Mise à jour des niveaux d\'inventaire...', 'info');
 
         const inventoryToUpsert: any[] = [];
+        const totalLevelBatches = Math.ceil(inventoryItemIds.length / 50);
+        
         for (let i = 0; i < inventoryItemIds.length; i += 50) {
+          const batchNum = Math.floor(i / 50) + 1;
           const batch = inventoryItemIds.slice(i, i + 50);
-          const levelsResponse = await fetch(
-            `https://${shop.shopify_url}/admin/api/2024-01/inventory_levels.json?inventory_item_ids=${batch.join(',')}`,
-            {
-              headers: {
-                'X-Shopify-Access-Token': shop.shopify_token,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (levelsResponse.ok) {
-            const levelsData = await levelsResponse.json();
-            for (const level of levelsData.inventory_levels || []) {
-              const variantUuid = inventoryItemToVariantUuid[level.inventory_item_id.toString()];
-              if (variantUuid) {
-                inventoryToUpsert.push({
-                  variant_id: variantUuid,
-                  location_id: level.location_id.toString(),
-                  quantity: level.available || 0,
-                  synced_at: new Date().toISOString(),
-                });
+          
+          send(`  └─ Batch ${batchNum}/${totalLevelBatches} (${batch.length} items)...`, 'progress');
+          
+          // Retry avec backoff exponentiel pour gérer le rate limiting (429)
+          let retries = 0;
+          const maxRetries = 3;
+          let success = false;
+          
+          while (!success && retries <= maxRetries) {
+            const delay = retries === 0 ? 500 : 1000 * Math.pow(2, retries);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            const levelsResponse = await fetch(
+              `https://${shop.shopify_url}/admin/api/2024-01/inventory_levels.json?inventory_item_ids=${batch.join(',')}`,
+              {
+                headers: {
+                  'X-Shopify-Access-Token': shop.shopify_token,
+                  'Content-Type': 'application/json',
+                },
               }
+            );
+
+            if (levelsResponse.ok) {
+              const levelsData = await levelsResponse.json();
+              for (const level of levelsData.inventory_levels || []) {
+                const variantUuid = inventoryItemToVariantUuid[level.inventory_item_id.toString()];
+                if (variantUuid) {
+                  inventoryToUpsert.push({
+                    variant_id: variantUuid,
+                    location_id: level.location_id.toString(),
+                    quantity: level.available || 0,
+                    synced_at: new Date().toISOString(),
+                  });
+                }
+              }
+              success = true;
+            } else if (levelsResponse.status === 429) {
+              retries++;
+              if (retries <= maxRetries) {
+                send(`    ⏳ Rate limit, retry ${retries}/${maxRetries}...`, 'warning');
+              } else {
+                send(`    ❌ Batch ${batchNum}: rate limit après ${maxRetries} retries`, 'error');
+              }
+            } else {
+              send(`    ❌ Erreur batch ${batchNum}: ${levelsResponse.status}`, 'error');
+              break;
             }
           }
         }
 
         // Upsert inventaire par batch
+        send(`  └─ Sauvegarde de ${inventoryToUpsert.length} niveaux...`, 'progress');
         for (let i = 0; i < inventoryToUpsert.length; i += 500) {
           const batch = inventoryToUpsert.slice(i, i + 500);
           await supabase
