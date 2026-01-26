@@ -107,7 +107,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { shopId, itemId, is_validated, quantity, unit_price, action } = body;
+    const { shopId, itemId, is_validated, is_printed, quantity, unit_price, action } = body;
     const { orderId } = await params;
 
     // Action spéciale : recalculer tous les prix basés sur les coûts actuels
@@ -248,6 +248,11 @@ export async function PUT(
     if (is_validated !== undefined) {
       updateData.is_validated = is_validated;
       updateData.validated_at = is_validated ? new Date().toISOString() : null;
+    }
+    
+    if (is_printed !== undefined) {
+      updateData.is_printed = is_printed;
+      updateData.printed_at = is_printed ? new Date().toISOString() : null;
     }
     
     if (quantity !== undefined) {

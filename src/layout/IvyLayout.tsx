@@ -63,11 +63,6 @@ function IvyLayoutContent({ children }: IvyLayoutProps) {
           label: 'Commandes',
           icon: IconTruck,
         },
-        {
-          href: '/ivy/commandes/stock/impression',
-          label: 'Feuille d\'impression',
-          icon: IconPrinter,
-        },
       ],
     },
   ];

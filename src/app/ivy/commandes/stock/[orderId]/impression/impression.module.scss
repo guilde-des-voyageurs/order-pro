@@ -1,0 +1,26 @@
+.container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.card {
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+
+  &:hover {
+    border-color: var(--mantine-color-blue-4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.validatedCard {
+  background-color: var(--mantine-color-green-0);
+  border: 2px solid var(--mantine-color-green-4);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--mantine-color-green-6);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
